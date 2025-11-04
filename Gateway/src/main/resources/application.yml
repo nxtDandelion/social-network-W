@@ -1,0 +1,55 @@
+server:
+  port: 8000
+
+spring:
+  application:
+    name: gateway
+  cloud:
+    gateway:
+      routes:
+        - id: auth-service
+          uri: http://localhost:8001
+          predicates:
+            - Path=/auth/**
+          filters:
+            - StripPrefix=1
+
+        - id: post-service
+          uri: http://localhost:8002
+          predicates:
+            - Path=/post/**
+          filters:
+            - StripPrefix=1
+
+        - id: profile-service
+          uri: http://localhost:8003
+          predicates:
+            - Path=/profile/**
+          filters:
+            - StripPrefix=1
+
+        - id: search-service
+          uri: http://localhost:8004
+          predicates:
+            - Path=/search/**
+          filters:
+            - StripPrefix=1
+
+# Конфигурация для health checks
+services:
+  auth:
+    url: http://localhost:8001/health
+    name: auth
+  post:
+    url: http://localhost:8002/health
+    name: post
+  profile:
+    url: http://localhost:8003/health
+    name: profile
+  search:
+    url: http://localhost:8004/health
+    name: search
+
+logging:
+  level:
+    com.socialw.gateway: DEBUG
