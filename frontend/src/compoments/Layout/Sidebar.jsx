@@ -1,0 +1,37 @@
+import NavElement from "./NavElement";
+import {ProfileIcon} from "../Icons/ProfileIcon.jsx";
+import {FavoriteIcon} from "../Icons/FavoritesIcon.jsx";
+import {HomeIcon} from "../Icons/HomeIcon.jsx";
+
+const navItems = [
+    {
+        label: "Главная",
+        icon: <HomeIcon/>,
+        isActive: true
+    },
+    {
+        label: "Подписки",
+        icon: <FavoriteIcon/>,
+        isActive: false
+    },
+    {
+        label: "Профиль",
+        icon: <ProfileIcon/>,
+        isActive: false
+    }
+];
+
+export default function Sidebar() {
+    return (
+        <div className="flex flex-col justify-center items-end w-48 h-fit mt-20 py-10 rounded-l-3xl rounded-bl-3xl bg-white border-y-2 border-l-2 border-black">
+            {navItems.map((item, index) => (
+                <NavElement
+                    key={index}
+                    label={item.label}
+                    icon={item.icon}
+                    isActive={item.isActive}
+                />
+            ))}
+        </div>
+    );
+}
