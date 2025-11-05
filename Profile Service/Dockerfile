@@ -7,4 +7,4 @@ COPY . .
 ENV PATH="/app/.venv/bin:$PATH"
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8003"]
 
-# docker run -p 8002:8002 profile  
+# docker run -p 8003:8003 profile
