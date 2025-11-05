@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # Базы данных PostgreSQL
   auth-db:
-    image: postgres:15
+    image: postgres:17
     container_name: auth-postgres
     environment:
       POSTGRES_DB: auth_db
@@ -17,7 +17,7 @@ services:
       - social-network
 
   post-db:
-    image: postgres:15
+    image: postgres:17
     container_name: post-postgres
     environment:
       POSTGRES_DB: post_db
@@ -31,7 +31,7 @@ services:
       - social-network
 
   profile-db:
-    image: postgres:15
+    image: postgres:17
     container_name: profile-postgres
     environment:
       POSTGRES_DB: profile_db
@@ -44,7 +44,7 @@ services:
     networks:
       - social-network
 
-  # Elasticsearch (используем образ из Docker Hub)
+  # Elasticsearch
   elasticsearch:
     image: elasticsearch:8.11.0
     container_name: elasticsearch
