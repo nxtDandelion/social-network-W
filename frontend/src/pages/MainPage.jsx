@@ -3,13 +3,19 @@ import Sidebar from "../compoments/Layout/Sidebar.jsx";
 import Header from "../compoments/Layout/Header.jsx";
 
 export default function MainPage() {
+
+
+    const functionA = (postDate) => {
+        console.log(postDate);
+    }
+
     return (
-        <div className="flex items-start w-[62rem] min-h-screen">
-            <Sidebar/>
-            <div className="flex flex-col">
-                <Header/>
-                <Feed/>
-            </div>
+        <div className="flex flex-col">
+            <Header/>
+            <Feed
+
+                feedFunc={functionA}
+            />
         </div>
     )
 }
