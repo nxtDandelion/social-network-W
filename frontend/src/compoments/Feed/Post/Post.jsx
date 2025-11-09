@@ -4,7 +4,19 @@ import OtherFuncMenu from "./PostComponents/OtherFuncMenu.jsx";
 import {LikeIcon} from "../../Icons/LikeIcon.jsx";
 import {CommentIcon} from "../../Icons/CommentsIcon.jsx";
 
-export default function Post() {
+export default function Post({count,parentCall,postDate,dateBroadcast}) {
+
+    const func = () =>{
+        parentCall(count);
+        console.log("count_Baby", count);
+    }
+
+    const handleClick =() =>{
+
+        dateBroadcast(postDate);
+
+    }
+
     return (
         <div className="flex flex-col max-w-2xl min-h-96">
             <div className="flex justify-between w-2xl  max-h-20 pr-4 pl-4 pt-2 bg-black rounded-t-3xl">
@@ -23,7 +35,7 @@ export default function Post() {
                 <div className="flex w-2/4">
                     <div className="flex w-1/2 items-center ml-3 hover:opacity-80">
                         <LikeIcon/>
-                        <span className="inline-block text-white text-xl font-bold tracking-wider"> 2228</span>
+                        <span className="inline-block text-white text-xl font-bold tracking-wider" onClick={func}> {count}</span>
                     </div >
                     <div className="flex w-1/2 items-center ml-3 hover:opacity-80">
                         <CommentIcon/>
@@ -31,11 +43,14 @@ export default function Post() {
                     </div>
                 </div>
                 <div className="flex w-2/4 justify-end items-center">
-                    <span className="text-base text-[#979797] font-bold tracking-wider mr-4">
-                        Создан 25 мая в 12:37
+                    <span className="text-base text-[#979797] font-bold tracking-wider mr-4" onClick={handleClick}>
+                        {postDate}
                     </span>
                 </div>
             </div>
         </div>
     )
+
+
+
 }
