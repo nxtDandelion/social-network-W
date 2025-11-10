@@ -10,7 +10,7 @@ export default function RegistrationPage() {
             <FormInput formType="password" labelText="Пароль"/>
             <FormInput formType="password" labelText="Подтверждение пароль"/>
 
-            <FormButton text="Зарегестрироваться"></FormButton>
+            <FormButton text="Зарегистрироваться"></FormButton>
         </FormFrame>
     );
 }
