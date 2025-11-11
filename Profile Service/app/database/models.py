@@ -1,6 +1,6 @@
-from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
 from sqlalchemy import Column, Integer, JSON, VARCHAR, \
-    LargeBinary, DateTime, Boolean
+    LargeBinary, DateTime, Boolean, ForeignKey
 from app.database.database import Base
 
 
@@ -8,13 +8,13 @@ class Profile(Base):
     __tablename__ = "profile"
 
     uuid = Column(
-        VARCHAR,
+        VARCHAR(32),
         primary_key=True,
         index=True,
-        autoincrement=True
+        nullable=False
     )
-    username = Column(VARCHAR)
-    email = Column(VARCHAR)
+    username = Column(VARCHAR(24), nullable=False)
+    email = Column(VARCHAR(100))
     photo = Column(LargeBinary)
     subscribers = Column(JSON)
     subscribers_amount = Column(Integer)
@@ -31,10 +31,14 @@ class Comment(Base):
         index=True,
         autoincrement=True
     )
-    text = Column(VARCHAR)
-    post_id = relationship("Post", back_populates="id")
-    profile_id = relationship("profile", back_populates="uuid")
-    create_date = Column(DateTime)
+    text = Column(VARCHAR(100), nullable=False)
+    post_id = Column(Integer, ForeignKey("post.id"), nullable=False)
+    profile_id = Column(
+        VARCHAR(100),
+        ForeignKey("profile.uuid"),
+        nullable=False
+    )
+    create_date = Column(DateTime, server_default=func.now())
     edited = Column(Boolean)
 
 
@@ -44,9 +48,13 @@ class Post(Base):
     id = Column(Integer, primary_key=True,
                 index=True,
                 autoincrement=True)
-    text = Column(VARCHAR)
-    profile_id = relationship("profile", back_populates="uuid")
+    text = Column(VARCHAR(100))
+    profile_id = Column(
+        VARCHAR(100),
+        ForeignKey("profile.uuid"),
+        nullable=False
+    )
     likes_amount = Column(Integer)
-    create_date = Column(DateTime)
+    create_date = Column(DateTime, server_default=func.now())
     edited = Column(Boolean)
     likers = Column(JSON)
