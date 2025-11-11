@@ -5,8 +5,7 @@ from sqlalchemy.orm import sessionmaker
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql+asyncpg://profile_user:profile_password \
-        @profile-db:5432/profile_db"
+    "postgresql+asyncpg://profile_user:profile_password@profile-db:5432/profile_db" # noqa
 )
 
 
