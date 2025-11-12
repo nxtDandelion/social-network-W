@@ -29,6 +29,10 @@ async def db_health(db: AsyncSession = Depends(get_db)):
             detail=f"Database connection failed: {str(e)}"
         )
 
+@app.get("/health")
+async def health():
+    return {"message": "healthy"}
+
 @app.get("/")
 async def root():
     return {"message": "Post Service is running"}
