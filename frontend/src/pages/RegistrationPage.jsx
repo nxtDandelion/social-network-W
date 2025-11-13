@@ -12,6 +12,7 @@ export default function RegistrationPage() {
 
     const [mail, setMail] = useState("");
     const [login, setLogin] = useState("");
+    const [userName, setUserName] = useState("");
     const [password, setPassword] = useState("");
     const [passwordConfirm, setPasswordConfirm] = useState("");
     const [correct, setCorrect] = useState(false)
@@ -28,6 +29,7 @@ export default function RegistrationPage() {
         const loginValidation = loginValid(login);
         const passwordValidation = passwordValid(password);
         const mailValidation = emailValid(mail);
+        const userNameValidation =loginValid(userName);
 
 
         if (loginValidation.isValid && passwordValidation.isValid && mailValidation.isValid) {
@@ -38,7 +40,8 @@ export default function RegistrationPage() {
                 localStorage.setItem("login", login);
                 localStorage.setItem("password", password);
                 setMessage("Все верно,пользователь создан");
-                setCorrect(true)
+                setCorrect(true);
+                navigate("/profile");
             } else {
                 setCorrect(false);
                 setMessage("Пароли не совпадают");
@@ -51,6 +54,9 @@ export default function RegistrationPage() {
             } else if (!mailValidation.isValid) {
                 setMessage(mailValidation.message);
             }
+            else if (!userNameValidation.isValid) {
+                setMessage(userNameValidation.message);
+            }
             setCorrect(false);
         }
     }
@@ -61,8 +67,9 @@ export default function RegistrationPage() {
         <div>
             <MainPage></MainPage>
                 <FormFrame refMessage="Уже есть аккаунт? Войти" path="/login" message="Станьте частью большего!" submitForm={checkForm} onClose={close}>
+                    <FormInput formType="text" labelText="Имя пользователя" formValue={userName} onChange={(e)=>setUserName(e.target.value)} />
                     <FormInput formType="text" labelText="Логин" formValue={login} onChange={(e)=>setLogin(e.target.value)} />
-                    <FormInput formType="mail" labelText="Почта" formValue={mail} onChange={(e)=>setMail(e.target.value)} />
+                    <FormInput formType="mail" labelText="Email" formValue={mail} onChange={(e)=>setMail(e.target.value)} />
                     <FormInput formType="password" labelText="Пароль" formValue={password} onChange={(e)=>setPassword(e.target.value)} />
                     <FormInput formType="password" labelText="Подтверждение пароль" formValue={passwordConfirm} onChange={(e)=>setPasswordConfirm(e.target.value)} />
                     <FormButton text="Зарегестрироваться"></FormButton>

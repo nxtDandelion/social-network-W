@@ -4,16 +4,14 @@ import OtherFuncMenu from "./PostComponents/OtherFuncMenu.jsx";
 import {LikeIcon} from "../../Icons/LikeIcon.jsx";
 import {CommentIcon} from "../../Icons/CommentsIcon.jsx";
 
-export default function Post({count,parentCall,postDate,dateBroadcast}) {
+export default function Post({count,parentCall,postDate}) {
 
     const func = () =>{
         parentCall(count);
         console.log("count_Baby", count);
     }
 
-    const handleClick =() =>{
-
-        dateBroadcast(postDate);
+    const likeHandleClick =() =>{
 
     }
 
@@ -35,15 +33,15 @@ export default function Post({count,parentCall,postDate,dateBroadcast}) {
                 <div className="flex w-2/4">
                     <div className="flex w-1/2 items-center ml-3 hover:opacity-80">
                         <LikeIcon/>
-                        <span className="inline-block text-white text-xl font-bold tracking-wider" onClick={func}> {count}</span>
+                        <button className="inline-block text-white text-xl font-bold tracking-wider" onClick={likeHandleClick}> {count}</button>
                     </div >
                     <div className="flex w-1/2 items-center ml-3 hover:opacity-80">
                         <CommentIcon/>
-                        <span className="inline-block text-white text-xl font-bold tracking-wider"> 2228</span>
+                        <button className="inline-block text-white text-xl font-bold tracking-wider"> 2228</button>
                     </div>
                 </div>
                 <div className="flex w-2/4 justify-end items-center">
-                    <span className="text-base text-[#979797] font-bold tracking-wider mr-4" onClick={handleClick}>
+                    <span className="text-base text-[#979797] font-bold tracking-wider mr-4">
                         {postDate}
                     </span>
                 </div>
