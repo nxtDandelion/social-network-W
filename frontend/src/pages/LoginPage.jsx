@@ -14,7 +14,7 @@ export default function LoginPage({currentPage}) {
     const navigate = useNavigate();
     const rightValue = {rightPas:"Alex",rightLog:"Alex"}
 
-    const {redirectPath,setAuth} = useContext(AuthContext);
+    const {setAuth} = useContext(AuthContext);
     const [login,  setLogin] = useState("")
     const [password,setPassword] = useState("")
     const [correct,setCorrect] = useState(false)
@@ -24,33 +24,28 @@ export default function LoginPage({currentPage}) {
         navigate(-1);
     }
 
-
-
     const checkForm = () => {
-
         const loginValidation = loginValid(login);
         const passwordValidation = passwordValid(password);
         const serverLogin = localStorage.getItem('login');
         const serverPassword = localStorage.getItem('password');
-
 
         if (loginValidation.isValid && passwordValidation.isValid) {
             console.log("Данные валидный",login, password);
             if (serverLogin===login && serverPassword===password) {
                 localStorage.setItem("auth","true");
                 setAuth(true);
-
                 setCorrect(true);
 
                 setMessage("Вход успешен");
                 setTimeout(() => {
-                    navigate("/home");
+                    navigate("/profile");
                 },1000)
 
             }
             else{
                 setCorrect(false);
-                setMessage("Не верные данные");
+                setMessage("Неверное имя пользователя или пароль");
             }
         }
         else{
@@ -72,10 +67,7 @@ export default function LoginPage({currentPage}) {
 
                     <FormButton text="Войти"></FormButton>
                     {message && <FormMes text={message} type={correct ? "message" : "error"}/>}
-
-
                 </FormFrame>
-
         </div>
     )
 }
