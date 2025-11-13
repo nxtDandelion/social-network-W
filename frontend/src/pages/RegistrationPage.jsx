@@ -72,7 +72,7 @@ export default function RegistrationPage() {
                     <FormInput formType="mail" labelText="Email" formValue={mail} onChange={(e)=>setMail(e.target.value)} />
                     <FormInput formType="password" labelText="Пароль" formValue={password} onChange={(e)=>setPassword(e.target.value)} />
                     <FormInput formType="password" labelText="Подтверждение пароль" formValue={passwordConfirm} onChange={(e)=>setPasswordConfirm(e.target.value)} />
-                    <FormButton text="Зарегестрироваться"></FormButton>
+                    <FormButton text="Зарегистрироваться"></FormButton>
                     {message && <FormMes text={message} type={correct ? "message" : "error"}/>}
                 </FormFrame>
 
