@@ -6,7 +6,7 @@ import LoginPage from "./LoginPage.jsx";
 export default function profilePage(){
     return(
         <div className="profile-page">
-            <LoginPage />
+
         </div>
     )
 }
