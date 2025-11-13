@@ -4,7 +4,9 @@ from typing import Optional
 
 
 class UserBase(BaseModel):
-    login: str = Field(..., min_length=3, max_length=24, description="Username")
+    username: str = Field(..., min_length=3, max_length=24, description="Username")
+    email: EmailStr = Field(..., description="Email address")
+    login: str = Field(..., min_length=3, max_length=24, description="login")
     role: str = Field(default="user", description="User role")
 
 class TimestampMixin(BaseModel):
@@ -14,11 +16,12 @@ class TimestampMixin(BaseModel):
 class UUIDMixin(BaseModel):
     uuid: str = Field(..., min_length=32, max_length=32, description="User UUID")
 
-
 class UserCreate(UserBase):
     password: str = Field(..., min_length=6, max_length=128, description="Password")
 
 class UserUpdate(BaseModel):
+    username: Optional[str] = Field(None, min_length=3, max_length=24)
+    email: Optional[EmailStr] = None
     login: Optional[str] = Field(None, min_length=3, max_length=24)
     password: Optional[str] = Field(None, min_length=6, max_length=128)
     role: Optional[str] = Field(None, description="User role")
@@ -41,3 +44,9 @@ class TokenResponse(BaseModel):
 class RefreshToken(BaseModel):
     refresh_token: str = Field(..., description="Refresh token")
     ip: str = Field(..., description="Client IP address")
+
+class TokenPayload(BaseModel):
+    sub: str
+    login: str
+    role: str
+    exp: int
