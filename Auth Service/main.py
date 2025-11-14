@@ -1,14 +1,13 @@
 from fastapi import FastAPI, Depends, HTTPException, status, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
-from database import get_db
+from database import get_db, lifespan
 import schemas
 import uvicorn
-import utils
 import security
 import crud
 
-app = FastAPI(title="Auth Service", lifespan=utils.lifespan)
+app = FastAPI(title="Auth Service", lifespan=lifespan)
 
 @app.get("/")
 async def root():
@@ -16,6 +15,10 @@ async def root():
 
 @app.post("/register", response_model=schemas.UserResponse)
 async def register(user: schemas.UserCreate, db: AsyncSession = Depends(get_db)):
+    db_user = await crud.UserCRUD.get_user_by_username(db, user.username)
+    if db_user:
+        raise HTTPException(status_code=400, detail="Username already registered")
+
     db_user = await crud.UserCRUD.get_user_by_login(db, user.login)
     if db_user:
         raise HTTPException(status_code=400, detail="Login already registered")
