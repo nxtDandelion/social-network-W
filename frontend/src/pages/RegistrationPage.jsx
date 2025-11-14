@@ -3,40 +3,40 @@ import FormButton from "../compoments/Form/FormButton.jsx";
 import FormFrame from "../compoments/Form/FormFrame.jsx";
 import MainPage from "./MainPage.jsx";
 import {Navigate, useNavigate} from "react-router-dom";
-import {useState} from "react";
-import {emailValid, loginValid, passwordValid} from "../assets/validation.js";
+import {useEffect, useState} from "react";
+import {emailValid, lenghtCheck, loginValid, passwordValid} from "../assets/validation.js";
 import FormMes from "../compoments/Form/FormMes.jsx";
 
 
 export default function RegistrationPage() {
 
+
+    const [timeToClose, setTimeToClose] = useState(true);
     const [mail, setMail] = useState("");
     const [login, setLogin] = useState("");
     const [userName, setUserName] = useState("");
     const [password, setPassword] = useState("");
     const [passwordConfirm, setPasswordConfirm] = useState("");
-    const [correct, setCorrect] = useState(false)
-    const [message, setMessage] = useState("")
+    const [correct, setCorrect] = useState(false);
+    const [message, setMessage] = useState("");
+    const [isActive, setIsActive] = useState(false);
 
     const navigate = useNavigate();
 
     const close = () => {
         navigate(-1);
     }
-
     const checkForm = () => {
-
         const loginValidation = loginValid(login);
         const passwordValidation = passwordValid(password);
         const mailValidation = emailValid(mail);
-        const userNameValidation =loginValid(userName);
+        const userNameValidation = loginValid(userName);
 
+        if (userNameValidation.isValid&&loginValidation.isValid && passwordValidation.isValid && mailValidation.isValid) {
 
-        if (loginValidation.isValid && passwordValidation.isValid && mailValidation.isValid) {
-            console.log("Все данные валидны")
+            console.log("Все данные валидны");
             if (password === passwordConfirm) {
-
-                console.log("Пароли совпадают")
+                console.log("Пароли совпадают");
                 localStorage.setItem("login", login);
                 localStorage.setItem("password", password);
                 setMessage("Все верно,пользователь создан");
@@ -44,36 +44,57 @@ export default function RegistrationPage() {
                 navigate("/profile");
             } else {
                 setCorrect(false);
+                setTimeToClose(true);
                 setMessage("Пароли не совпадают");
             }
         } else {
             if (!loginValidation.isValid) {
+                setTimeToClose(true);
                 setMessage(loginValidation.message);
             } else if (!passwordValidation.isValid) {
+                setTimeToClose(true);
                 setMessage(passwordValidation.message);
             } else if (!mailValidation.isValid) {
+                setTimeToClose(true);
                 setMessage(mailValidation.message);
-            }
-            else if (!userNameValidation.isValid) {
+            } else if (!userNameValidation.isValid) {
+                setTimeToClose(true);
                 setMessage(userNameValidation.message);
             }
             setCorrect(false);
         }
+
     }
 
+    useEffect(() => {
+        if (lenghtCheck(login) && lenghtCheck(password) && lenghtCheck(mail) && lenghtCheck(userName) && lenghtCheck(passwordConfirm)) {
+            setIsActive(true);
+        } else {
+            setIsActive(false);
 
+        }
+    }, [mail, login, password, passwordConfirm, userName]);
 
+    useEffect(() => {
+
+        const timer = setTimeout(() => {
+            setTimeToClose(false);
+            }, 2000);
+
+        return () => clearTimeout(timer);
+    }, [timeToClose]);
     return (
         <div>
             <MainPage></MainPage>
                 <FormFrame refMessage="Уже есть аккаунт? Войти" path="/login" message="Станьте частью большего!" submitForm={checkForm} onClose={close}>
-                    <FormInput formType="text" labelText="Имя пользователя" formValue={userName} onChange={(e)=>setUserName(e.target.value)} />
-                    <FormInput formType="text" labelText="Логин" formValue={login} onChange={(e)=>setLogin(e.target.value)} />
-                    <FormInput formType="mail" labelText="Email" formValue={mail} onChange={(e)=>setMail(e.target.value)} />
-                    <FormInput formType="password" labelText="Пароль" formValue={password} onChange={(e)=>setPassword(e.target.value)} />
-                    <FormInput formType="password" labelText="Подтверждение пароль" formValue={passwordConfirm} onChange={(e)=>setPasswordConfirm(e.target.value)} />
-                    <FormButton text="Зарегистрироваться"></FormButton>
-                    {message && <FormMes text={message} type={correct ? "message" : "error"}/>}
+                    <FormInput  hintText={"Допустимы: [a-z,1-9,0,_]"}  formType="text" labelText="Имя пользователя" formValue={userName} onChange={(e)=>setUserName(e.target.value)} />
+                    <FormInput  hintText={"Допустимы: [a-z,1-9,0,_]"} formType="text" labelText="Логин" type={login} onChange={(e)=>setLogin(e.target.value)} />
+                    <FormInput  hintText={"Пример: name@example.com"}  formType="mail" labelText="Email" formValue={mail} onChange={(e)=>setMail(e.target.value)} />
+                    <FormInput  hintText={"Допустимы: [a-z,1-9,0,_,!,@,#,$,_,*,&,%]"}  formType="password" labelText="Пароль" formValue={password} onChange={(e)=>setPassword(e.target.value)} />
+                    <FormInput  hintText={"Повторите пароль"}  formType="password" labelText="Подтверждение пароль" formValue={passwordConfirm} onChange={(e)=>setPasswordConfirm(e.target.value)} />
+
+                    <FormButton status={isActive} text="Зарегистрироваться"></FormButton>
+                    {message && timeToClose && <FormMes text={message} type={correct ? "message" : "error"}/>}
                 </FormFrame>
 
 
