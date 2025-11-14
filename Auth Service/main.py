@@ -120,5 +120,9 @@ async def db_health(db: AsyncSession = Depends(get_db)):
 async def health():
     return {"message": "healthy"}
 
+@app.get("/")
+async def root():
+    return {"message": "Auth Service is running"}
+
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8001)

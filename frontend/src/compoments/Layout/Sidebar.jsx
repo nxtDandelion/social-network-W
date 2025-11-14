@@ -25,14 +25,12 @@ const navItems = [
 export default function Sidebar() {
     return (
         <div className="flex flex-col justify-center items-end w-48 h-fit mt-20 py-10 rounded-l-3xl rounded-bl-3xl bg-white border-y-2 border-l-2 border-black">
-            {navItems.map((item) => (
+            {navItems.map((item,index) => (
                 <NavElement
+                    key={index}
                     label={item.label}
                     icon={item.icon}
-
                     path={item.path}
-
-                    // Передаем функцию навигации
                 />
             ))}
         </div>
