@@ -5,10 +5,11 @@ from fastapi import FastAPI
 from sqlalchemy import text
 from contextlib import asynccontextmanager
 import models
+import rabbitmq
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql+asyncpg://auth_user:auth_password@auth-db:5432/auth_db"
+    "postgresql+asyncpg://auth_user:auth_password@localhost:5432/auth_db"
 )
 
 engine = create_async_engine(DATABASE_URL, echo=True)
@@ -44,9 +45,12 @@ async def wait_for_db():
 async def lifespan(app: FastAPI):
     print("Waiting for database connection...")
     await wait_for_db()
+    await rabbitmq.rabbitmq_service.connect()
     async with engine.begin() as conn:
         await conn.run_sync(models.Base.metadata.create_all)
-    print("Database tables created successfully")
     yield
     await engine.dispose()
-    print("Database connection closed")
+    await rabbitmq.rabbitmq_service.close()
+
+def get_rabbitmq() -> rabbitmq.RabbitMqService:
+    return rabbitmq.rabbitmq_service
