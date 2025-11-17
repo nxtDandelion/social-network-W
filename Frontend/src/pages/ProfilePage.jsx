@@ -42,7 +42,7 @@ export default function profilePage({avatar,subscribes,followers,cureLogin,cureP
         <div className="flex flex-col">
             <div className="flex  justify-between items-center px-12 gap-8 w-full h-20 bg-black rounded-t-[40px]">
                 <SearchIcon/>
-                <button className="text-white underline hover:opacity-60" onClick={editProf}> Редактрировать</button>
+                <button className="text-white underline hover:opacity-60" onClick={editProf}> Редактировать</button>
             </div>
             <div className=" relative  flex flex-col items-center w-full  max-w-[62rem] min-h-screen bg-white border-r-2 border-l-2 border-black">
                 <div className=" h-56 w-full max-w-[62rem] bg-[#D9D9D9]"></div>
