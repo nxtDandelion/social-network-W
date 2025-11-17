@@ -3,12 +3,13 @@ import {createContext, useState, useContext, useEffect, useMemo} from "react";
 export const AuthContext = createContext();
 
 export const AuthProvider =({children}) =>{
-    const [auth, setAuth] = useState(false)
+    const [auth, setAuth] = useState(false);
+    const [showLog,setShowLog] = useState(false)
     const [redirectPath, setRedirectPath] = useState();
     const [showLogin, setShowLogin] = useState(false);
 
 
-    useEffect((auth) => {
+    useEffect(() => {
        const savedAuth = localStorage.getItem('auth');
        if(savedAuth){setAuth(true)}
     },[auth])
@@ -20,8 +21,10 @@ export const AuthProvider =({children}) =>{
             redirectPath,
             setRedirectPath,
             showLogin,
-            setShowLogin
-        }), [auth, redirectPath, showLogin]); // Зависимости
+            setShowLogin,
+            setShowLog,
+            showLog
+        }), [auth, redirectPath, showLogin,showLog]); // Зависимости
 
     return (
         <AuthContext.Provider value={contextValue}>

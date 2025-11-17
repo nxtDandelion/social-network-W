@@ -18,14 +18,14 @@ export default function NavElement({label,icon,path}) {
                 navigate("/login");
             }
         }
-
         else {
             console.log("я авторизирован go to");
-            navigate(path)}
+            navigate(path)
+        }
     }
 
     return (
-        <div className={`flex items-end w-36 mb-3 border-b-2 border-black hover:opacity-50 cursor-pointer ${(location.pathname === path) ? 'w-40' : 'text-black'}`}>
+        <div className={`flex items-end w-36 mb-3 border-b-2 border-black hover:opacity-50 cursor-pointer ${(location.pathname === path || location.pathname === "/") ? 'w-40' : 'text-black'}`}>
             <button>
                 <a onClick={goTo} className="flex  text-black hover:text-black font-bold tracking-wider" href={path}> {label} {icon}</a>
             </button>
