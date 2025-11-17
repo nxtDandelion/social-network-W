@@ -6,6 +6,8 @@ import {Navigate, useNavigate} from "react-router-dom";
 import {useEffect, useState} from "react";
 import {emailValid, lenghtCheck, loginValid, passwordValid} from "../assets/validation.js";
 import FormMes from "../components/FormComponents/FormMes.jsx";
+import axios from "axios";
+import {API_BASE_URL} from "../config.js";
 
 
 export default function RegistrationPage() {
@@ -20,28 +22,69 @@ export default function RegistrationPage() {
     const [correct, setCorrect] = useState(false);
     const [message, setMessage] = useState("");
     const [isActive, setIsActive] = useState(false);
-
     const navigate = useNavigate();
+
+    useEffect(() => {
+        if (lenghtCheck(login) && lenghtCheck(password) && lenghtCheck(mail) && lenghtCheck(userName) && lenghtCheck(passwordConfirm)) {
+            setIsActive(true);
+
+        } else {
+            setIsActive(false);
+        }
+    }, [mail, login, password, passwordConfirm, userName]);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setTimeToClose(false);
+        }, 2000);
+        return () => clearTimeout(timer);
+    }, [timeToClose]);
+
+
+    const responseReg = async (login, userName, mail, password) => {
+        try {
+            const response = await axios.post(`${API_BASE_URL}/auth/register`, {
+                username: userName,
+                email: mail,
+                login: login,
+                role: "user",
+                password: password
+            });
+            console.log("все верно");
+            return true;
+
+
+        } catch (error) {
+            console.error("Ошибка при регистрации:", error.response?.data || error.message);
+            setTimeToClose(true);
+            setMessage(error.response.data.detail);
+            console.log(error.response.data.detail);
+            return false;
+        }
+    };
 
     const close = () => {
         navigate(-1);
     }
-    const checkForm = () => {
+
+    const checkForm = async () => {
         const loginValidation = loginValid(login);
         const passwordValidation = passwordValid(password);
         const mailValidation = emailValid(mail);
         const userNameValidation = loginValid(userName);
 
         if (userNameValidation.isValid&&loginValidation.isValid && passwordValidation.isValid && mailValidation.isValid) {
-
             console.log("Все данные валидны");
             if (password === passwordConfirm) {
-                console.log("Пароли совпадают");
-                localStorage.setItem("login", login);
-                localStorage.setItem("password", password);
-                setMessage("Все верно,пользователь создан");
-                setCorrect(true);
-                navigate("/profile");
+                const response =  await responseReg(login, userName, mail, password);
+                if (response){
+                    setCorrect(true);
+                    console.log("Пароли совпадают");
+                    setMessage("Все верно,пользователь создан");
+                    navigate(-1);
+                }
+                else
+                    console.log("Ошибка");
             } else {
                 setCorrect(false);
                 setTimeToClose(true);
@@ -66,23 +109,7 @@ export default function RegistrationPage() {
 
     }
 
-    useEffect(() => {
-        if (lenghtCheck(login) && lenghtCheck(password) && lenghtCheck(mail) && lenghtCheck(userName) && lenghtCheck(passwordConfirm)) {
-            setIsActive(true);
-        } else {
-            setIsActive(false);
 
-        }
-    }, [mail, login, password, passwordConfirm, userName]);
-
-    useEffect(() => {
-
-        const timer = setTimeout(() => {
-            setTimeToClose(false);
-            }, 2000);
-
-        return () => clearTimeout(timer);
-    }, [timeToClose]);
     return (
         <div>
             <MainPage></MainPage>
