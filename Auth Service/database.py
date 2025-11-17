@@ -1,18 +1,14 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 import os
-from fastapi import FastAPI
 from sqlalchemy import text
-from contextlib import asynccontextmanager
-import models
-import rabbitmq
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
     "postgresql+asyncpg://auth_user:auth_password@localhost:5432/auth_db"
 )
 
-engine = create_async_engine(DATABASE_URL, echo=True)
+engine = create_async_engine(DATABASE_URL, echo=False)
 AsyncSessionLocal = sessionmaker(
     bind=engine,
     class_=AsyncSession,
@@ -40,17 +36,3 @@ async def wait_for_db():
                 await asyncio.sleep(retry_delay)
     raise Exception("Could not connect to database after multiple attempts")
 
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    print("Waiting for database connection...")
-    await wait_for_db()
-    await rabbitmq.rabbitmq_service.connect()
-    async with engine.begin() as conn:
-        await conn.run_sync(models.Base.metadata.create_all)
-    yield
-    await engine.dispose()
-    await rabbitmq.rabbitmq_service.close()
-
-def get_rabbitmq() -> rabbitmq.RabbitMqService:
-    return rabbitmq.rabbitmq_service

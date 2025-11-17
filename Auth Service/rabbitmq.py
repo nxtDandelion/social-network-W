@@ -1,5 +1,6 @@
 import logging
 import aio_pika
+import json
 
 class RabbitMqService:
     def __init__(self):
@@ -17,12 +18,28 @@ class RabbitMqService:
                 virtualhost='/',
             )
             self.channel = await self.connection.channel()
-            await self.channel.declare_queue('auth_queue', durable=True)
+            await self.channel.declare_queue('auth_events', durable=True)
+            await self.channel.declare_queue('auth_commands', durable=True)
             self.is_connected = True
             logging.info("Connected to RabbitMQ")
         except Exception as e:
             logging.error(f"Failed to connect to RabbitMQ: {e}")
             raise
+
+    async def start_consuming(self, queue_name: str, callback):
+        queue = await self.channel.declare_queue(queue_name, durable=True)
+
+        async def message_wrapper(message: aio_pika.IncomingMessage):
+            async with message.process():
+                try:
+                    data = json.loads(message.body.decode())
+                    await callback(data)
+                except Exception as e:
+                    print(f"Error processing message: {e}")
+                    await message.reject(requeue=False)
+
+        await queue.consume(message_wrapper)
+        print(f"Started consuming from {queue_name}")
 
     async def close(self):
         if self.connection:
@@ -35,10 +52,13 @@ class RabbitMqService:
             message = aio_pika.Message(body=user_event.to_json().encode(),
                                        delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
                                        content_type='application/json')
-            await self.channel.default_exchange.publish(message, routing_key='auth_queue', mandatory=True)
+            await self.channel.default_exchange.publish(message, routing_key='auth_events', mandatory=True)
             logging.info(f"Sent user register {user_event.username}")
         except Exception as e:
             logging.error(f"Failed to send user register message: {e}")
             raise
+
+def get_rabbitmq():
+    return RabbitMqService()
 
 rabbitmq_service = RabbitMqService()
