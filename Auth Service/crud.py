@@ -54,6 +54,21 @@ class UserCRUD:
         return result.scalar_one_or_none()
 
     @staticmethod
+    async def update_profile(db: AsyncSession, user_uuid: str, user_update: schemas.UserUpdate) -> models.User:
+        update_data = user_update.model_dump(exclude_unset=True)
+        if 'password' in update_data:
+            update_data['password'] = security.get_password_hash(update_data['password'])
+        if update_data:
+            query = update(models.User).where(
+                models.User.uuid == user_uuid
+            ).values(**update_data)
+            await db.execute(query)
+            await db.commit()
+            return await UserCRUD.get_user_by_uuid(db, user_uuid)
+        return None
+
+
+    @staticmethod
     async def authenticate_user(db: AsyncSession, login: str, password: str) -> models.User:
         user = await UserCRUD.get_user_by_login(db, login)
         if not user:
