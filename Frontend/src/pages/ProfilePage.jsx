@@ -29,6 +29,15 @@ export default function profilePage({avatar,subscribes,followers,cureLogin,cureP
         console.log('форма отправилась');
     }
 
+    /**
+     * @param {React.ChangeEvent<HTMLInputElement>} e
+     */
+    const changeFunction = (e) => {
+        setUserLogin(e.target.value);
+
+
+    };
+
     return(
         <div className="flex flex-col">
             <div className="flex  justify-between items-center px-12 gap-8 w-full h-20 bg-black rounded-t-[40px]">
@@ -57,11 +66,11 @@ export default function profilePage({avatar,subscribes,followers,cureLogin,cureP
 
 
             {showEdit &&
-                <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-80">
+                <div className="fixed inset-0 flex justify-center items-center bg-black opacity-80">
 
                     <form onSubmit={handleSubmit} className="   bg-white  w-fit h-fit p-6 rounded-[40px]">
-                        <FormInput  value={userName}  formType="text" labelText="Имя пользователя" formValue={userName} onChange={(e)=>setUserName(e.target.value)} />
-                        <FormInput  value={userLogin}  formType="text" labelText="Логин" formValue={userLogin} onChange={(e)=>setUserLogin(e.target.value)} />
+                        <FormInput  value={userName}  formType="text" labelText="Имя пользователя" formValue={userName}  onChange={(e)=>setUserName(e.target.value)}  />
+                        <FormInput  value={userLogin}  formType="text" labelText="Логин" formValue={userLogin} onChange={(e)=> setUserLogin(e.target.value)} />
                         <FormInput  value={userMail}   formType="mail" labelText="Email" formValue={userMail} onChange={(e)=>setUserMail(e.target.value)} />
                         <FormInput  value={userPassword}   formType="password" labelText="Пароль" formValue={userPassword} onChange={(e)=>setUserPassword(e.target.value)} />
                         <FormInput  value={userPassword}   formType="password" labelText="Подтверждение пароль" formValue={userPasswordConfirm} onChange={(e)=>setPasswordConfirm(e.target.value)} />
