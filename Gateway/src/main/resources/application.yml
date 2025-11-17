@@ -6,6 +6,24 @@ spring:
     name: gateway-docker
   cloud:
     gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowed-origins:
+              - "http://localhost:5173"
+            allowed-methods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+              - PATCH
+            allowed-headers:
+              - "*"
+            exposed-headers:
+              - "*"
+            allow-credentials: true
+            max-age: 3600
       routes:
         - id: auth-service
           uri: ${GATEWAY_AUTH_URL:http://auth-service:8001}

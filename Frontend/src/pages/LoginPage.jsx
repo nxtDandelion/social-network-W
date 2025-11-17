@@ -1,15 +1,16 @@
+import axios from "axios";
 import FormInput from "../components/FormComponents/FormInput.jsx";
 import FormButton from "../components/FormComponents/FormButton.jsx";
 import FormFrame from "../components/FormComponents/FormFrame.jsx";
-import {Navigate, useNavigate} from "react-router-dom";
+import {useNavigate} from "react-router-dom";
 import MainPage from "./MainPage.jsx";
 import {useContext, useEffect, useState} from "react";
 import {AuthContext} from "../authcontext.jsx";
 import FormMes from "../components/FormComponents/FormMes.jsx";
 import {lenghtCheck, loginValid, passwordValid} from "../assets/validation.js";
+import {API_BASE_URL} from "../config.js";
 
 export default function LoginPage() {
-
     const navigate = useNavigate();
     const {setAuth} = useContext(AuthContext);
     const [timeToClose, setTimeToClose] = useState(true);
@@ -19,19 +20,57 @@ export default function LoginPage() {
     const [message, setMessage] = useState("");
     const [isActive, setIsActive] = useState(false);
 
+    useEffect(() => {
+        if (lenghtCheck(login) && lenghtCheck(password)) {
+            setIsActive(true);
+        } else {
+            setIsActive(false);
+        }
+    }, [login, password]);
+
+    useEffect(() => {
+
+        const timer = setTimeout(() => {
+            setTimeToClose(false);
+        }, 2000);
+
+        return () => clearTimeout(timer);
+    }, [timeToClose]);
+
     const close = () => {
         navigate(-1);
     }
 
-    const checkForm = () => {
+    const responseLog = async (login,password) =>{
+
+        try {
+            const response = await axios.post(`${API_BASE_URL}/auth/login`,{
+                login: login,
+                password: password,
+                ip:"string"
+            });
+            const {access_token,refresh_token,token_type} = response.data;
+            console.log("Запрос на вход успешен");
+            localStorage.setItem("access_token",access_token);
+            localStorage.setItem("refresh_token",refresh_token);
+            return true
+        }
+        catch (error){
+            console.error("Ошибка при регистрации:", error.response?.data || error.message);
+            setMessage(error.response.data.detail);
+            console.log(error.response.data.detail);
+            return false;
+        }
+    }
+
+    const checkForm = async () => {
         const loginValidation = loginValid(login);
         const passwordValidation = passwordValid(password);
-        const serverLogin = localStorage.getItem('login');
-        const serverPassword = localStorage.getItem('password');
-
         if (loginValidation.isValid && passwordValidation.isValid) {
             console.log("Данные валидны",login, password);
-            if (serverLogin===login && serverPassword===password) {
+
+            const response = await responseLog(login,password);
+            if (response) {
                 localStorage.setItem("auth","true");
                 setAuth(true);
                 setCorrect(true);
@@ -52,23 +91,6 @@ export default function LoginPage() {
            setMessage("Неверное имя пользователя или пароль");
         }
     }
-
-    useEffect(() => {
-        if (lenghtCheck(login) && lenghtCheck(password)) {
-            setIsActive(true);
-        } else {
-            setIsActive(false);
-        }
-    }, [login, password]);
-
-    useEffect(() => {
-
-        const timer = setTimeout(() => {
-            setTimeToClose(false);
-        }, 2000);
-
-        return () => clearTimeout(timer);
-    }, [timeToClose]);
 
     return (
         <div>
