@@ -1,4 +1,4 @@
-import SearchPanel from "../Feed/SearchPanel.jsx";
+import SearchPanel from ".//SearchPanel.jsx";
 import CreatePostBtn from "./CreatePostBtn.jsx";
 import {SearchIcon} from "../Icons/SearchIcon.jsx";
 
