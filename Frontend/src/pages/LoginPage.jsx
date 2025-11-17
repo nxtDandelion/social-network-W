@@ -1,11 +1,11 @@
-import FormInput from "../compoments/Form/FormInput.jsx";
-import FormButton from "../compoments/Form/FormButton.jsx";
-import FormFrame from "../compoments/Form/FormFrame.jsx";
+import FormInput from "../components/FormComponents/FormInput.jsx";
+import FormButton from "../components/FormComponents/FormButton.jsx";
+import FormFrame from "../components/FormComponents/FormFrame.jsx";
 import {Navigate, useNavigate} from "react-router-dom";
 import MainPage from "./MainPage.jsx";
 import {useContext, useEffect, useState} from "react";
 import {AuthContext} from "../authcontext.jsx";
-import FormMes from "../compoments/Form/FormMes.jsx";
+import FormMes from "../components/FormComponents/FormMes.jsx";
 import {lenghtCheck, loginValid, passwordValid} from "../assets/validation.js";
 
 export default function LoginPage() {

@@ -1,11 +1,11 @@
-import FormInput from "../compoments/Form/FormInput.jsx";
-import FormButton from "../compoments/Form/FormButton.jsx";
-import FormFrame from "../compoments/Form/FormFrame.jsx";
+import FormInput from "../components/FormComponents/FormInput.jsx";
+import FormButton from "../components/FormComponents/FormButton.jsx";
+import FormFrame from "../components/FormComponents/FormFrame.jsx";
 import MainPage from "./MainPage.jsx";
 import {Navigate, useNavigate} from "react-router-dom";
 import {useEffect, useState} from "react";
 import {emailValid, lenghtCheck, loginValid, passwordValid} from "../assets/validation.js";
-import FormMes from "../compoments/Form/FormMes.jsx";
+import FormMes from "../components/FormComponents/FormMes.jsx";
 
 
 export default function RegistrationPage() {
