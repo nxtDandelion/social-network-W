@@ -2,10 +2,11 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 import os
 from sqlalchemy import text
+import asyncio
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql+asyncpg://auth_user:auth_password@localhost:5432/auth_db"
+    "postgresql+asyncpg://auth_user:auth_password@auth-db:5432/auth_db"
 )
 
 engine = create_async_engine(DATABASE_URL, echo=False)

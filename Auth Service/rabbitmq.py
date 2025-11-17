@@ -1,6 +1,8 @@
 import logging
 import aio_pika
 import json
+from database import AsyncSessionLocal
+from handlers import handle_profile_update
 
 class RabbitMqService:
     def __init__(self):
@@ -11,7 +13,7 @@ class RabbitMqService:
     async def connect(self):
         try:
             self.connection = await aio_pika.connect_robust(
-                host='localhost',
+                host='rabbitmq',
                 port=5672,
                 login='guest',
                 password='guest',
@@ -32,11 +34,14 @@ class RabbitMqService:
         async def message_wrapper(message: aio_pika.IncomingMessage):
             async with message.process():
                 try:
-                    data = json.loads(message.body.decode())
-                    await callback(data)
+                    body = message.body.decode()
+                    data = json.loads(body)
+                    print(f"Received message: {data}")
+                    async with AsyncSessionLocal() as db:
+                        await handle_profile_update(data, db)
+
                 except Exception as e:
                     print(f"Error processing message: {e}")
-                    await message.reject(requeue=False)
 
         await queue.consume(message_wrapper)
         print(f"Started consuming from {queue_name}")
