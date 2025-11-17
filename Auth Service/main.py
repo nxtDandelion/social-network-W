@@ -1,11 +1,32 @@
 from fastapi import FastAPI, Depends, HTTPException, status, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
-from database import get_db, lifespan
+from database import get_db, wait_for_db, engine
+from contextlib import asynccontextmanager
 import schemas
 import uvicorn
+import models
+import handlers
 import security
 import crud
+import rabbitmq
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("Waiting for database connection...")
+    await wait_for_db()
+    await rabbitmq.rabbitmq_service.connect()
+
+    async with engine.begin() as conn:
+        await conn.run_sync(models.Base.metadata.create_all)
+
+    await rabbitmq.rabbitmq_service.start_consuming(
+        'auth_commands',
+        handlers.handle_profile_update
+    )
+    yield
+    await engine.dispose()
+    await rabbitmq.rabbitmq_service.close()
 
 app = FastAPI(title="Auth Service", lifespan=lifespan)
 
@@ -14,7 +35,9 @@ async def root():
     return {"message": "Auth Service is running"}
 
 @app.post("/register", response_model=schemas.UserResponse)
-async def register(user: schemas.UserCreate, db: AsyncSession = Depends(get_db)):
+async def register(user: schemas.UserCreate,
+                   db: AsyncSession = Depends(get_db),
+                   rabbit_mq: rabbitmq.RabbitMqService = Depends(rabbitmq.get_rabbitmq)):
     db_user = await crud.UserCRUD.get_user_by_username(db, user.username)
     if db_user:
         raise HTTPException(status_code=400, detail="Username already registered")
@@ -28,6 +51,14 @@ async def register(user: schemas.UserCreate, db: AsyncSession = Depends(get_db))
         raise HTTPException(status_code=400, detail="Email already registered")
 
     new_user = await crud.UserCRUD.create_user(db, user)
+
+    user_event = schemas.UserRegisteredEvent(
+        uuid = new_user.uuid,
+        username=new_user.username,
+        email=new_user.email,
+    )
+    await rabbit_mq.send_user_register(user_event)
+
     return new_user
 
 
@@ -123,6 +154,7 @@ async def health():
 @app.get("/")
 async def root():
     return {"message": "Auth Service is running"}
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8001)

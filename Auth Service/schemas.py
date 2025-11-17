@@ -1,6 +1,7 @@
 from pydantic import BaseModel, EmailStr, Field
 from datetime import datetime
 from typing import Optional
+import json
 
 
 class UserBase(BaseModel):
@@ -50,3 +51,11 @@ class TokenPayload(BaseModel):
     login: str
     role: str
     exp: int
+
+class UserRegisteredEvent(BaseModel):
+    uuid: str
+    username: str
+    email: EmailStr
+
+    def to_json(self) -> str:
+        return json.dumps(self.dict())
