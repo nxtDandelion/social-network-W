@@ -22,7 +22,9 @@ const ProtectRoute = ({children,page}) => {
                 setShowLoginMes(true);
             }
         }
-        setShowLoginMes(false);
+        else {
+            setShowLoginMes(false);
+        }
     }, [auth, setShowLoginMes]);
 
     if (!auth) {
