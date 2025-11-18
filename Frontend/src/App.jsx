@@ -9,17 +9,30 @@ import RegistrationPage from "./pages/RegistrationPage.jsx";
 import {AuthProvider,AuthContext} from "./authcontext.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 
+const ProtectRoute = ({children,page}) => {
+    const { auth, setShowLoginMes } = useContext(AuthContext);
 
+    console.log("Зашел ProtectRoute auth:", auth);
 
-const AuthCheck = ({children}) => {
-    const { auth,setShowLogin} = useContext(AuthContext);
+    useEffect(() => {
+        if (!auth) {
+            console.log("Не авторизован");
+            if(page === 'favourites'){
+                console.log("маршрут до избранного");
+                setShowLoginMes(true);
+            }
+        }
+        setShowLoginMes(false);
+    }, [auth, setShowLoginMes]);
+
     if (!auth) {
-        setShowLogin(true);
-        return <Navigate to="/" replace />;
+        if (page === 'profile') {
+            return <Navigate to="/login" replace/>;
+        }
+        else return <Navigate to="/home" replace/>;
     }
     return children;
 }
-
 
 function App() {
     return (
@@ -30,11 +43,26 @@ function App() {
                     <Routes>
                         <Route path="/" element={<MainPage/>}/>
                         <Route path="/home" element={<MainPage/>}/>
-                        <Route path="/profile" element={<ProfilePage cureName="Alex" cureLogin="@GUGIguh" cureMail="Alex@mail.ru" curePassword="12345678" subscribes="1000" followers="10"/>}/>
-                        <Route path="/favorites" element={<FavorsPage/>}/>
-                        <Route path="*" element={<NotFoundPage/>}/>
+                        <Route path="/profile" element={
+                            <ProtectRoute page="profile">
+                                <ProfilePage cureName="Alex"
+                                             cureLogin="@GUGIguh"
+                                             cureMail="Alex@mail.ru"
+                                             curePassword="12345678"
+                                             subscribes="1000"
+                                             followers="10"
+                                />
+                            </ProtectRoute>}
+                        />
+                        <Route path="/favourites" element={
+                            <ProtectRoute page="favourites">
+                                <FavorsPage/>
+                            </ProtectRoute>}
+                        />
                         <Route path="/registration" element={<RegistrationPage/>}/>
                         <Route path="/login" element={<LoginPage/>}/>
+                        <Route path="*" element={<NotFoundPage/>}/>
+
                     </Routes>
             </div>
         </BrowserRouter>
