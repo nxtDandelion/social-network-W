@@ -4,10 +4,8 @@ import CrossIcon from "../Icons/CrossIcon.jsx";
 export default function FormFrame({ message,children,onClose,submitForm,refMessage,path,frameFor}) {
 
     const handleClose = (e) =>{
-        e.stopPropagation();
-            if (onClose){
-                onClose();
-            }
+        e.preventDefault();
+        onClose();
     }
     const handleSubmit = (e) => {
         console.log("handleSubmit вызван");
