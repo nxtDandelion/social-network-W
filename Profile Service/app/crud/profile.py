@@ -24,13 +24,7 @@ class ProfileCRUD:
         await self.db.refresh(db_profile)
         return db_profile
 
-    async def get_profile(self, profile_uuid: str) -> models.Profile:
-        result = await self.db.execute(
-            select(models.Profile).where(models.Profile.uuid == profile_uuid)
-        )
-        return result.scalar_one_or_none()
-
-    async def get_profile_by_username(self, username: str) -> models.Profile:
+    async def get_profile(self, username: str) -> models.Profile:
         result = await self.db.execute(
             select(models.Profile).where(models.Profile.username == username)
         )
@@ -44,10 +38,10 @@ class ProfileCRUD:
 
     async def update_profile(
         self,
-        profile_uuid: str,
+        username: str,
         profile_update: schemas.ProfileUpdate
     ):
-        db_profile = await self.get_profile(profile_uuid)
+        db_profile = await self.get_profile(username)
         if not db_profile:
             return None
         update_data = profile_update.model_dump(exclude_unset=True)
@@ -57,8 +51,8 @@ class ProfileCRUD:
         await self.db.refresh(db_profile)
         return db_profile
 
-    async def delete_profile(self, profile_uuid: str) -> models.Profile:
-        db_profile = await self.get_profile(profile_uuid)
+    async def delete_profile(self, username: str) -> models.Profile:
+        db_profile = await self.get_profile(username)
         if db_profile:
             await self.db.delete(db_profile)
             await self.db.commit()
