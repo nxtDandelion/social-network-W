@@ -48,3 +48,22 @@ class FollowCRUD:
         if not follower or not follower.subscribes:
             return False
         return following_id in follower.subscribes
+
+    async def unfollow_user(self, follower_id: str, following_id: str):
+        follower = await self.profile_crud.get_profile(follower_id)
+        following = await self.profile_crud.get_profile(following_id)
+
+        if following_id in follower.subscribes:
+            del follower.subscribes[following_id]
+        if follower_id in following.subscribers:
+            del following.subscribers[follower_id]
+
+        following.subscribers_amount = len(following.subscribers)
+
+        flag_modified(follower, "subscribes")
+        flag_modified(following, "subscribers")
+
+        await self.db.commit()
+        await self.db.refresh(following)
+        await self.db.refresh(follower)
+        return following

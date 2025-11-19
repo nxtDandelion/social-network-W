@@ -39,3 +39,29 @@ class FollowService:
             follower_id=follower_id,
             following_id=following_id
         )
+
+    async def unfollow_user(self, follower_id: str, following_id: str):
+        if not await self.crud.get_profile_exists(follower_id):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Follower profile not found"
+            )
+
+        if not await self.crud.get_profile_exists(following_id):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Following profile not found"
+            )
+
+        if not await self.crud.get_follow_exists(follower_id, following_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Follow does not exist"
+            )
+
+        await self.crud.unfollow_user(follower_id, following_id)
+
+        return schemas.FollowResponse(
+            follower_id=follower_id,
+            following_id=following_id
+        )

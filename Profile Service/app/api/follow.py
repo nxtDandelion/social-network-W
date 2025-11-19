@@ -16,3 +16,13 @@ async def follow_user(
 ):
     service = FollowService(db)
     return await service.follow_user(current_user, profile_id)
+
+
+@router.delete("/{profile_id}/follow", response_model=schemas.FollowResponse)
+async def unfollow_user(
+    current_user: str,
+    profile_id: str,
+    db: AsyncSession = Depends(get_db)
+):
+    service = FollowService(db)
+    return await service.unfollow_user(current_user, profile_id)
