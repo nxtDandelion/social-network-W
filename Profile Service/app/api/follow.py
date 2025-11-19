@@ -5,7 +5,7 @@ from app.schemas import follow as schemas
 from app.services.follow_service import FollowService
 
 
-router = APIRouter(prefix='/profiles', tags=['follow'])
+router = APIRouter(tags=['follow'])
 
 
 @router.post("/{profile_id}/follow", response_model=schemas.FollowResponse)

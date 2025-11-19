@@ -5,7 +5,7 @@ from app.schemas import profile as schemas
 from app.services.profile_service import ProfileService
 
 
-router = APIRouter(prefix='/profiles', tags=['profiles'])
+router = APIRouter(tags=['profiles'])
 
 
 @router.post("/", response_model=schemas.ProfileResponse)
