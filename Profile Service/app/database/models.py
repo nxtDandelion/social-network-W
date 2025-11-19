@@ -54,7 +54,7 @@ class Post(Base):
         ForeignKey("profile.uuid"),
         nullable=False
     )
-    likes_amount = Column(Integer)
+    likes_amount = Column(Integer, default=0)
     create_date = Column(DateTime, server_default=func.now())
     edited = Column(Boolean, default=False)
     likers = Column(JSON, default=dict)

@@ -5,10 +5,6 @@ from sqlalchemy import text
 from app.api.profile import router as profile_router
 from app.database.database import engine, Base, get_db
 
-app = FastAPI()
-
-app.include_router(profile_router)
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -20,7 +16,9 @@ async def lifespan(app: FastAPI):
     print("Database connection closed")
 
 
-app = FastAPI(title="Auth Service", lifespan=lifespan)
+app = FastAPI(title="Profile Service", lifespan=lifespan)
+
+app.include_router(profile_router)
 
 
 @app.get("/")
