@@ -67,3 +67,45 @@ class FollowCRUD:
         await self.db.refresh(following)
         await self.db.refresh(follower)
         return following
+
+    async def get_followers_list(self, profile_id: str):
+        profile = await self.profile_crud.get_profile(profile_id)
+        if not profile or not profile.subscribers:
+            return []
+
+        followers = []
+        for follower_id, follower_data in profile.subscribers.items():
+            followers.append({
+                "uuid": follower_id,
+                **follower_data
+            })
+
+        return followers
+
+    async def get_following_list(self, profile_id: str):
+        profile = await self.profile_crud.get_profile(profile_id)
+        if not profile or not profile.subscribes:
+            return []
+
+        followings = []
+        for following_id, following_data in profile.subscribes.items():
+            followings.append({
+                "uuid": following_id,
+                **following_data
+            })
+
+        return followings
+
+    async def get_followers_count(self, profile_id: str):
+        profile = await self.profile_crud.get_profile(profile_id)
+        if profile and profile.subscribers:
+            return len(profile.subscribers)
+        else:
+            return 0
+
+    async def get_following_count(self, profile_id: str):
+        profile = await self.profile_crud.get_profile(profile_id)
+        if profile and profile.subscribes:
+            return len(profile.subscribes)
+        else:
+            return 0

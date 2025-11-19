@@ -26,3 +26,27 @@ async def unfollow_user(
 ):
     service = FollowService(db)
     return await service.unfollow_user(current_user, profile_id)
+
+
+@router.get(
+        "/{profile_id}/followers",
+        response_model=schemas.FollowersListResponse
+    )
+async def get_followers(
+    profile_id: str,
+    db: AsyncSession = Depends(get_db)
+):
+    service = FollowService(db)
+    return await service.get_followers(profile_id)
+
+
+@router.get(
+        "/{profile_id}/following",
+        response_model=schemas.FollowingListResponse
+    )
+async def get_following(
+    profile_id: str,
+    db: AsyncSession = Depends(get_db)
+):
+    service = FollowService(db)
+    return await service.get_following(profile_id)

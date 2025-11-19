@@ -16,8 +16,8 @@ class FollowersListResponse(BaseModel):
 
 class FollowingListResponse(BaseModel):
     profile_id: str
-    following: List[Dict[str, Any]]
-    following_count: int
+    followings: List[Dict[str, Any]]
+    followings_count: int
 
 
 class UserShortInfo(BaseModel):
