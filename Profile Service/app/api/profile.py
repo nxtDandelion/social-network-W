@@ -24,3 +24,13 @@ async def get_profile(
 ):
     service = ProfileService(db)
     return await service.get_profile(profile_uuid)
+
+
+@router.put("/{profile_uuid}", response_model=schemas.ProfileResponse)
+async def update_profile(
+    profile_uuid: str,
+    profile_update: schemas.ProfileUpdate,
+    db: AsyncSession = Depends(get_db)
+):
+    service = ProfileService(db)
+    return await service.update_profile(profile_uuid, profile_update)

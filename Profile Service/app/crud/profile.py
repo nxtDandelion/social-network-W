@@ -40,3 +40,18 @@ class ProfileCRUD:
             select(models.Profile).where(models.Profile.email == email)
         )
         return result.scalar_one_or_none()
+
+    async def update_profile(
+        self,
+        profile_uuid: str,
+        profile_update: schemas.ProfileUpdate
+    ):
+        db_profile = await self.get_profile(profile_uuid)
+        if not db_profile:
+            return None
+        update_data = profile_update.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_profile, field, value)
+        await self.db.commit()
+        await self.db.refresh(db_profile)
+        return db_profile
