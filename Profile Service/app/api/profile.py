@@ -15,3 +15,12 @@ async def create_profile(
 ):
     service = ProfileService(db)
     return await service.create_profile(profile)
+
+
+@router.get("/{profile_uuid}", response_model=schemas.ProfileResponse)
+async def get_profile(
+    profile_uuid: str,
+    db: AsyncSession = Depends(get_db)
+):
+    service = ProfileService(db)
+    return await service.get_profile(profile_uuid)

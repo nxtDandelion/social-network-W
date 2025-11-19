@@ -30,3 +30,12 @@ class ProfileService:
 
         db_profile = await self.crud.create_profile(profile)
         return schemas.ProfileResponse.model_validate(db_profile)
+
+    async def get_profile(self, profile_uuid: str) -> schemas.ProfileResponse:
+        db_profile = await self.crud.get_profile(profile_uuid)
+        if not db_profile:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Profile not found"
+            )
+        return schemas.ProfileResponse.model_validate(db_profile)
