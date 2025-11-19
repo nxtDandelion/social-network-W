@@ -13,13 +13,13 @@ class Profile(Base):
         index=True,
         nullable=False
     )
-    username = Column(VARCHAR(24), nullable=False)
-    email = Column(VARCHAR(100))
-    photo = Column(LargeBinary)
-    subscribers = Column(JSON)
-    subscribers_amount = Column(Integer)
-    user_posts = Column(JSON)
-    tag = Column(VARCHAR)
+    username = Column(VARCHAR(24), nullable=False, unique=True)
+    email = Column(VARCHAR(100), unique=True)
+    photo = Column(LargeBinary, nullable=True)
+    subscribers = Column(JSON, default=dict)
+    subscribers_amount = Column(Integer, default=0)
+    user_posts = Column(JSON, default=dict)
+    tag = Column(VARCHAR, nullable=True)
 
 
 class Comment(Base):
@@ -39,7 +39,7 @@ class Comment(Base):
         nullable=False
     )
     create_date = Column(DateTime, server_default=func.now())
-    edited = Column(Boolean)
+    edited = Column(Boolean, default=False)
 
 
 class Post(Base):
@@ -56,5 +56,5 @@ class Post(Base):
     )
     likes_amount = Column(Integer)
     create_date = Column(DateTime, server_default=func.now())
-    edited = Column(Boolean)
-    likers = Column(JSON)
+    edited = Column(Boolean, default=False)
+    likers = Column(JSON, default=dict)
