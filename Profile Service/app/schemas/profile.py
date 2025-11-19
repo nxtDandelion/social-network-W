@@ -6,6 +6,10 @@ class ProfileBase(BaseModel):
     username: str = Field(description="Username")
     email: Optional[EmailStr] = Field(default=None, description="Почта")
     tag: Optional[str] = Field(default=None, description="Тэг")
+    photo: Optional[str] = Field(
+        default=None,
+        description="Ссылка на аватарку"
+    )
 
 
 class ProfileCreate(ProfileBase):
@@ -16,7 +20,10 @@ class ProfileResponse(BaseModel):
     uuid: str = Field(..., description="Идентификатор профиля")
     username: str = Field(..., description="Username")
     email: Optional[str] = Field(default=None, description="Почта")
-    photo: Optional[bytes] = Field(default=None, description="Аватарка")
+    photo: Optional[str] = Field(
+        default=None,
+        description="Ссылка на аватарку"
+    )
     subscribers: Dict[str, Any] = Field(
         default_factory=dict,
         description="Подписчики"
@@ -38,3 +45,7 @@ class ProfileUpdate(BaseModel):
     username: Optional[str] = Field(default=None, description="Username")
     email: Optional[EmailStr] = Field(default=None, description="Почта")
     tag: Optional[str] = Field(default=None, description="Тег")
+    photo: Optional[str] = Field(
+        default=None,
+        description="Ссылка на аватарку"
+    )

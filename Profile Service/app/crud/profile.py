@@ -16,7 +16,8 @@ class ProfileCRUD:
             uuid=profile_uuid,
             username=profile.username,
             email=profile.email,
-            tag=profile.tag
+            tag=profile.tag,
+            photo=profile.photo
         )
         self.db.add(db_profile)
         await self.db.commit()

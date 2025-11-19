@@ -1,6 +1,6 @@
 from sqlalchemy.sql import func
 from sqlalchemy import Column, Integer, JSON, VARCHAR, \
-    LargeBinary, DateTime, Boolean, ForeignKey
+    DateTime, Boolean, ForeignKey
 from app.database.database import Base
 
 
@@ -15,7 +15,7 @@ class Profile(Base):
     )
     username = Column(VARCHAR(24), nullable=False, unique=True)
     email = Column(VARCHAR(100), unique=True)
-    photo = Column(LargeBinary, nullable=True)
+    photo = Column(VARCHAR, nullable=True)
     subscribers = Column(JSON, default=dict)
     subscribers_amount = Column(Integer, default=0)
     user_posts = Column(JSON, default=dict)
