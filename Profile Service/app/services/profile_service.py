@@ -73,3 +73,12 @@ class ProfileService:
                 detail="Profile not found"
             )
         return schemas.ProfileResponse.model_validate(db_profile)
+
+    async def delete_profile(self, profile_uuid: str):
+        db_profile = await self.crud.delete_profile(profile_uuid)
+        if not db_profile:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Profile not found"
+            )
+        return {"message": "Profile deleted successfully"}

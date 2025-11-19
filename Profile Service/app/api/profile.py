@@ -34,3 +34,12 @@ async def update_profile(
 ):
     service = ProfileService(db)
     return await service.update_profile(profile_uuid, profile_update)
+
+
+@router.delete("/{profile_uuid}")
+async def delete_profile(
+    profile_uuid: str,
+    db: AsyncSession = Depends(get_db)
+):
+    service = ProfileService(db)
+    await service.delete_profile(profile_uuid)

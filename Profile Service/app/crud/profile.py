@@ -55,3 +55,10 @@ class ProfileCRUD:
         await self.db.commit()
         await self.db.refresh(db_profile)
         return db_profile
+
+    async def delete_profile(self, profile_uuid: str) -> models.Profile:
+        db_profile = await self.get_profile(profile_uuid)
+        if db_profile:
+            await self.db.delete(db_profile)
+            await self.db.commit()
+        return db_profile
