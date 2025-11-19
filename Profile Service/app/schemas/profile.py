@@ -28,6 +28,10 @@ class ProfileResponse(BaseModel):
         default_factory=dict,
         description="Подписчики"
     )
+    subscribes: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Подписки"
+    )
     subscribers_amount: int = Field(
         default=0,
         description="Количество подписчиков"
