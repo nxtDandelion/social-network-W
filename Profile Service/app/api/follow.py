@@ -8,45 +8,45 @@ from app.services.follow_service import FollowService
 router = APIRouter(tags=['follow'])
 
 
-@router.post("/{profile_id}/follow", response_model=schemas.FollowResponse)
+@router.post("/{username}/follow", response_model=schemas.FollowResponse)
 async def follow_user(
     current_user: str,
-    profile_id: str,
+    username: str,
     db: AsyncSession = Depends(get_db)
 ):
     service = FollowService(db)
-    return await service.follow_user(current_user, profile_id)
+    return await service.follow_user(current_user, username)
 
 
-@router.delete("/{profile_id}/follow", response_model=schemas.FollowResponse)
+@router.delete("/{username}/follow", response_model=schemas.FollowResponse)
 async def unfollow_user(
     current_user: str,
-    profile_id: str,
+    username: str,
     db: AsyncSession = Depends(get_db)
 ):
     service = FollowService(db)
-    return await service.unfollow_user(current_user, profile_id)
+    return await service.unfollow_user(current_user, username)
 
 
 @router.get(
-        "/{profile_id}/followers",
+        "/{username}/followers",
         response_model=schemas.FollowersListResponse
     )
 async def get_followers(
-    profile_id: str,
+    username: str,
     db: AsyncSession = Depends(get_db)
 ):
     service = FollowService(db)
-    return await service.get_followers(profile_id)
+    return await service.get_followers(username)
 
 
 @router.get(
-        "/{profile_id}/following",
+        "/{username}/following",
         response_model=schemas.FollowingListResponse
     )
 async def get_following(
-    profile_id: str,
+    username: str,
     db: AsyncSession = Depends(get_db)
 ):
     service = FollowService(db)
-    return await service.get_following(profile_id)
+    return await service.get_following(username)

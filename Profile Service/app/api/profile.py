@@ -17,29 +17,29 @@ async def create_profile(
     return await service.create_profile(profile)
 
 
-@router.get("/{profile_uuid}", response_model=schemas.ProfileResponse)
+@router.get("/{username}", response_model=schemas.ProfileResponse)
 async def get_profile(
-    profile_uuid: str,
+    username: str,
     db: AsyncSession = Depends(get_db)
 ):
     service = ProfileService(db)
-    return await service.get_profile(profile_uuid)
+    return await service.get_profile(username)
 
 
-@router.put("/{profile_uuid}", response_model=schemas.ProfileResponse)
+@router.put("/{username}", response_model=schemas.ProfileResponse)
 async def update_profile(
-    profile_uuid: str,
+    username: str,
     profile_update: schemas.ProfileUpdate,
     db: AsyncSession = Depends(get_db)
 ):
     service = ProfileService(db)
-    return await service.update_profile(profile_uuid, profile_update)
+    return await service.update_profile(username, profile_update)
 
 
-@router.delete("/{profile_uuid}")
+@router.delete("/{username}")
 async def delete_profile(
-    profile_uuid: str,
+    username: str,
     db: AsyncSession = Depends(get_db)
 ):
     service = ProfileService(db)
-    await service.delete_profile(profile_uuid)
+    await service.delete_profile(username)
