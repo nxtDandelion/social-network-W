@@ -1,6 +1,6 @@
 from sqlalchemy.sql import func
 from sqlalchemy import Column, Integer, JSON, VARCHAR, \
-    LargeBinary, DateTime, Boolean, ForeignKey
+    DateTime, Boolean, ForeignKey
 from app.database.database import Base
 
 
@@ -13,13 +13,14 @@ class Profile(Base):
         index=True,
         nullable=False
     )
-    username = Column(VARCHAR(24), nullable=False)
-    email = Column(VARCHAR(100))
-    photo = Column(LargeBinary)
-    subscribers = Column(JSON)
-    subscribers_amount = Column(Integer)
-    user_posts = Column(JSON)
-    tag = Column(VARCHAR)
+    username = Column(VARCHAR(24), nullable=False, unique=True)
+    email = Column(VARCHAR(100), unique=True)
+    photo = Column(VARCHAR, nullable=True)
+    subscribes = Column(JSON, default=dict)
+    subscribers = Column(JSON, default=dict)
+    subscribers_amount = Column(Integer, default=0)
+    user_posts = Column(JSON, default=dict)
+    tag = Column(VARCHAR, nullable=True)
 
 
 class Comment(Base):
@@ -39,7 +40,7 @@ class Comment(Base):
         nullable=False
     )
     create_date = Column(DateTime, server_default=func.now())
-    edited = Column(Boolean)
+    edited = Column(Boolean, default=False)
 
 
 class Post(Base):
@@ -54,7 +55,7 @@ class Post(Base):
         ForeignKey("profile.uuid"),
         nullable=False
     )
-    likes_amount = Column(Integer)
+    likes_amount = Column(Integer, default=0)
     create_date = Column(DateTime, server_default=func.now())
-    edited = Column(Boolean)
-    likers = Column(JSON)
+    edited = Column(Boolean, default=False)
+    likers = Column(JSON, default=dict)
