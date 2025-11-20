@@ -8,6 +8,7 @@ import models
 import schemas
 import crud
 import uvicorn
+from pydantic import BaseModel
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -34,8 +35,6 @@ class CommentUpdateWithProfile(schemas.CommentUpdate):
 
 class PostUpdateWithProfile(schemas.PostUpdate):
     profile_id: str
-
-from pydantic import BaseModel
 
 async def create_profile(profile: schemas.ProfileCreate, db: AsyncSession = Depends(get_db)):
     return await crud.create_profile(db, profile)
