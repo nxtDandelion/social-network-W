@@ -3,7 +3,6 @@ import Feed from "../components/MainPageComponents/Feed.jsx";
 import Header from "../components/MainPageComponents/Header.jsx";
 import {useContext, useEffect} from "react";
 import {AuthContext} from "../authcontext.jsx";
-import LoginPage from "./LoginPage.jsx";
 import {SearchIcon} from "../components/Icons/SearchIcon.jsx";
 import CrossIcon from "../components/Icons/CrossIcon.jsx";
 import {useNavigate} from "react-router-dom";

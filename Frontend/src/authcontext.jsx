@@ -9,14 +9,12 @@ export const AuthProvider =({children}) =>{
     const [showLoginMes, setShowLoginMes] = useState(false);
 
     useEffect(() => {
-        // ✅ Убрана зависимость от auth, чтобы избежать бесконечного цикла
         const savedAuth = localStorage.getItem('auth');
         if(savedAuth) {
             setAuth(true);
         }
-    }, []); // ✅ Пустой массив зависимостей - выполняется только при монтировании
+    }, [auth]);
 
-    // ✅ Стабильная ссылка на объект
     const contextValue = useMemo(() => ({
         auth,
         setAuth,

@@ -8,6 +8,7 @@ import NotFoundPage from "./pages/NotFoundPage.jsx";
 import RegistrationPage from "./pages/RegistrationPage.jsx";
 import {AuthProvider,AuthContext} from "./authcontext.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
+import DevMenu from "./DevMenu.jsx";
 
 const ProtectRoute = ({children,page}) => {
     const { auth, setShowLoginMes } = useContext(AuthContext);
@@ -41,6 +42,7 @@ function App() {
         <AuthProvider>
         <BrowserRouter>
             <div className="flex items-start w-[62rem] min-h-screen">
+                <DevMenu/>
                 <Sidebar/>
                     <Routes>
                         <Route path="/" element={<MainPage/>}/>
