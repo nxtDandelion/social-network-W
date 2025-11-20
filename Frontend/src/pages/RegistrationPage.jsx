@@ -8,6 +8,7 @@ import {emailValid, lenghtCheck, loginValid, passwordValid} from "../assets/vali
 import FormMes from "../components/FormComponents/FormMes.jsx";
 import axios from "axios";
 import {API_BASE_URL} from "../config.js";
+import {responseReg} from "../assets/auth.js";
 
 
 export default function RegistrationPage() {
@@ -41,27 +42,7 @@ export default function RegistrationPage() {
     }, [timeToClose]);
 
 
-    const responseReg = async (login, userName, mail, password) => {
-        try {
-            const response = await axios.post(`${API_BASE_URL}/auth/register`, {
-                username: userName,
-                email: mail,
-                login: login,
-                role: "user",
-                password: password
-            });
-            console.log("все верно");
-            return true;
 
-
-        } catch (error) {
-            console.error("Ошибка при регистрации:", error.response?.data || error.message);
-            setTimeToClose(true);
-            setMessage(error.response.data.detail);
-            console.log(error.response.data.detail);
-            return false;
-        }
-    };
 
     const close = () => {
         navigate(-1);
@@ -81,10 +62,17 @@ export default function RegistrationPage() {
                     setCorrect(true);
                     console.log("Пароли совпадают");
                     setMessage("Все верно,пользователь создан");
-                    navigate(-1);
+                    console.log("Все хорошо");
+                    setTimeout(()  => {
+                        navigate("/login");
+                    },2000);
                 }
-                else
+                else{
+                    setCorrect(false);
                     console.log("Ошибка");
+                    setTimeToClose(true);
+                    setMessage("Ошибка регистрации");
+                }
             } else {
                 setCorrect(false);
                 setTimeToClose(true);
@@ -115,7 +103,7 @@ export default function RegistrationPage() {
             <MainPage></MainPage>
                 <FormFrame refMessage="Уже есть аккаунт? Войти" path="/login" message="Станьте частью большего!" submitForm={checkForm} onClose={close}>
                     <FormInput  hintText={"Допустимы: [a-z,1-9,0,_]"}  formType="text" labelText="Имя пользователя" formValue={userName} onChange={(e)=>setUserName(e.target.value)} />
-                    <FormInput  hintText={"Допустимы: [a-z,1-9,0,_]"} formType="text" labelText="Логин" type={login} onChange={(e)=>setLogin(e.target.value)} />
+                    <FormInput  hintText={"Допустимы: [a-z,1-9,0,_]"} formType="text" labelText="Логин" formValue={login} onChange={(e)=>setLogin(e.target.value)} />
                     <FormInput  hintText={"Пример: name@example.com"}  formType="mail" labelText="Email" formValue={mail} onChange={(e)=>setMail(e.target.value)} />
                     <FormInput  hintText={"Допустимы: [a-z,1-9,0,_,!,@,#,$,_,*,&,%]"}  formType="password" labelText="Пароль" formValue={password} onChange={(e)=>setPassword(e.target.value)} />
                     <FormInput  hintText={"Повторите пароль"}  formType="password" labelText="Подтверждение пароль" formValue={passwordConfirm} onChange={(e)=>setPasswordConfirm(e.target.value)} />
