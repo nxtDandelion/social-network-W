@@ -10,13 +10,10 @@ import {useNavigate} from "react-router-dom";
 
 export default function MainPage() {
 
-    const {showLog,setShowLog}=useContext(AuthContext);
-
-    console.log("MainPage - showLog:", showLog);
-
+    const {showLoginMes,setShowLoginMes}=useContext(AuthContext);
 
     function handleClose() {
-            setShowLog(false);
+            setShowLoginMes(false);
     }
 
     useEffect(() => {
@@ -30,7 +27,7 @@ export default function MainPage() {
                 <Feed
 
                 />
-                {showLog && (
+                {showLoginMes && (
                     <div className="fixed inset-0  z-50 flex justify-center items-center bg-black bg-opacity-70 backdrop-blur-sm transition-opacity duration-300">
                         <div className="relative flex flex-col justify-center items-center max-w-md w-fit h-fit px-4 py-8 border-black border-[3px] bg-white rounded-[40px]">
                             <button onClick={handleClose} aria-label="Закрыть" className="absolute top-3 right-3 z-10 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-lg border border-gray-200 hover:scale-110 transition-transform duration-200">

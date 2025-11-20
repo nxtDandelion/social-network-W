@@ -13,7 +13,7 @@ const navItems = [
     {
         label: "Подписки",
         icon: <FavoriteIcon/>,
-        path: "/favorites"
+        path: "/favourites"
     },
     {
         label: "Профиль",

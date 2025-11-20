@@ -63,7 +63,10 @@ class RabbitMqService:
             logging.error(f"Failed to send user register message: {e}")
             raise
 
-def get_rabbitmq():
-    return RabbitMqService()
-
 rabbitmq_service = RabbitMqService()
+
+async def connect_rabbitmq():
+    await rabbitmq_service.connect()
+
+def get_rabbitmq():
+    return rabbitmq_service

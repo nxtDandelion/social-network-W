@@ -5,11 +5,11 @@ import {AuthContext} from "../../authcontext.jsx";
 import {useNavigate} from "react-router-dom";
 
 export default function CreatePostBtn() {
-    const {auth,setShowLog} = useContext(AuthContext);
+    const {auth,setShowLoginMes} = useContext(AuthContext);
 
     const createPost = () => {
         if (!auth) {
-            setShowLog(true);
+            setShowLoginMes(true);
         }
         else {}
     }
