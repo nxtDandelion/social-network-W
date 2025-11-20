@@ -99,7 +99,7 @@ export default function LoginPage() {
                     <FormInput formType="text" labelText="Логин" formValue={login} onChange={(e) => setLogin(e.target.value)}/>
                     <FormInput formType="password" labelText="Пароль" formValue={password} onChange={(e) => setPassword(e.target.value)} />
 
-                    <FormButton status={isActive} text="Войти"></FormButton>
+                    <FormButton status={isActive} enterStatus={correct} text="Войти"></FormButton>
                     {message && timeToClose && <FormMes text={message} type={correct ? "message" : "error"}/>}
                 </FormFrame>
         </div>

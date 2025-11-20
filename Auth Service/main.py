@@ -40,15 +40,21 @@ async def register(user: schemas.UserCreate,
                    rabbit_mq: rabbitmq.RabbitMqService = Depends(rabbitmq.get_rabbitmq)):
     db_user = await crud.UserCRUD.get_user_by_username(db, user.username)
     if db_user:
-        raise HTTPException(status_code=400, detail="Username already registered")
+        raise HTTPException(status_code=400, detail={
+            "code": "USERNAME_EXISTS",
+            "message": "Username already registered",})
 
     db_user = await crud.UserCRUD.get_user_by_login(db, user.login)
     if db_user:
-        raise HTTPException(status_code=400, detail="Login already registered")
+        raise HTTPException(status_code=400, detail={
+            "code": "LOGIN_EXISTS",
+            "message": "Login already registered",})
 
     db_user_email = await crud.UserCRUD.get_user_by_email(db, user.email)
     if db_user_email:
-        raise HTTPException(status_code=400, detail="Email already registered")
+        raise HTTPException(status_code=400, detail={
+            "code": "EMAIL_EXISTS",
+            "message": "Email already registered",})
 
     new_user = await crud.UserCRUD.create_user(db, user)
 
@@ -68,7 +74,8 @@ async def login(auth_data: schemas.TokenCreate, db: AsyncSession = Depends(get_d
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect login or password",
+            detail={"code": "DOES_NOT_EXIST",
+                    "message": "Incorrect login or password",},
         )
 
     token_pair = await crud.TokenCRUD.create_token_pair(db, user, auth_data.ip)
@@ -79,17 +86,23 @@ async def login(auth_data: schemas.TokenCreate, db: AsyncSession = Depends(get_d
 async def refresh_token(refresh_data: schemas.RefreshToken, db: AsyncSession = Depends(get_db)):
     db_token = await crud.TokenCRUD.get_token_by_jwt(db, refresh_data.refresh_token)
     if db_token is None:
-        raise HTTPException(status_code=401, detail="Invalid refresh token")
+        raise HTTPException(status_code=401, detail={
+            "code": "INVALID_TOKEN",
+            "message": "Invalid refresh token"})
 
     payload = security.verify_jwt_token(refresh_data.refresh_token)
     if not payload or payload.get("type") != "refresh":
         await crud.TokenCRUD.delete_token(db, db_token.id)
-        raise HTTPException(status_code=401, detail="Invalid refresh token")
+        raise HTTPException(status_code=401, detail={
+            "code": "INVALID_REFRESH",
+            "message": "Invalid refresh token"})
 
     user = await crud.UserCRUD.get_user_by_uuid(db, payload.get("userid"))
     if not user:
         await crud.TokenCRUD.delete_token(db, db_token.id)
-        raise HTTPException(status_code=401, detail="User not found or inactive")
+        raise HTTPException(status_code=401, detail={
+            "code": "USER_DOESNT_EXIST",
+            "message": "User not found"})
 
     await crud.TokenCRUD.delete_token(db, db_token.id)
 
@@ -117,15 +130,21 @@ async def verify_token(
 
     payload = security.verify_jwt_token(token)
     if not payload:
-        raise HTTPException(status_code=401, detail="Invalid token")
+        raise HTTPException(status_code=401, detail={
+            "code": "INVALID_TOKEN",
+            "message": "Invalid token"})
 
     if payload.get("type") != "access":
-        raise HTTPException(status_code=401, detail="Not an access token")
+        raise HTTPException(status_code=401, detail={
+            "code": "NOT_ACCESS_TOKEN",
+            "message": "Not an access token"})
 
     user_uuid = payload.get("userid")
     user = await crud.UserCRUD.get_user_by_uuid(db, user_uuid)
     if not user:
-        raise HTTPException(status_code=401, detail="User not found")
+        raise HTTPException(status_code=401, detail={
+            "code": "USER_DOESNT_EXIST",
+            "message": "User not found"})
 
     return {
         "valid": True,

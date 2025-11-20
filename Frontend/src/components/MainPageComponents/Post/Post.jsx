@@ -8,18 +8,18 @@ import {AuthContext} from "../../../authcontext.jsx";
 
 export default function Post({postH,postW,postDate,likeCount,commentCount,postText}) {
 
-    const {auth,setShowLog} = useContext(AuthContext);
+    const {auth,setShowLoginMes} = useContext(AuthContext);
 
     const likeHandleClick =() =>{
         if (!auth) {
-            setShowLog(true);
+            setShowLoginMes(true);
         }
         else {}
     }
 
     function commentHandleClick() {
         if (!auth) {
-            setShowLog(true);
+            setShowLoginMes(true);
         }
         else {}
     }

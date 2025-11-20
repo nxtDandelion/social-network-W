@@ -6,25 +6,27 @@ export const AuthProvider =({children}) =>{
     const [auth, setAuth] = useState(false);
     const [showLog,setShowLog] = useState(false)
     const [redirectPath, setRedirectPath] = useState();
-    const [showLogin, setShowLogin] = useState(false);
-
+    const [showLoginMes, setShowLoginMes] = useState(false);
 
     useEffect(() => {
-       const savedAuth = localStorage.getItem('auth');
-       if(savedAuth){setAuth(true)}
-    },[auth])
+        // ✅ Убрана зависимость от auth, чтобы избежать бесконечного цикла
+        const savedAuth = localStorage.getItem('auth');
+        if(savedAuth) {
+            setAuth(true);
+        }
+    }, []); // ✅ Пустой массив зависимостей - выполняется только при монтировании
 
-        // ✅ Стабильная ссылка на объект
-        const contextValue = useMemo(() => ({
-            auth,
-            setAuth,
-            redirectPath,
-            setRedirectPath,
-            showLogin,
-            setShowLogin,
-            setShowLog,
-            showLog
-        }), [auth, redirectPath, showLogin,showLog]); // Зависимости
+    // ✅ Стабильная ссылка на объект
+    const contextValue = useMemo(() => ({
+        auth,
+        setAuth,
+        redirectPath,
+        setRedirectPath,
+        showLoginMes,
+        setShowLoginMes,
+        setShowLog,
+        showLog
+    }), [auth, redirectPath, showLoginMes, showLog]);
 
     return (
         <AuthContext.Provider value={contextValue}>
@@ -32,4 +34,3 @@ export const AuthProvider =({children}) =>{
         </AuthContext.Provider>
     );
 };
-
