@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, delete
+from sqlalchemy.orm.attributes import flag_modified
 from typing import List, Optional
 import models
 import schemas
@@ -85,7 +86,13 @@ async def get_profile_posts(db: AsyncSession, profile_id: str):
     )
     return result.scalars().all()
 
-async def update_post(db: AsyncSession, post_id: int, post_update: schemas.PostUpdate):
+async def update_post(db: AsyncSession, post_id: int, post_update: schemas.PostUpdate, profile_id: str):
+    post = await get_post(db, post_id)
+    if not post:
+        return None
+    if post.profile_id != profile_id:
+        return None
+    
     stmt = (
         update(models.Post)
         .where(models.Post.id == post_id)
@@ -99,7 +106,13 @@ async def update_post(db: AsyncSession, post_id: int, post_update: schemas.PostU
     )
     return result.scalar_one_or_none()
 
-async def delete_post(db: AsyncSession, post_id: int):
+async def delete_post(db: AsyncSession, post_id: int, profile_id: str):
+    post = await get_post(db, post_id)
+    if not post:
+        return {"message": "Post not found"}
+    if post.profile_id != profile_id:
+        return {"message": "Not authorized to delete this post"}
+    
     stmt = delete(models.Post).where(models.Post.id == post_id)
     await db.execute(stmt)
     await db.commit()
@@ -110,6 +123,7 @@ async def like_post(db: AsyncSession, post_id: int, profile_id: str):
     if post and profile_id not in post.likers:
         post.likers.append(profile_id)
         post.likes_amount = len(post.likers)
+        flag_modified(post, "likers")
         await db.commit()
         await db.refresh(post)
     return post
@@ -119,6 +133,7 @@ async def unlike_post(db: AsyncSession, post_id: int, profile_id: str):
     if post and profile_id in post.likers:
         post.likers.remove(profile_id)
         post.likes_amount = len(post.likers)
+        flag_modified(post, "likers")
         await db.commit()
         await db.refresh(post)
     return post
@@ -149,7 +164,13 @@ async def get_comment(db: AsyncSession, comment_id: int):
     )
     return result.scalar_one_or_none()
 
-async def update_comment(db: AsyncSession, comment_id: int, comment_update: schemas.CommentUpdate):
+async def update_comment(db: AsyncSession, comment_id: int, comment_update: schemas.CommentUpdate, profile_id: str):
+    comment = await get_comment(db, comment_id)
+    if not comment:
+        return None
+    if comment.profile_id != profile_id:
+        return None
+    
     stmt = (
         update(models.Comment)
         .where(models.Comment.id == comment_id)
@@ -163,7 +184,13 @@ async def update_comment(db: AsyncSession, comment_id: int, comment_update: sche
     )
     return result.scalar_one_or_none()
 
-async def delete_comment(db: AsyncSession, comment_id: int):
+async def delete_comment(db: AsyncSession, comment_id: int, profile_id: str):
+    comment = await get_comment(db, comment_id)
+    if not comment:
+        return {"message": "Comment not found"}
+    if comment.profile_id != profile_id:
+        return {"message": "Not authorized to delete this comment"}
+    
     stmt = delete(models.Comment).where(models.Comment.id == comment_id)
     await db.execute(stmt)
     await db.commit()
