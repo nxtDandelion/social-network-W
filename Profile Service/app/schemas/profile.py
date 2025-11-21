@@ -3,8 +3,9 @@ from pydantic import BaseModel, Field, EmailStr, ConfigDict
 
 
 class ProfileBase(BaseModel):
+    uuid: str = Field(...)
     username: str = Field(description="Username")
-    email: Optional[EmailStr] = Field(default=None, description="Почта")
+    email: EmailStr = Field(default=None, description="Почта")
     tag: Optional[str] = Field(default=None, description="Тэг")
     photo: Optional[str] = Field(
         default=None,

@@ -59,9 +59,9 @@ async def register(user: schemas.UserCreate,
 
     user_event = schemas.UserRegisteredEvent(
         uuid = new_user.uuid,
-        username=new_user.username)
+        username=new_user.username,
+        email=new_user.email,)
     await rabbit_mq.send_user_register(user_event)
-
     return new_user
 
 

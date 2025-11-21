@@ -28,9 +28,7 @@ class Comment(Base):
 
     id = Column(
         Integer,
-        primary_key=True,
-        index=True,
-        autoincrement=True
+        primary_key=True
     )
     text = Column(VARCHAR(100), nullable=False)
     post_id = Column(Integer, ForeignKey("post.id"), nullable=False)

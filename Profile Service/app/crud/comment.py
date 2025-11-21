@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from app import models
+from app.database import models
 
 
 class CommentCRUD:
@@ -9,6 +9,7 @@ class CommentCRUD:
 
     async def create_comment(self, profile_id: str, comment_data: dict):
         comment = models.Comment(
+            id=comment_data.get('id'),
             text=comment_data["text"],
             post_id=comment_data["post_id"],
             profile_id=profile_id,
