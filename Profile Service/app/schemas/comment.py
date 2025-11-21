@@ -4,6 +4,7 @@ from datetime import datetime
 
 
 class CommentBase(BaseModel):
+    id: int
     text: str
 
 
