@@ -8,8 +8,7 @@ import schemas
 async def create_profile(db: AsyncSession, profile: schemas.ProfileCreate):
     db_profile = models.Profile(
         uuid=profile.uuid,
-        username=profile.username,
-        tag=profile.tag
+        username=profile.username
     )
     db.add(db_profile)
     await db.commit()

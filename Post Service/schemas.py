@@ -5,7 +5,7 @@ from datetime import datetime
 class ProfileBase(BaseModel):
     uuid: str
     username: str
-    tag: str
+    tag: Optional[str] = None
 
 class ProfileCreate(ProfileBase):
     pass

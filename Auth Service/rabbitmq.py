@@ -9,6 +9,8 @@ class RabbitMqService:
         self.connection = None
         self.channel = None
         self.is_connected = False
+        self.user_events_exchange = None
+        self.auth_commands_exchange = None
 
     async def connect(self):
         try:
@@ -20,8 +22,24 @@ class RabbitMqService:
                 virtualhost='/',
             )
             self.channel = await self.connection.channel()
-            await self.channel.declare_queue('auth_events', durable=True)
-            await self.channel.declare_queue('auth_commands', durable=True)
+            self.user_events_exchange = await self.channel.declare_exchange(
+                'user_events',
+                aio_pika.ExchangeType.DIRECT,
+                durable=True
+            )
+            self.auth_commands_exchange = await self.channel.declare_exchange(
+                'auth_commands',
+                aio_pika.ExchangeType.DIRECT,
+                durable=True
+            )
+            self.auth_commands_queue = await self.channel.declare_queue(
+                'auth_commands_queue',
+                durable=True
+            )
+            await self.auth_commands_queue.bind(
+                self.auth_commands_exchange,
+                routing_key='auth_commands'
+            )
             self.is_connected = True
             logging.info("Connected to RabbitMQ")
         except Exception as e:
@@ -29,8 +47,6 @@ class RabbitMqService:
             raise
 
     async def start_consuming(self, queue_name: str, callback):
-        queue = await self.channel.declare_queue(queue_name, durable=True)
-
         async def message_wrapper(message: aio_pika.IncomingMessage):
             async with message.process():
                 try:
@@ -43,7 +59,7 @@ class RabbitMqService:
                 except Exception as e:
                     print(f"Error processing message: {e}")
 
-        await queue.consume(message_wrapper)
+        await self.auth_commands_queue.consume(message_wrapper)
         print(f"Started consuming from {queue_name}")
 
     async def close(self):
@@ -56,8 +72,9 @@ class RabbitMqService:
         try:
             message = aio_pika.Message(body=user_event.to_json().encode(),
                                        delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
-                                       content_type='application/json')
-            await self.channel.default_exchange.publish(message, routing_key='auth_events', mandatory=True)
+                                       content_type='application/json',
+                                       headers={'event': 'user_registered'})
+            await self.user_events_exchange.publish(message, routing_key='user_registered', mandatory=True)
             logging.info(f"Sent user register {user_event.username}")
         except Exception as e:
             logging.error(f"Failed to send user register message: {e}")
