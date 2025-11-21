@@ -1,8 +1,9 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm.attributes import flag_modified
-from app import models
+from app.database import models
 from app.crud.profile import ProfileCRUD
+import logging
 
 
 class PostCRUD:
@@ -10,16 +11,18 @@ class PostCRUD:
         self.db = db
         self.profile_crud = ProfileCRUD(db)
 
-    async def create_post(self, profile_id: str, post_data: dict):
+    async def create_post(self, post_data: dict):
         post = models.Post(
+            id=post_data["id"],
             text=post_data["text"],
-            profile_id=profile_id,
+            profile_id=post_data["profile_id"],
             likes_amount=0,
             likers={}
         )
         self.db.add(post)
         await self.db.commit()
         await self.db.refresh(post)
+        logging.error(f"Post created: {post}")
         return post
 
     async def get_post(self, post_id: int) -> models.Post:
@@ -28,7 +31,8 @@ class PostCRUD:
         )
         return result.scalar_one_or_none()
 
-    async def update_post(self, post_id: int, post_data: dict):
+    async def update_post(self, post_data: dict):
+        post_id = post_data.get("id")
         post = await self.get_post(post_id)
         if not post:
             return None
@@ -50,21 +54,18 @@ class PostCRUD:
         await self.db.commit()
         return True
 
-    async def like_post(self, post_id: int, profile_id: str):
+    async def like_post(self, post_id: int, user_id):
         post = await self.get_post(post_id)
         if not post:
             return None
-
         if post.likers is None:
             post.likers = {}
+        post.likers[user_id] = True
+        post.likes_amount = len(post.likers)
+        flag_modified(post, "likers")
 
-        if profile_id not in post.likers:
-            post.likers[profile_id] = True
-            post.likes_amount = len(post.likers)
-            flag_modified(post, "likers")
-            await self.db.commit()
-            await self.db.refresh(post)
-
+        await self.db.commit()
+        await self.db.refresh(post)
         return post
 
     async def unlike_post(self, post_id: int, profile_id: str):

@@ -1,9 +1,12 @@
+from dataclasses import Field
+
 from pydantic import BaseModel, ConfigDict
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 
 
 class PostBase(BaseModel):
+    id: int
     text: str
 
 

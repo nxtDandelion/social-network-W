@@ -21,6 +21,7 @@ async def lifespan(app: FastAPI):
 
     async def callback_with_db(event_type: str, event_data: dict):
         try:
+            logging.info(f"Processing event: {event_type}")
             async for db in get_db():
                 await handlers.handle_user_event(event_type, event_data, db)
                 logging.info(f"Successfully processed event: {event_type}")
@@ -165,7 +166,7 @@ async def unlike_post(post_id: int, like_request: LikeRequest, db: AsyncSession 
             raise HTTPException(status_code=404, detail="Post not found")
         event_data = {
             "id": post.id,
-            "profile_id": like_request.profile_id,
+            "user": like_request.profile_id,
         }
         await rabbitmq_service.send_post_unliked(event_data)
         return post
@@ -181,6 +182,7 @@ async def create_comment(post_id: int, comment: CommentCreateWithProfile, db: As
             raise HTTPException(status_code=404, detail="Post not found")
         comment = await crud.create_comment(db, comment, post_id, comment.profile_id)
         comment_data = {
+            "id": comment.id,
             "text": comment.text,
             "post_id": comment.post_id,
             "profile_id": comment.profile_id,
@@ -207,6 +209,7 @@ async def update_comment(post_id: int, comment_id: int, comment_update: CommentU
         if comment is None:
             raise HTTPException(status_code=404, detail="Comment not found or not authorized")
         comment_data = {
+            "comment_id": comment_id,
             "text": comment.text,
             "post_id": comment.post_id,
             "profile_id": comment.profile_id,

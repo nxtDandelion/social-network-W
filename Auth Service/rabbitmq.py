@@ -24,7 +24,7 @@ class RabbitMqService:
             self.channel = await self.connection.channel()
             self.user_events_exchange = await self.channel.declare_exchange(
                 'user_events',
-                aio_pika.ExchangeType.DIRECT,
+                aio_pika.ExchangeType.FANOUT,
                 durable=True
             )
             self.auth_commands_exchange = await self.channel.declare_exchange(

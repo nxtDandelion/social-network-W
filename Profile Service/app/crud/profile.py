@@ -11,13 +11,10 @@ class ProfileCRUD:
         self.db = db
 
     async def create_profile(self, profile: schemas.ProfileCreate):
-        profile_uuid = str(uuid.uuid4().hex)[:32]
         db_profile = models.Profile(
-            uuid=profile_uuid,
+            uuid=profile.uuid,
             username=profile.username,
-            email=profile.email,
-            tag=profile.tag,
-            photo=profile.photo
+            email=profile.email
         )
         self.db.add(db_profile)
         await self.db.commit()
