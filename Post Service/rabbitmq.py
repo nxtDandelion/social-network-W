@@ -17,7 +17,7 @@ class RabbitMQService:
     async def connect(self):
         try:
             self.connection = await aio_pika.connect_robust(
-                host='localhost',
+                host='rabbitmq',
                 port=5672,
                 login='guest',
                 password='guest',
