@@ -1,5 +1,8 @@
 package com.socialw.gateway.filter;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.socialw.gateway.model.TokenVerificationRequest;
 import com.socialw.gateway.model.TokenVerificationResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -7,18 +10,22 @@ import org.springframework.cloud.gateway.route.RouteLocator;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
+import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.core.io.buffer.DataBufferUtils;
+import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.http.server.reactive.ServerHttpRequestDecorator;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.List;
+import java.nio.charset.StandardCharsets;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -26,125 +33,193 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
     private final WebClient webClient;
     private final RouteLocator routeLocator;
+    private final ObjectMapper objectMapper;
 
-    // Более строгие проверки путей
-    private final Set<String> excludedExactPaths = Set.of(
-            "/health",
-            "/"
+    private final Set<String> excludedPaths = Set.of(
+            "/health", "/auth/", "/verify-token", "/refresh"
     );
 
-    private final Set<String> excludedPrefixes = Set.of(
-            "/auth/",
-            "/verify-token",
-            "/refresh"
-    );
-
-    public JwtAuthenticationFilter(WebClient webClient, RouteLocator routeLocator) {
+    public JwtAuthenticationFilter(WebClient webClient, RouteLocator routeLocator, ObjectMapper objectMapper) {
         this.webClient = webClient;
         this.routeLocator = routeLocator;
+        this.objectMapper = objectMapper;
     }
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String path = exchange.getRequest().getURI().getPath();
-        String method = exchange.getRequest().getMethod().name();
 
-        log.debug("Checking authentication for {} {}", method, path);
-
-        // Пропускаем исключенные пути
-        if (isExcludedPath(path)) {
-            log.debug("Path {} is excluded from authentication", path);
+        if (excludedPaths.stream().anyMatch(path::startsWith)) {
             return chain.filter(exchange);
         }
 
-        String authHeader = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
-
-        // Детальная проверка Authorization header
-        if (authHeader == null) {
-            log.warn("Missing Authorization header for {} {}", method, path);
-            return unauthorizedResponse(exchange, "Missing Authorization header");
+        String token = extractTokenFromHeader(exchange.getRequest());
+        if (token != null) {
+            return verifyAndProcessToken(exchange, chain, token, true, null);
         }
 
-        if (!authHeader.startsWith("Bearer ")) {
-            log.warn("Invalid Authorization header format for {} {}", method, path);
-            return unauthorizedResponse(exchange, "Invalid Authorization header format");
-        }
+        return readRequestBody(exchange)
+                .flatMap(body -> {
+                    try {
+                        JsonNode jsonNode = objectMapper.readTree(body);
+                        JsonNode jwtNode = jsonNode.get("jwt");
 
-        String token = authHeader.substring(7);
+                        if (jwtNode == null) {
+                            return unauthorizedResponse(exchange, "JWT token required in request body");
+                        }
 
-        if (token.isBlank()) {
-            log.warn("Empty token in Authorization header for {} {}", method, path);
-            return unauthorizedResponse(exchange, "Empty token");
-        }
+                        String tokenFromBody = jwtNode.asText();
+                        if (tokenFromBody.isBlank()) {
+                            return unauthorizedResponse(exchange, "Empty JWT token");
+                        }
 
+                        return verifyAndProcessToken(exchange, chain, tokenFromBody, false, jsonNode);
+                    } catch (Exception e) {
+                        log.error("Failed to parse request body: {}", e.getMessage());
+                        return unauthorizedResponse(exchange, "Invalid JSON format");
+                    }
+                })
+                .switchIfEmpty(unauthorizedResponse(exchange, "Request body required with JWT token"));
+    }
+
+    private Mono<Void> verifyAndProcessToken(ServerWebExchange exchange, GatewayFilterChain chain,
+                                             String token, boolean fromHeader, JsonNode originalBody) {
         return getAuthServiceUrl()
-                .flatMap(authServiceUrl -> verifyToken(token, authServiceUrl))
-                .flatMap(verificationResponse -> {
-                    if (verificationResponse.isValid()) {
-                        log.info("User authenticated: {} for path {}", verificationResponse.getLogin(), path);
-                        ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
-                                .header("X-User-UUID", verificationResponse.getUser_uuid())
-                                .header("X-User-Login", verificationResponse.getLogin())
-                                .header("X-User-Role", verificationResponse.getRole())
-                                .header("X-Token-Expires-At", String.valueOf(verificationResponse.getExpires_at()))
-                                .build();
-
-                        return chain.filter(exchange.mutate().request(mutatedRequest).build());
+                .flatMap(authUrl -> webClient.post()
+                        .uri(authUrl + "/verify-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .bodyValue(new TokenVerificationRequest(token))
+                        .retrieve()
+                        .bodyToMono(TokenVerificationResponse.class))
+                .flatMap(response -> {
+                    if (response.isValid()) {
+                        log.info("User authenticated: {}", response.getLogin());
+                        return createModifiedRequest(exchange, chain, response.getUser_uuid(), fromHeader, originalBody);
                     } else {
-                        log.warn("Token validation failed for {} {}", method, path);
                         return unauthorizedResponse(exchange, "Token validation failed");
                     }
                 })
-                .onErrorResume(throwable -> {
-                    log.error("Token verification error for {} {}: {}", method, path, throwable.getMessage());
+                .onErrorResume(e -> {
+                    log.error("Token verification error: {}", e.getMessage());
                     return unauthorizedResponse(exchange, "Authentication service unavailable");
                 });
     }
 
-    private boolean isExcludedPath(String path) {
-        // Точное совпадение
-        if (excludedExactPaths.contains(path)) {
-            return true;
-        }
-
-        // Совпадение по префиксу (более строгая проверка)
-        for (String prefix : excludedPrefixes) {
-            if (path.startsWith(prefix)) {
-                return true;
+    private Mono<Void> createModifiedRequest(ServerWebExchange exchange, GatewayFilterChain chain,
+                                             String userUuid, boolean fromHeader, JsonNode originalBody) {
+        try {
+            if (originalBody != null) {
+                String modifiedBody = modifyBodyWithProfileId(originalBody, userUuid, false);
+                ServerHttpRequest newRequest = createRequestWithBody(exchange.getRequest(), modifiedBody);
+                return chain.filter(exchange.mutate().request(newRequest).build());
             }
+
+            return readRequestBody(exchange)
+                    .flatMap(body -> {
+                        try {
+                            String modifiedBody;
+
+                            if (body.isEmpty()) {
+                                modifiedBody = "{\"profile_id\":\"" + userUuid + "\"}";
+                            } else {
+                                JsonNode jsonNode = objectMapper.readTree(body);
+                                modifiedBody = modifyBodyWithProfileId(jsonNode, userUuid, true);
+                            }
+
+                            ServerHttpRequest newRequest = createRequestWithBody(exchange.getRequest(), modifiedBody);
+                            return chain.filter(exchange.mutate().request(newRequest).build());
+                        } catch (Exception e) {
+                            log.error("Error modifying request body: {}", e.getMessage());
+                            String simpleBody = "{\"profile_id\":\"" + userUuid + "\"}";
+                            ServerHttpRequest newRequest = createRequestWithBody(exchange.getRequest(), simpleBody);
+                            return chain.filter(exchange.mutate().request(newRequest).build());
+                        }
+                    })
+                    .switchIfEmpty(Mono.defer(() -> {
+                        String simpleBody = "{\"profile_id\":\"" + userUuid + "\"}";
+                        ServerHttpRequest newRequest = createRequestWithBody(exchange.getRequest(), simpleBody);
+                        return chain.filter(exchange.mutate().request(newRequest).build());
+                    }));
+        } catch (Exception e) {
+            log.error("Failed to create modified request: {}", e.getMessage());
+            return unauthorizedResponse(exchange, "Failed to process request");
+        }
+    }
+
+    private String modifyBodyWithProfileId(JsonNode jsonNode, String userUuid, boolean fromHeader) throws Exception {
+        if (!jsonNode.isObject()) {
+            throw new IllegalArgumentException("Request body must be a JSON object");
         }
 
-        return false;
+        ObjectNode objectNode = (ObjectNode) jsonNode;
+
+        if (!fromHeader) {
+            objectNode.remove("jwt");
+        }
+
+        objectNode.put("profile_id", userUuid);
+
+        String result = objectMapper.writeValueAsString(objectNode);
+        log.debug("Modified body: {}", result);
+        return result;
+    }
+
+    private Mono<String> readRequestBody(ServerWebExchange exchange) {
+        return DataBufferUtils.join(exchange.getRequest().getBody())
+                .map(dataBuffer -> {
+                    try {
+                        byte[] bytes = new byte[dataBuffer.readableByteCount()];
+                        dataBuffer.read(bytes);
+                        DataBufferUtils.release(dataBuffer);
+                        String body = new String(bytes, StandardCharsets.UTF_8);
+                        log.debug("Original request body: {}", body);
+                        return body;
+                    } catch (Exception e) {
+                        DataBufferUtils.release(dataBuffer);
+                        return "";
+                    }
+                })
+                .defaultIfEmpty("");
+    }
+
+    private ServerHttpRequest createRequestWithBody(ServerHttpRequest request, String body) {
+        return new ServerHttpRequestDecorator(request) {
+            @Override
+            public Flux<DataBuffer> getBody() {
+                byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
+                DataBuffer buffer = new DefaultDataBufferFactory().wrap(bytes);
+                return Flux.just(buffer);
+            }
+
+            @Override
+            public HttpHeaders getHeaders() {
+                HttpHeaders headers = new HttpHeaders();
+                headers.putAll(super.getHeaders());
+                headers.setContentLength(body.length());
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                return headers;
+            }
+        };
+    }
+
+    private String extractTokenFromHeader(ServerHttpRequest request) {
+        String authHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            return token.isBlank() ? null : token;
+        }
+        return null;
     }
 
     private Mono<String> getAuthServiceUrl() {
         return routeLocator.getRoutes()
                 .filter(route -> "auth-service".equals(route.getId()))
                 .next()
-                .map(route -> {
-                    String baseUrl = route.getUri().toString();
-                    log.debug("Discovered auth-service URL: {}", baseUrl);
-                    return baseUrl;
-                })
+                .map(route -> route.getUri().toString())
                 .switchIfEmpty(Mono.error(new RuntimeException("Auth service route not found")));
     }
 
-    private Mono<TokenVerificationResponse> verifyToken(String token, String authServiceBaseUrl) {
-        String verifyUrl = authServiceBaseUrl + "/verify-token";
-
-        log.debug("Verifying token with auth service: {}", verifyUrl);
-
-        return webClient.post()
-                .uri(verifyUrl)
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new TokenVerificationRequest(token))
-                .retrieve()
-                .bodyToMono(TokenVerificationResponse.class)
-                .doOnError(error -> log.error("Failed to verify token: {}", error.getMessage()));
-    }
-
     private Mono<Void> unauthorizedResponse(ServerWebExchange exchange, String message) {
-        log.warn("Returning 401 Unauthorized: {}", message);
         exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
         exchange.getResponse().getHeaders().add("X-Auth-Redirect", "http://localhost:5173/auth");
         exchange.getResponse().getHeaders().add("X-Auth-Error", message);
