@@ -1,7 +1,9 @@
 import {useState} from "react";
 import {DotsIcon} from "../../../Icons/DotsIcon.jsx";
+import {comment} from "postcss";
+import colors from "tailwindcss/colors.js";
 
-export default function OtherFuncMenu() {
+export default function OtherFuncMenu({component}) {
 
     const [visible, setVisible] = useState(false)
 
@@ -13,7 +15,8 @@ export default function OtherFuncMenu() {
                 onMouseLeave={() => {setVisible(false)}}
                 onClick={() => setVisible(!visible)}
             >
-                <DotsIcon className={`${visible ? "opacity-80" : "opacity-100"} `} />
+                <DotsIcon className={`${visible ? "opacity-80" : "opacity-100"} `}
+                          color={component === "comment" ? "#000000" : "#FAFAFA"}  />
             </button>
             {visible && (
                 <div
