@@ -15,8 +15,9 @@ export default function CommentModalPage({postDate,likeCount,commentCount,postTe
     }
 
     return(
-        <div className="fixed z-50 inset-0 flex flex items-start justify-center bg-black bg-opacity-80 p-4">
-            <div className="relative flex flex-col w-[42rem] max-h-[95vh] overflow-y-auto overflow-x-hidden rounded-3xl bg-white">
+        <div className="fixed z-50 inset-0 flex items-start justify-center bg-black bg-opacity-80 p-4">
+            {/* Основной контейнер с прокруткой */}
+            <div className="relative flex flex-col w-[42rem] max-h-[95vh] overflow-y-auto overflow-x-hidden rounded-3xl bg-white scrollbar-thin scrollbar-track-transparent scrollbar-thumb-transparent">
                 <div className="flex-shrink-0 bg-white rounded-t-3xl">
                     <div className="flex justify-between w-full max-h-20 pr-4 pl-4 pt-2 bg-black rounded-t-3xl">
                         <ProfileInfo
