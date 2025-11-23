@@ -3,37 +3,43 @@ import ProfileInfo from "./PostComponents/ProfileInfo.jsx";
 import OtherFuncMenu from "./PostComponents/OtherFuncMenu.jsx";
 import {LikeIcon} from "../../Icons/LikeIcon.jsx";
 import {CommentIcon} from "../../Icons/CommentsIcon.jsx";
-import {useContext} from "react";
+import {useContext, useState} from "react";
 import {AuthContext} from "../../../authcontext.jsx";
+import CommentModalPage from "./PostComponents/CommentModalPage.jsx";
+import {responseCommentsList} from "../../../assets/postAPI.js";
 
-export default function Post({postH,postW,postDate,likeCount,commentCount,postText}) {
+export default function Post({postH,postW,postDate,likeCount,commentCount,postText,userName,userTag,userId,postId}) {
 
     const {auth,setShowLoginMes} = useContext(AuthContext);
+    const [showComments,setShowComments] = useState(false);
 
     const likeHandleClick =() =>{
         if (!auth) {
-            setShowLoginMes(true);
-        }
+            setShowLoginMes(true);}
         else {}
     }
 
+    const handleClose = () =>{
+        setShowComments(false);
+    }
+
     function commentHandleClick() {
-        if (!auth) {
-            setShowLoginMes(true);
-        }
-        else {}
+        setShowComments(true);
+        const commentList= responseCommentsList(postId);
+        console.log(commentList);
     }
 
     return (
         <div className="flex flex-col w-[42rem]  min-h-96">
             <div className="flex justify-between w-2xl  max-h-20 pr-4 pl-4 pt-2 bg-black rounded-t-3xl">
                 <ProfileInfo
-                    userName="Vova Spridonov"
-                    userTag="@DonSprinion"
-                    userAvatar="/defaultAvatar.png"
+                    component="post"
+                    userName={userName}
+                    userTag={userTag}
+                    userAvatar={`${userId}Avatar.png`}
+                    userId={userId}
                 />
-                <OtherFuncMenu>
-                </OtherFuncMenu>
+                <OtherFuncMenu/>
             </div>
             <div className="flex w-2xl min-h-80 bg-white border-r-2 border-l-2 border-black">
                 <p className="text-lg p-4"> {postText}</p>
@@ -55,7 +61,18 @@ export default function Post({postH,postW,postDate,likeCount,commentCount,postTe
                     </span>
                 </div>
             </div>
+            {showComments && <CommentModalPage closePage={handleClose}
+                                               postDate={postDate}
+                                               postText={postText}
+                                               commentCount={commentCount}
+                                               likeCount={likeCount}
+                                               userName={userName}
+                                               userTag={userTag}
+                                               userId={userId}
+
+            />}
         </div>
+
     )
 
 
