@@ -35,7 +35,7 @@ export default function CommentForm() {
     },[postText])
 
     return(
-        <form className="rounded-b-3xl w-[42rem] h-fit bg-white p-3">
+        <form className="rounded-b-3xl w-[42rem] border-t-[0.1px] border-black h-fit bg-white p-3">
             <div className="flex justify-center w-full h-fit bg-white border-r-2 border-l-2 border-black">
                 <textarea className="w-[40rem] min-h-10 h-fit outline-none resize-none" value={postText} onChange={handleTextChange}/>
             </div>
