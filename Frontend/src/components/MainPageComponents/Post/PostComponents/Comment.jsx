@@ -3,7 +3,7 @@ import OtherFuncMenu from "./OtherFuncMenu.jsx";
 
 export default function Comment({id,userName,userTag,commentText,createDate}) {
     return (
-        <div className="relative flex flex-col w-full p-1 border-[0.2px] border-gray-500">
+        <div className="relative flex flex-col w-full p-1 border-b-[0.1px] border-black">
             <div className="flex">
                 <div>
                     <ProfileInfo
@@ -25,8 +25,10 @@ export default function Comment({id,userName,userTag,commentText,createDate}) {
                 </div>
             </div>
             <div className="flex justify-end mr-1">
-                <span>{createDate}</span>
+                <span className="text-[#979797]">{createDate}</span>
             </div>
-            <div className="absolute top-1 right-2"> <OtherFuncMenu component="comment"/> </div>
+            <div className="absolute top-1 right-2">
+                <OtherFuncMenu component="comment"/>
+            </div>
     </div>)
 }

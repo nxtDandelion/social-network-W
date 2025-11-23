@@ -15,13 +15,8 @@ export default function CommentModalPage({postDate,likeCount,commentCount,postTe
     }
 
     return(
-        <div className="fixed inset-0 flex flex-col items-center justify-center bg-black bg-opacity-80 p-4">
-            {/* Основной контейнер с прокруткой */}
-            <div className="relative flex flex-col w-[42rem] max-h-[95vh] overflow-y-auto rounded-3xl bg-white">
-                {/*<button onClick={commentHandleClick} aria-label="Закрыть" className="absolute top-0  z-10 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-lg border border-gray-200 hover:scale-110 transition-transform duration-200">*/}
-                {/*    <CrossIcon/>*/}
-                {/*</button>*/}
-                {/* Блок поста */}
+        <div className="fixed z-50 inset-0 flex flex items-start justify-center bg-black bg-opacity-80 p-4">
+            <div className="relative flex flex-col w-[42rem] max-h-[95vh] overflow-y-auto overflow-x-hidden rounded-3xl bg-white">
                 <div className="flex-shrink-0 bg-white rounded-t-3xl">
                     <div className="flex justify-between w-full max-h-20 pr-4 pl-4 pt-2 bg-black rounded-t-3xl">
                         <ProfileInfo
@@ -53,9 +48,7 @@ export default function CommentModalPage({postDate,likeCount,commentCount,postTe
                         </div>
                     </div>
                 </div>
-
-                {/* Блок комментариев - ОТДЕЛЬНЫЙ с фоном */}
-                <div className="flex-1 bg-gray-50 rounded-b-3xl mt-2">
+                <div className="flex-1">
                     <Comment
                         userName="Alex"
                         userTag="@Alex"
@@ -91,10 +84,28 @@ export default function CommentModalPage({postDate,likeCount,commentCount,postTe
                         commentText="Я там был! Все не так! Я там был! Все не так!Я там был! Все не так!Я там был! Все не так!Я там был! Все не так!"
                         createDate="22.08 12:48"
                     />
-                    
+                    <Comment
+                        userName="Alex"
+                        userTag="@Alex"
+                        id="211"
+                        commentText="Я там был! Все не так! Я там был! Все не так!Я там был! Все не так!Я там был! Все не так!Я там был! Все не так!"
+                        createDate="22.08 12:48"
+                    />
+                    <Comment
+                        userName="Alex"
+                        userTag="@Alex"
+                        id="211"
+                        commentText="Я там был! Все не так! Я там был! Все не так!Я там был! Все не так!Я там был! Все не так!Я там был! Все не так!"
+                        createDate="22.08 12:48"
+                    />
+                </div>
+                <div className="sticky bottom-0">
                     <CommentForm/>
                 </div>
             </div>
+            <button onClick={commentHandleClick} aria-label="Закрыть" className="relative top-0  z-10 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-lg border border-gray-200 hover:scale-110 transition-transform duration-200">
+                <CrossIcon/>
+            </button>
         </div>
     )
 }
