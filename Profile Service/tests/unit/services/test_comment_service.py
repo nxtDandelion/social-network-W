@@ -34,7 +34,11 @@ class TestCommentService:
 
     @pytest.fixture
     def sample_comment_data(self):
-        return CommentCreate(text="Test comment", post_id=1)
+        return CommentCreate(
+            id=1,
+            text="Test comment",
+            post_id=1
+        )
 
     @pytest.fixture
     def sample_db_comment(self):
