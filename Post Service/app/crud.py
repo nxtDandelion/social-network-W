@@ -2,8 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, delete
 from sqlalchemy.orm.attributes import flag_modified
 from typing import List, Optional
-import models
-import schemas
+from . import models, schemas
 
 async def create_profile(db: AsyncSession, profile: schemas.ProfileCreate):
     db_profile = models.Profile(
@@ -29,7 +28,7 @@ async def update_profile(db: AsyncSession, profile_uuid: str, profile_update: sc
     result = await db.execute(
         select(models.Profile).where(models.Profile.uuid == profile_uuid)
     )
-    return result.scalar_one_or_none()
+    return result.scalars().first()
 
 async def delete_profile(db: AsyncSession, profile_uuid: str):
     stmt = delete(models.Profile).where(models.Profile.uuid == profile_uuid)
@@ -41,7 +40,7 @@ async def get_profile(db: AsyncSession, profile_uuid: str):
     result = await db.execute(
         select(models.Profile).where(models.Profile.uuid == profile_uuid)
     )
-    return result.scalar_one_or_none()
+    return result.scalars().first()
 
 async def follow_profile(db: AsyncSession, follower_uuid: str, followed_uuid: str):
     return {"message": "???"}
@@ -66,7 +65,7 @@ async def get_post(db: AsyncSession, post_id: int):
     result = await db.execute(
         select(models.Post).where(models.Post.id == post_id)
     )
-    return result.scalar_one_or_none()
+    return result.scalars().first()
 
 async def get_posts_feed(db: AsyncSession, skip: int = 0, limit: int = 100):
     result = await db.execute(
@@ -103,7 +102,7 @@ async def update_post(db: AsyncSession, post_id: int, post_update: schemas.PostU
     result = await db.execute(
         select(models.Post).where(models.Post.id == post_id)
     )
-    return result.scalar_one_or_none()
+    return result.scalars().first()
 
 async def delete_post(db: AsyncSession, post_id: int, profile_id: str):
     post = await get_post(db, post_id)
@@ -161,7 +160,7 @@ async def get_comment(db: AsyncSession, comment_id: int):
     result = await db.execute(
         select(models.Comment).where(models.Comment.id == comment_id)
     )
-    return result.scalar_one_or_none()
+    return result.scalars().first()
 
 async def update_comment(db: AsyncSession, comment_id: int, comment_update: schemas.CommentUpdate, profile_id: str):
     comment = await get_comment(db, comment_id)
@@ -181,7 +180,7 @@ async def update_comment(db: AsyncSession, comment_id: int, comment_update: sche
     result = await db.execute(
         select(models.Comment).where(models.Comment.id == comment_id)
     )
-    return result.scalar_one_or_none()
+    return result.scalars().first()
 
 async def delete_comment(db: AsyncSession, comment_id: int, profile_id: str):
     comment = await get_comment(db, comment_id)
