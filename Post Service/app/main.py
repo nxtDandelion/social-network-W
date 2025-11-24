@@ -1,11 +1,11 @@
 from fastapi import FastAPI, Depends, HTTPException, status
-from .rabbitmq import rabbitmq_service, connect_rabbitmq  # ИЗМЕНИТЕ ЭТУ СТРОКУ!
+from .rabbitmq import rabbitmq_service, connect_rabbitmq
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from contextlib import asynccontextmanager
 from typing import List
-from .database import get_db, engine  # ИЗМЕНИТЕ ЭТУ СТРОКУ!
-from . import models, schemas, crud, handlers  # ИЗМЕНИТЕ ЭТУ СТРОКУ!
+from .database import get_db, engine
+from . import models, schemas, crud, handlers
 import uvicorn
 import logging
 from pydantic import BaseModel

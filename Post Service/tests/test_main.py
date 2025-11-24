@@ -22,7 +22,6 @@ class TestMainEndpoints:
         assert response.json() == {"message": "healthy"}
 
     def test_db_health(self):
-        # Просто проверяем что endpoint существует
         response = client.get("/db_health")
         assert response.status_code in [200, 503]
 
@@ -30,7 +29,6 @@ class TestMainEndpoints:
         with patch('app.main.crud.create_post') as mock_create, \
              patch('app.main.rabbitmq_service.send_post_created') as mock_send:
             
-            # Создаем mock объект поста
             mock_post = MagicMock()
             mock_post.id = 1
             mock_post.text = "Test post"
@@ -55,7 +53,6 @@ class TestMainEndpoints:
 
     def test_get_posts_feed(self):
         with patch('app.main.crud.get_posts_feed') as mock_get:
-            # Создаем mock объекты постов
             mock_post1 = MagicMock()
             mock_post1.id = 1
             mock_post1.text = "Post 1"

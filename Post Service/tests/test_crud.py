@@ -128,12 +128,10 @@ class TestCRUDPost:
         post_update = schemas.PostUpdate(text="Updated text")
         mock_post = models.Post(id=1, text="Original text", profile_id="test-uuid-123")
 
-        # Используем side_effect как функцию
         call_count = 0
         async def execute_side_effect(*args, **kwargs):
             nonlocal call_count
             call_count += 1
-            # Все вызовы возвращают mock_post
             mock_scalars = MagicMock()
             mock_scalars.first.return_value = mock_post
             mock_result = MagicMock()
@@ -144,10 +142,6 @@ class TestCRUDPost:
 
         result = await crud.update_post(mock_db, 1, post_update, "test-uuid-123")
 
-        # В update_post 3 вызова execute: 
-        # 1. get_post (await get_post(db, post_id))
-        # 2. update statement (await db.execute(stmt)) 
-        # 3. select updated post (await db.execute(select...))
         assert mock_db.execute.call_count == 3
         mock_db.commit.assert_called_once()
 
@@ -269,12 +263,10 @@ class TestCRUDComment:
             profile_id="test-uuid-123"
         )
 
-        # Используем side_effect как функцию
         call_count = 0
         async def execute_side_effect(*args, **kwargs):
             nonlocal call_count
             call_count += 1
-            # Все вызовы возвращают mock_comment
             mock_scalars = MagicMock()
             mock_scalars.first.return_value = mock_comment
             mock_result = MagicMock()
@@ -285,10 +277,6 @@ class TestCRUDComment:
 
         result = await crud.update_comment(mock_db, 1, comment_update, "test-uuid-123")
 
-        # В update_comment 3 вызова execute:
-        # 1. get_comment (await get_comment(db, comment_id))
-        # 2. update statement (await db.execute(stmt))
-        # 3. select updated comment (await db.execute(select...))
         assert mock_db.execute.call_count == 3
         mock_db.commit.assert_called_once()
 
@@ -325,30 +313,28 @@ class TestCRUDEdgeCases:
 
     async def test_update_profile_partial_data(self, mock_db):
         """Тест частичного обновления профиля"""
-        update_data = schemas.ProfileUpdate(username="updateduser")  # только username
+        update_data = schemas.ProfileUpdate(username="updateduser")
         
         mock_profile = models.Profile(uuid="test-uuid-123", username="updateduser", tag="original")
         setup_mock_scalar_result(mock_db, mock_profile)
         
         result = await crud.update_profile(mock_db, "test-uuid-123", update_data)
         
-        # Должен быть UPDATE и коммит
-        assert mock_db.execute.call_count >= 2  # SELECT + UPDATE
+        assert mock_db.execute.call_count >= 2
         mock_db.commit.assert_called_once()
         assert result.username == "updateduser"
 
     async def test_update_profile_empty_data(self, mock_db):
         """Тест обновления профиля без данных"""
-        update_data = schemas.ProfileUpdate()  # пустой update
+        update_data = schemas.ProfileUpdate()
         
         mock_profile = models.Profile(uuid="test-uuid-123", username="original")
         setup_mock_scalar_result(mock_db, mock_profile)
         
         result = await crud.update_profile(mock_db, "test-uuid-123", update_data)
         
-        # При пустом update_data коммит не должен вызываться
-        mock_db.execute.assert_called_once()  # Только SELECT запрос
-        mock_db.commit.assert_not_called()  # Нет изменений - нет коммита
+        mock_db.execute.assert_called_once() 
+        mock_db.commit.assert_not_called()
 
     async def test_get_profile_posts_empty(self, mock_db):
         """Тест получения постов профиля когда их нет"""
@@ -415,14 +401,13 @@ class TestCRUDEdgeCases:
             text="Test post", 
             profile_id="test-123"
         )
-        mock_post.likers = ["liker-123"]  # уже лайкнут
+        mock_post.likers = ["liker-123"] 
         mock_post.likes_amount = 1
         
         setup_mock_scalar_result(mock_db, mock_post)
         
         result = await crud.like_post(mock_db, 1, "liker-123")
         
-        # Не должно быть изменений если уже лайкнул
         mock_db.commit.assert_not_called()
         mock_db.refresh.assert_not_called()
 
@@ -433,14 +418,13 @@ class TestCRUDEdgeCases:
             text="Test post", 
             profile_id="test-123"
         )
-        mock_post.likers = []  # не лайкнут
+        mock_post.likers = [] 
         mock_post.likes_amount = 0
         
         setup_mock_scalar_result(mock_db, mock_post)
         
         result = await crud.unlike_post(mock_db, 1, "liker-123")
         
-        # Не должно быть изменений если не лайкнул
         mock_db.commit.assert_not_called()
         mock_db.refresh.assert_not_called()
 
@@ -507,7 +491,6 @@ class TestCRUDErrorCases:
         result = await crud.create_comment(mock_db, comment_data, 1, "test-123")
         
         mock_db.add.assert_called_once()
-        # Проверяем что переданный объект имеет edited=False
         call_args = mock_db.add.call_args[0]
         db_comment = call_args[0]
         assert db_comment.edited is False
@@ -522,7 +505,6 @@ class TestCRUDErrorCases:
         with patch('app.crud.flag_modified') as mock_flag:
             result = await crud.update_post(mock_db, 1, post_update, "test-123")
             
-            # Проверяем что был вызов execute и commit
             mock_db.execute.assert_called()
             mock_db.commit.assert_called_once()
 
@@ -536,7 +518,6 @@ class TestCRUDErrorCases:
         with patch('app.crud.flag_modified') as mock_flag:
             result = await crud.update_comment(mock_db, 1, comment_update, "test-123")
             
-            # Проверяем что был вызов execute и commit
             mock_db.execute.assert_called()
             mock_db.commit.assert_called_once()
 
@@ -549,7 +530,7 @@ class TestCRUDJSONFields:
             text="Test post", 
             profile_id="test-123"
         )
-        mock_post.likers = ["user1", "user2"]  # JSON поле
+        mock_post.likers = ["user1", "user2"]
         mock_post.likes_amount = 2
         
         setup_mock_scalar_result(mock_db, mock_post)
@@ -566,16 +547,14 @@ class TestCRUDJSONFields:
             text="Test post", 
             profile_id="test-123"
         )
-        mock_post.likers = []  # начальное значение
+        mock_post.likers = [] 
         mock_post.likes_amount = 0
         
         setup_mock_scalar_result(mock_db, mock_post)
         
-        # Настраиваем flag_modified mock
         with patch('app.crud.flag_modified') as mock_flag:
             result = await crud.like_post(mock_db, 1, "new-liker")
             
-            # Проверяем что flag_modified был вызван для поля likers
             mock_flag.assert_called_once_with(mock_post, "likers")
             mock_db.commit.assert_called_once()
             mock_db.refresh.assert_called_once()
@@ -587,16 +566,14 @@ class TestCRUDJSONFields:
             text="Test post", 
             profile_id="test-123"
         )
-        mock_post.likers = ["existing-liker"]  # начальное значение
+        mock_post.likers = ["existing-liker"]
         mock_post.likes_amount = 1
         
         setup_mock_scalar_result(mock_db, mock_post)
         
-        # Настраиваем flag_modified mock
         with patch('app.crud.flag_modified') as mock_flag:
             result = await crud.unlike_post(mock_db, 1, "existing-liker")
             
-            # Проверяем что flag_modified был вызван для поля likers
             mock_flag.assert_called_once_with(mock_post, "likers")
             mock_db.commit.assert_called_once()
             mock_db.refresh.assert_called_once()
@@ -605,17 +582,14 @@ class TestCRUDJSONFields:
 class TestCRUDComplexScenarios:
     async def test_complete_post_lifecycle(self, mock_db):
         """Тест полного жизненного цикла поста"""
-        # 1. Создание поста
         post_data = schemas.PostCreate(text="Test post")
         await crud.create_post(mock_db, post_data, "test-123")
         
-        # 2. Получение поста
         mock_post = models.Post(id=1, text="Test post", profile_id="test-123")
         setup_mock_scalar_result(mock_db, mock_post)
         post = await crud.get_post(mock_db, 1)
         assert post is not None
         
-        # 3. Лайк поста
         mock_post.likers = []
         mock_post.likes_amount = 0
         setup_mock_scalar_result(mock_db, mock_post)
@@ -624,7 +598,6 @@ class TestCRUDComplexScenarios:
             liked_post = await crud.like_post(mock_db, 1, "liker-123")
             mock_flag.assert_called_once()
         
-        # 4. Обновление поста
         post_update = schemas.PostUpdate(text="Updated post")
         
         call_count = 0
@@ -640,24 +613,20 @@ class TestCRUDComplexScenarios:
         mock_db.execute.side_effect = execute_side_effect
         updated_post = await crud.update_post(mock_db, 1, post_update, "test-123")
         
-        # 5. Удаление поста
         setup_mock_scalar_result(mock_db, mock_post)
         deleted_result = await crud.delete_post(mock_db, 1, "test-123")
         assert deleted_result["message"] == "Post deleted successfully"
 
     async def test_complete_comment_lifecycle(self, mock_db):
         """Тест полного жизненного цикла комментария"""
-        # 1. Создание комментария
         comment_data = schemas.CommentCreate(text="Test comment")
         await crud.create_comment(mock_db, comment_data, 1, "test-123")
         
-        # 2. Получение комментария
         mock_comment = models.Comment(id=1, text="Test comment", post_id=1, profile_id="test-123")
         setup_mock_scalar_result(mock_db, mock_comment)
         comment = await crud.get_comment(mock_db, 1)
         assert comment is not None
         
-        # 3. Обновление комментария
         comment_update = schemas.CommentUpdate(text="Updated comment")
         
         call_count = 0
@@ -673,7 +642,6 @@ class TestCRUDComplexScenarios:
         mock_db.execute.side_effect = execute_side_effect
         updated_comment = await crud.update_comment(mock_db, 1, comment_update, "test-123")
         
-        # 4. Удаление комментария
         setup_mock_scalar_result(mock_db, mock_comment)
         deleted_result = await crud.delete_comment(mock_db, 1, "test-123")
         assert deleted_result["message"] == "Comment deleted successfully"
@@ -690,12 +658,10 @@ class TestCRUDComplexScenarios:
         
         setup_mock_scalar_result(mock_db, mock_post)
         
-        # Первый лайк
         with patch('app.crud.flag_modified') as mock_flag:
             await crud.like_post(mock_db, 1, "user1")
             assert mock_flag.call_count == 1
-        
-        # Второй лайк
+
         mock_post.likers = ["user1"]
         mock_post.likes_amount = 1
         setup_mock_scalar_result(mock_db, mock_post)
@@ -704,7 +670,6 @@ class TestCRUDComplexScenarios:
             await crud.like_post(mock_db, 1, "user2")
             assert mock_flag.call_count == 1
         
-        # Удаление лайка
         mock_post.likers = ["user1", "user2"]
         mock_post.likes_amount = 2
         setup_mock_scalar_result(mock_db, mock_post)

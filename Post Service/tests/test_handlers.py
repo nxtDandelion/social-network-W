@@ -19,7 +19,6 @@ async def test_handle_user_registered():
     with patch('app.handlers.crud.create_profile') as mock_create:
         await handle_user_registered(event_data, mock_db)
         
-        # Проверяем что create_profile был вызван с правильными данными
         mock_create.assert_called_once()
         call_args = mock_create.call_args[0]
         assert call_args[1].uuid == 'test-uuid-123'
@@ -39,7 +38,6 @@ async def test_handle_profile_updated():
     with patch('app.handlers.crud.update_profile') as mock_update:
         await handle_profile_updated(event_data, mock_db)
         
-        # Проверяем что update_profile был вызван с правильными данными
         mock_update.assert_called_once()
         call_args = mock_update.call_args[0]
         assert call_args[1] == 'test-uuid-123'
@@ -69,5 +67,4 @@ async def test_handle_user_event_unknown():
     mock_db = AsyncMock()
     event_data = {}
     
-    # Не должно быть исключения для неизвестного события
     await handle_user_event('unknown_event', event_data, mock_db)
