@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from app import models
+from app.database import models
 
 
 class CommentCRUD:

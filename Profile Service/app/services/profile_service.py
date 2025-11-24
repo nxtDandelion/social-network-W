@@ -9,7 +9,7 @@ class ProfileService:
         self.crud = ProfileCRUD(db)
 
     async def create_profile(self, profile: schemas.ProfileCreate):
-        existing_username = await self.crud.get_profile_by_username(
+        existing_username = await self.crud.get_profile(
             profile.username
         )
         if existing_username:

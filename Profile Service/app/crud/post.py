@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm.attributes import flag_modified
-from app import models
+from app.database import models
 from app.crud.profile import ProfileCRUD
 
 
