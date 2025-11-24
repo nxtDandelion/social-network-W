@@ -15,7 +15,11 @@ class TestPostCRUD:
 
     @pytest.fixture
     def sample_post_data(self):
-        return {"text": "Test post content"}
+        return {
+            "id": 1,
+            "text": "Test post content",
+            "profile_id": "user123"
+        }
 
     @pytest.fixture
     def sample_db_post(self):
@@ -25,6 +29,7 @@ class TestPostCRUD:
         mock.profile_id = "user123"
         mock.likes_amount = 0
         mock.likers = {}
+        mock.edited = False
         return mock
 
     @pytest.mark.asyncio
@@ -38,13 +43,23 @@ class TestPostCRUD:
         mock_db.commit = AsyncMock()
         mock_db.refresh = AsyncMock()
 
-        result = await post_crud.create_post("user123", sample_post_data)
+        with patch('app.crud.post.models') as mock_models:
+            mock_post = MagicMock()
+            mock_models.Post.return_value = mock_post
 
-        assert result.text == "Test post content"
-        assert result.profile_id == "user123"
-        mock_db.add.assert_called_once()
-        mock_db.commit.assert_called_once()
-        mock_db.refresh.assert_called_once()
+            result = await post_crud.create_post(sample_post_data)
+
+            assert result == mock_post
+            mock_models.Post.assert_called_once_with(
+                id=1,
+                text="Test post content",
+                profile_id="user123",
+                likes_amount=0,
+                likers={}
+            )
+            mock_db.add.assert_called_once_with(mock_post)
+            mock_db.commit.assert_called_once()
+            mock_db.refresh.assert_called_once_with(mock_post)
 
     @pytest.mark.asyncio
     async def test_get_post_found(self, post_crud, mock_db, sample_db_post):
@@ -76,13 +91,16 @@ class TestPostCRUD:
         sample_db_post
     ):
 
-        update_data = {"text": "Updated post content"}
+        update_data = {
+            "id": 1,
+            "text": "Updated post content"
+        }
         mock_db.commit = AsyncMock()
         mock_db.refresh = AsyncMock()
 
         with patch.object(post_crud, 'get_post', return_value=sample_db_post):
 
-            result = await post_crud.update_post(1, update_data)
+            result = await post_crud.update_post(update_data)
 
             assert result == sample_db_post
             assert sample_db_post.text == "Updated post content"
@@ -92,13 +110,14 @@ class TestPostCRUD:
 
     @pytest.mark.asyncio
     async def test_update_post_not_found(self, post_crud, mock_db):
-
-        update_data = {"text": "Updated content"}
+        update_data = {
+            "id": 999,
+            "text": "Updated content"
+        }
 
         with patch.object(post_crud, 'get_post', return_value=None):
 
-            result = await post_crud.update_post(999, update_data)
-
+            result = await post_crud.update_post(update_data)
             assert result is None
 
     @pytest.mark.asyncio
@@ -154,14 +173,16 @@ class TestPostCRUD:
 
         sample_db_post.likers = {"user456": True}
         sample_db_post.likes_amount = 1
+        mock_db.commit = AsyncMock()
+        mock_db.refresh = AsyncMock()
 
         with patch.object(post_crud, 'get_post', return_value=sample_db_post):
 
             result = await post_crud.like_post(1, "user456")
 
             assert result == sample_db_post
-            mock_db.commit.assert_not_called()
-            mock_db.refresh.assert_not_called()
+            mock_db.commit.assert_called_once()
+            mock_db.refresh.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_like_post_not_found(self, post_crud, mock_db):

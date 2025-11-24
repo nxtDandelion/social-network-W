@@ -17,6 +17,7 @@ class TestProfileCRUD:
     @pytest.fixture
     def sample_profile_data(self):
         return ProfileCreate(
+            uuid="test-uuid-123",
             username="testuser",
             email="test@example.com",
             tag="testtag",
@@ -26,7 +27,7 @@ class TestProfileCRUD:
     @pytest.fixture
     def sample_db_profile(self):
         mock = MagicMock()
-        mock.uuid = "123"
+        mock.uuid = "test-uuid-123"
         mock.username = "testuser"
         mock.email = "test@example.com"
         mock.tag = "testtag"
