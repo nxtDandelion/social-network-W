@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from app.crud.profile import ProfileCRUD
 from app.schemas.profile import ProfileCreate, ProfileUpdate
+from app.services.profile_service import ProfileService
 
 
 class TestProfileCRUD:
@@ -11,8 +12,27 @@ class TestProfileCRUD:
         return AsyncMock()
 
     @pytest.fixture
+    def mock_crud(self):
+        mock = AsyncMock()
+        mock.get_profile = AsyncMock()
+        mock.get_profile_by_email = AsyncMock()
+        mock.create_profile = AsyncMock()
+        mock.update_profile = AsyncMock()
+        mock.delete_profile = AsyncMock()
+        return mock
+
+    @pytest.fixture
     def profile_crud(self, mock_db):
         return ProfileCRUD(mock_db)
+
+    @pytest.fixture
+    def profile_service(self, mock_crud):
+        with patch(
+            'app.services.profile_service.ProfileCRUD',
+            return_value=mock_crud
+        ):
+            service = ProfileService(db=MagicMock())
+            return service
 
     @pytest.fixture
     def sample_profile_data(self):
@@ -32,26 +52,33 @@ class TestProfileCRUD:
         mock.email = "test@example.com"
         mock.tag = "testtag"
         mock.photo = "photo.jpg"
+        mock.subscribers = {}
+        mock.subscribes = {}
+        mock.subscribers_amount = 0
+        mock.user_posts = {}
         return mock
 
     @pytest.mark.asyncio
     async def test_create_profile_success(
         self,
-        profile_crud,
-        mock_db,
-        sample_profile_data
+        profile_service,
+        mock_crud,
+        sample_profile_data,
+        sample_db_profile
     ):
 
-        mock_db.commit = AsyncMock()
-        mock_db.refresh = AsyncMock()
+        mock_crud.get_profile.return_value = None
+        mock_crud.get_profile_by_email.return_value = None
+        mock_crud.create_profile.return_value = sample_db_profile
 
-        result = await profile_crud.create_profile(sample_profile_data)
+        result = await profile_service.create_profile(sample_profile_data)
 
         assert result.username == "testuser"
-        assert result.email == "test@example.com"
-        mock_db.add.assert_called_once()
-        mock_db.commit.assert_called_once()
-        mock_db.refresh.assert_called_once()
+        mock_crud.get_profile.assert_called_once_with("testuser")
+        mock_crud.get_profile_by_email.assert_called_once_with(
+            "test@example.com"
+        )
+        mock_crud.create_profile.assert_called_once_with(sample_profile_data)
 
     @pytest.mark.asyncio
     async def test_get_profile_found(

@@ -30,6 +30,7 @@ class TestProfileService:
     @pytest.fixture
     def sample_profile_data(self):
         return ProfileCreate(
+            uuid="test-uuid-123",
             username="testuser",
             email="test@example.com",
             tag="testtag",
