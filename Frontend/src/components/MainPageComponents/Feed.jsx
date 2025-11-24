@@ -14,10 +14,16 @@ export default function Feed({feedFunc}) {
 
         <div className="flex flex-col gap-5 items-center w-[50rem] pr-3 pl-3 pt-7 bg-white min-h-screen border-r-2 border-l-2 border-black">
             <Post
+                commentCount=""
+                likeCount=""
+                userId={"211"}
+                userName={"Alex"}
+                userTag={"@Alex"}
                 count={"228"}
                 parentCall={func}
                 postDate={"Создан 25 мая в 12:37"}
                 dateBroadcast={parentDateBroadcast}
+                postId={"123"}
 
             >
 
