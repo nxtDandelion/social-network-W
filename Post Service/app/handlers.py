@@ -1,7 +1,6 @@
 import logging
 from typing import Dict, Any
-import schemas
-import crud
+from . import schemas, crud
 
 
 async def handle_user_registered(event_data: Dict[str, Any], db):
