@@ -67,14 +67,32 @@ async def get_post(db: AsyncSession, post_id: int):
     )
     return result.scalars().first()
 
+
 async def get_posts_feed(db: AsyncSession, skip: int = 0, limit: int = 100):
     result = await db.execute(
-        select(models.Post)
+        select(models.Post, models.Profile.username)
+        .join(models.Profile, models.Post.profile_id == models.Profile.uuid)
         .order_by(models.Post.create_date.desc())
         .offset(skip)
         .limit(limit)
     )
-    return result.scalars().all()
+
+    posts_with_username = result.all()
+    posts_list = []
+    for post, username in posts_with_username:
+        post_dict = {
+            "id": post.id,
+            "text": post.text,
+            "profile_id": post.profile_id,
+            "likes_amount": post.likes_amount,
+            "create_date": post.create_date,
+            "edited": post.edited,
+            "likers": post.likers or [],
+            "username": username
+        }
+        posts_list.append(post_dict)
+
+    return posts_list
 
 async def get_profile_posts(db: AsyncSession, profile_id: str):
     result = await db.execute(

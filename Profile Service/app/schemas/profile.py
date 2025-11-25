@@ -54,3 +54,4 @@ class ProfileUpdate(BaseModel):
         default=None,
         description="Ссылка на аватарку"
     )
+    password: Optional[str] = Field(default=None, description="Новый пароль")

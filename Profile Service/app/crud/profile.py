@@ -27,6 +27,12 @@ class ProfileCRUD:
         )
         return result.scalar_one_or_none()
 
+    async def get_profile_by_username(self, username: str) -> models.Profile:
+        result = await self.db.execute(
+            select(models.Profile).where(models.Profile.username == username)
+        )
+        return result.scalar_one_or_none()
+
     async def get_profile_by_email(self, email: str) -> models.Profile:
         result = await self.db.execute(
             select(models.Profile).where(models.Profile.email == email)

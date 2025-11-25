@@ -123,7 +123,8 @@ class RabbitMQService:
             message_data = {
                 "event_type": "profile_updated",
                 "timestamp": datetime.now().isoformat(),
-                **profile_data
+                "user_id" : profile_data['user_id'],
+                "update_data": profile_data,
             }
 
             message = aio_pika.Message(
@@ -133,8 +134,8 @@ class RabbitMQService:
                 headers={'event': 'profile_updated'}
             )
 
-            await self.profile_events_exchange.publish(message, routing_key='')
-            logging.info(f"Sent profile_updated event")
+            await self.profile_events_exchange.publish(message, routing_key='auth_commands')
+            logging.error(f"Sent profile_updated event")
 
         except Exception as e:
             logging.error(f"Failed to send profile_updated message: {e}")
