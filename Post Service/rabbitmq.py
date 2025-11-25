@@ -13,6 +13,8 @@ class RabbitMQService:
         self.user_events_exchange = None
         self.post_events_exchange = None
         self.post_commands_queue = None
+        self.profile_events_exchange = None
+        self.post_profile_events_queue = None
 
     async def connect(self):
         try:
@@ -34,6 +36,11 @@ class RabbitMQService:
                 aio_pika.ExchangeType.FANOUT,
                 durable=True
             )
+            self.profile_events_exchange = await self.channel.declare_exchange(
+                'profile_events',
+                aio_pika.ExchangeType.FANOUT,
+                durable=True
+            )
             self.post_commands_queue = await self.channel.declare_queue(
                 'post_commands_queue',
                 durable=True
@@ -41,6 +48,14 @@ class RabbitMQService:
             await self.post_commands_queue.bind(
                 self.user_events_exchange,
                 routing_key='user_registered'
+            )
+            self.post_profile_events_queue = await self.channel.declare_queue(
+                'post_profile_events_queue',
+                durable=True
+            )
+            await self.post_profile_events_queue.bind(
+                self.profile_events_exchange,
+                routing_key=''
             )
             self.is_connected = True
             logging.info("Connected to RabbitMQ")
@@ -68,6 +83,23 @@ class RabbitMQService:
 
         await self.post_commands_queue.consume(message_wrapper)
         logging.info("Started consuming events")
+
+    async def start_consuming_profile_events(self, callback):
+        if not self.is_connected:
+            raise RuntimeError("Not connected to RabbitMQ")
+
+        async def message_wrapper(message: aio_pika.IncomingMessage):
+            async with message.process():
+                try:
+                    body = message.body.decode()
+                    data = json.loads(body)
+                    event_type = message.headers.get('event')
+                    await callback(event_type, data)
+                except Exception as e:
+                    logging.error(f"Error processing profile event: {e}")
+                    await message.reject(requeue=False)
+        await self.post_profile_events_queue.consume(message_wrapper)
+        logging.info("Started consuming events from profile_events")
 
     async def send_post_created(self, post_data: Dict[str, Any]):
         try:

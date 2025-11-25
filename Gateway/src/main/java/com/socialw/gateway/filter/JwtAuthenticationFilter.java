@@ -36,7 +36,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     private final ObjectMapper objectMapper;
 
     private final Set<String> excludedPaths = Set.of(
-            "/health", "/auth/", "/verify-token", "/refresh"
+            "/health", "/auth/", "/verify-token", "/refresh", "/post/feed"
     );
 
     public JwtAuthenticationFilter(WebClient webClient, RouteLocator routeLocator, ObjectMapper objectMapper) {

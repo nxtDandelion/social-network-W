@@ -28,6 +28,7 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logging.error(f"Error in callback_with_db: {e}")
     await rabbitmq_service.start_consuming_events(callback_with_db)
+    await rabbitmq_service.start_consuming_profile_events(callback_with_db)
     logging.info("RabbitMQ consumer started successfully")
     yield
     await engine.dispose()
@@ -98,12 +99,21 @@ async def create_post(post: PostCreateWithProfile, db: AsyncSession = Depends(ge
         logging.error(f"Error in create_post: {e}")
 
 
-@app.get("/feed", response_model=List[schemas.Post])
+@app.get("/feed")
 async def get_posts_feed(skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db)):
     return await crud.get_posts_feed(db, skip=skip, limit=limit)
 
+@app.get("/{post_id}")
+async def get_post(post_id: int, db: AsyncSession = Depends(get_db)):
+    post = await crud.get_post(db, post_id)
+    if post is None:
+        raise HTTPException(status_code=404, detail="Post not found")
+    profile = await crud.get_profile(db, post.profile_id)
+    post = post.__dict__
+    post["username"] = profile.username
+    return post
 
-@app.put("/{post_id}", response_model=schemas.Post)
+@app.put("/{post_id}")
 async def update_post(post_id: int, post_update: PostUpdateWithProfile, db: AsyncSession = Depends(get_db)):
     try:
         post = await crud.update_post(db, post_id, post_update, post_update.profile_id)
@@ -119,7 +129,9 @@ async def update_post(post_id: int, post_update: PostUpdateWithProfile, db: Asyn
             "likers": post.likers or [],
         }
         await rabbitmq_service.send_post_updated(post_data)
-        return post
+        profile = await crud.get_profile(db, post.profile_id)
+        post_data["username"] = profile.username
+        return post_data
     except Exception as e:
         logging.error(f"Error in update_post: {e}")
 

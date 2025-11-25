@@ -10,6 +10,7 @@ import handlers
 import security
 import crud
 import rabbitmq
+import logging
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -65,7 +66,7 @@ async def register(user: schemas.UserCreate,
     return new_user
 
 
-@app.post("/login", response_model=schemas.TokenResponse)
+@app.post("/login")
 async def login(auth_data: schemas.TokenCreate, db: AsyncSession = Depends(get_db)):
     user = await crud.UserCRUD.authenticate_user(db, auth_data.login, auth_data.password)
     if not user:
@@ -76,7 +77,12 @@ async def login(auth_data: schemas.TokenCreate, db: AsyncSession = Depends(get_d
         )
 
     token_pair = await crud.TokenCRUD.create_token_pair(db, user, auth_data.ip)
-    return token_pair
+    response = {
+        "access_token": token_pair.access_token,
+        "refresh_token": token_pair.refresh_token,
+        "username": user.username
+    }
+    return response
 
 
 @app.post("/refresh", response_model=schemas.TokenResponse)

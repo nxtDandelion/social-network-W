@@ -1,7 +1,9 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, Depends
 from app.schemas import profile as schemas
 from app.crud.profile import ProfileCRUD
+from app.rabbitmq import rabbitmq
+import logging
 
 
 class ProfileService:
@@ -63,6 +65,7 @@ class ProfileService:
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Email already exists"
                 )
+
         db_profile = await self.crud.update_profile(
             profile_uuid,
             profile_update
@@ -72,6 +75,20 @@ class ProfileService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Profile not found"
             )
+        event_data = {
+            "user_id": profile_uuid,
+            "update_data": profile_update.dict(exclude_unset=True)
+        }
+
+        if profile_update.username is None:
+            event_data["update_data"]["username"] = db_profile.username
+        if profile_update.email is None:
+            event_data["update_data"]["email"] = db_profile.email
+        try:
+            await rabbitmq.rabbitmq_service.send_profile_updated(event_data)
+            logging.error("Profile update event sent successfully")
+        except Exception as e:
+            logging.error(f"Failed to send profile update event: {e}")
         return schemas.ProfileResponse.model_validate(db_profile)
 
     async def delete_profile(self, profile_uuid: str):
