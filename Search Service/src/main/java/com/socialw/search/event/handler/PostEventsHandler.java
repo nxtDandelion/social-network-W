@@ -1,0 +1,96 @@
+package com.socialw.search.event.handler;
+
+import com.socialw.search.event.dto.PostEvent;
+import com.socialw.search.model.elastic.PostDocument;
+import com.socialw.search.service.PostService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.stereotype.Component;
+
+import java.util.HashMap;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class PostEventsHandler {
+
+    private final PostService postService;
+
+    @RabbitListener(queues = "search_post_events_queue")
+    public void handlePostEvent(Object event) {
+        try {
+            // Определяем тип события
+            if (event instanceof PostEvent) {
+                handlePostEvent((PostEvent) event);
+            } else {
+                log.warn("Unknown event type: {}", event.getClass().getSimpleName());
+            }
+
+        } catch (Exception e) {
+            log.error("Error processing event", e);
+        }
+    }
+
+    private void handlePostEvent(PostEvent event) {
+        log.info("Received post event: {} for post: {}", event.getEventType(), event.getPostId());
+
+        switch (event.getEventType()) {
+            case "post_created":
+                handlePostCreated(event);
+                break;
+            case "post_updated":
+                handlePostUpdated(event);
+                break;
+            case "post_deleted":
+                handlePostDeleted(event);
+                break;
+            case "post_liked":
+            case "post_unliked":
+                handlePostLike(event);
+                break;
+            default:
+                log.warn("Unhandled post event type: {}", event.getEventType());
+        }
+    }
+
+    private void handlePostCreated(PostEvent event) {
+        PostDocument post = new PostDocument();
+        post.setId(event.getPostId());
+        post.setText(event.getText());
+        post.setProfileId(event.getProfileId());
+        post.setLikesAmount(event.getLikesAmount() != null ? event.getLikesAmount() : 0);
+        post.setCreateDate(event.getCreateDate());
+        post.setEdited(event.getEdited() != null ? event.getEdited() : false);
+        post.setLikers(event.getLikers() != null ? event.getLikers() : new HashMap<>());
+
+        postService.create(post);
+        log.info("Post created: {}", event.getPostId());
+    }
+
+    private void handlePostUpdated(PostEvent event) {
+        PostDocument post = new PostDocument();
+        post.setId(event.getPostId());
+        post.setText(event.getText());
+        post.setProfileId(event.getProfileId());
+        post.setLikesAmount(event.getLikesAmount());
+        post.setCreateDate(event.getCreateDate());
+        post.setEdited(event.getEdited());
+        post.setLikers(event.getLikers() != null ? event.getLikers() : new HashMap<>());
+
+        postService.update(post);
+        log.info("Post updated: {}", event.getPostId());
+    }
+
+    private void handlePostDeleted(PostEvent event) {
+        postService.delete(event.getPostId());
+        log.info("Post deleted: {}", event.getPostId());
+    }
+
+    private void handlePostLike(PostEvent event) {
+        if (event.getLikers() != null) {
+            postService.updateLikers(event.getPostId(), event.getLikers());
+            log.info("Post likers updated: {}", event.getPostId());
+        }
+    }
+}
