@@ -1,10 +1,13 @@
 package com.socialw.search.event.handler;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.socialw.search.event.dto.ProfileEvent;
 import com.socialw.search.model.elastic.ProfileDocument;
 import com.socialw.search.service.ProfileService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
@@ -14,11 +17,27 @@ import org.springframework.stereotype.Component;
 public class ProfileEventsHandler {
 
     private final ProfileService profileService;
+    private final ObjectMapper objectMapper;
 
     @RabbitListener(queues = "search_profile_events_queue")
-    public void handleProfileEvent(ProfileEvent event) {
+    public void handleProfileEvent(Message message) {
         try {
-            log.info("Received profile event: {} for user: {}", event.getEventType(), event.getUserId());
+            String messageBody = new String(message.getBody());
+            log.info("Received raw message: {}", messageBody);
+
+            ProfileEvent event = objectMapper.readValue(messageBody, ProfileEvent.class);
+            processProfileEvent(event);
+
+        } catch (JsonProcessingException e) {
+            log.error("Failed to parse ProfileEvent from message: {}", new String(message.getBody()), e);
+        } catch (Exception e) {
+            log.error("Error processing profile event", e);
+        }
+    }
+
+    private void processProfileEvent(ProfileEvent event) {
+        try {
+            log.info("Processing profile event: {} for user: {}", event.getEventType(), event.getUserId());
 
             switch (event.getEventType()) {
                 case "profile_created":
