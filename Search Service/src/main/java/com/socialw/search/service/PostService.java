@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -43,7 +44,7 @@ public class PostService {
         log.info("Post deleted with ID: {}", id);
     }
 
-    public void updateLikers(String postId, Map<String, Object> likers) {
+    public void updateLikers(String postId, List<String> likers) {
         Optional<PostDocument> postOpt = postRepository.findById(postId);
         if (postOpt.isPresent()) {
             PostDocument post = postOpt.get();

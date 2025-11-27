@@ -195,12 +195,19 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             public HttpHeaders getHeaders() {
                 HttpHeaders headers = new HttpHeaders();
                 headers.putAll(super.getHeaders());
-                headers.setContentLength(body.length());
-                headers.setContentType(MediaType.APPLICATION_JSON);
+
+                // Используем длину в байтах, а не в символах
+                byte[] bodyBytes = body.getBytes(StandardCharsets.UTF_8);
+                headers.setContentLength(bodyBytes.length);
+
+                // Явно указываем кодировку UTF-8
+                headers.setContentType(new MediaType(MediaType.APPLICATION_JSON, StandardCharsets.UTF_8));
+
                 return headers;
             }
         };
     }
+
 
     private String extractTokenFromHeader(ServerHttpRequest request) {
         String authHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);

@@ -8,8 +8,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 @Slf4j
 @Component
@@ -80,9 +79,9 @@ public class TestService implements CommandLineRunner {
             post.setCreateDate(LocalDateTime.now());
             post.setEdited(false);
 
-            Map<String, Object> likers = new HashMap<>();
-            likers.put("user1", "2024-01-01T10:00:00");
-            likers.put("user2", "2024-01-01T11:00:00");
+            List<String> likers = new LinkedList<>();
+            likers.add("jksmxchd");
+            likers.add("kkkkkkk");
             post.setLikers(likers);
 
             PostDocument createdPost = postService.create(post);
@@ -100,10 +99,10 @@ public class TestService implements CommandLineRunner {
             log.info("✅ Post updated: {}", updatedPost.getText());
 
             // UPDATE LIKERS
-            Map<String, Object> newLikers = new HashMap<>();
-            newLikers.put("user1", "2024-01-01T10:00:00");
-            newLikers.put("user2", "2024-01-01T11:00:00");
-            newLikers.put("user3", "2024-01-01T12:00:00");
+            List<String> newLikers = new LinkedList<>();
+            newLikers.add("user1");
+            newLikers.add("user2");
+            newLikers.add("user3");
             postService.updateLikers("post-123", newLikers);
             log.info("✅ Post likers updated");
 
