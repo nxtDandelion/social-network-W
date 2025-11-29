@@ -58,6 +58,8 @@ async def handle_post_deleted(event_data: Dict[str, Any], db):
     try:
         id = event_data.get("id")
         post_crud = PostCRUD(db)
+        profile_crud = ProfileCRUD(db)
+        await profile_crud.delete_post_from_profile(id)
         await post_crud.delete_post(id)
     except Exception as e:
         logging.error(f"Error handling post deletion: {e}")

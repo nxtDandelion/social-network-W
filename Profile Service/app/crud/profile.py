@@ -104,3 +104,32 @@ class ProfileCRUD:
             await self.db.refresh(db_profile)
 
         return db_profile
+
+    async def delete_post_from_profile(self, post_id: int):
+        result = await self.db.execute(
+            select(models.Post).where(models.Post.id == post_id)
+        )
+        post = result.scalar_one_or_none()
+
+        if not post:
+            return None
+
+        profile_id = post.profile_id
+        db_profile = await self.db.get(models.Profile, profile_id)
+
+        if db_profile:
+            current_posts = db_profile.user_posts or []
+            original_length = len(current_posts)
+
+            new_posts = [p for p in current_posts if p != post_id]
+
+            if len(new_posts) != original_length:
+                stmt = (
+                    update(models.Profile)
+                    .where(models.Profile.uuid == profile_id)
+                    .values(user_posts=new_posts)
+                )
+                await self.db.execute(stmt)
+                await self.db.commit()
+                await self.db.refresh(db_profile)
+        return db_profile
