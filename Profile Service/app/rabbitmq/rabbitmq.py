@@ -123,7 +123,7 @@ class RabbitMQService:
             message_data = {
                 "event_type": "profile_updated",
                 "timestamp": datetime.now().isoformat(),
-                "user_id" : profile_data['user_id'],
+                "user_id": profile_data['user_id'],
                 "update_data": profile_data,
             }
 
@@ -134,8 +134,11 @@ class RabbitMQService:
                 headers={'event': 'profile_updated'}
             )
 
-            await self.profile_events_exchange.publish(message, routing_key='auth_commands')
-            logging.error(f"Sent profile_updated event")
+            await self.profile_events_exchange.publish(
+                message,
+                routing_key='auth_commands'
+            )
+            logging.error("Sent profile_updated event")
 
         except Exception as e:
             logging.error(f"Failed to send profile_updated message: {e}")
@@ -149,8 +152,10 @@ class RabbitMQService:
 
 rabbitmq_service = RabbitMQService()
 
+
 async def connect_rabbitmq():
     await rabbitmq_service.connect()
+
 
 def get_rabbitmq():
     return rabbitmq_service

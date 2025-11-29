@@ -1,6 +1,6 @@
 import logging
 from typing import Dict, Any
-from app.schemas.posts import PostCreate
+# from app.schemas.posts import PostCreate
 from app.schemas.profile import ProfileCreate
 from app.crud.post import PostCRUD
 from app.crud.profile import ProfileCRUD
@@ -23,6 +23,7 @@ async def handle_user_registered(event_data: Dict[str, Any], db):
     except Exception as e:
         logging.error(f"Error handling user registration: {e}")
 
+
 async def handle_post_created(event_data: Dict[str, Any], db):
     try:
         id = event_data.get('id')
@@ -34,9 +35,12 @@ async def handle_post_created(event_data: Dict[str, Any], db):
             "profile_id": profile_id
         }
         post_crud = PostCRUD(db)
+        profile_crud = ProfileCRUD(db)
         await post_crud.create_post(post_create)
+        await profile_crud.add_post_to_profile(profile_id, id)
     except Exception as e:
         logging.error(f"Error handling post creation: {e}")
+
 
 async def handle_post_updated(event_data: Dict[str, Any], db):
     try:
@@ -49,13 +53,17 @@ async def handle_post_updated(event_data: Dict[str, Any], db):
     except Exception as e:
         logging.error(f"Error handling post update: {e}")
 
+
 async def handle_post_deleted(event_data: Dict[str, Any], db):
     try:
         id = event_data.get("id")
         post_crud = PostCRUD(db)
+        profile_crud = ProfileCRUD(db)
+        await profile_crud.delete_post_from_profile(id)
         await post_crud.delete_post(id)
     except Exception as e:
         logging.error(f"Error handling post deletion: {e}")
+
 
 async def handle_post_liked(event_data: Dict[str, Any], db):
     try:
@@ -66,6 +74,7 @@ async def handle_post_liked(event_data: Dict[str, Any], db):
     except Exception as e:
         logging.error(f"Error handling post like: {e}")
 
+
 async def handle_post_unliked(event_data: Dict[str, Any], db):
     try:
         id = event_data.get("id")
@@ -74,6 +83,7 @@ async def handle_post_unliked(event_data: Dict[str, Any], db):
         await post_crud.unlike_post(id, user)
     except Exception as e:
         logging.error(f"Error handling post unlike: {e}")
+
 
 async def handle_comment_created(event_data: Dict[str, Any], db):
     try:
@@ -91,6 +101,7 @@ async def handle_comment_created(event_data: Dict[str, Any], db):
     except Exception as e:
         logging.error(f"Error handling comment creation: {e}")
 
+
 async def handle_comment_updated(event_data: Dict[str, Any], db):
     try:
         comment_id = event_data.get('comment_id')
@@ -102,6 +113,7 @@ async def handle_comment_updated(event_data: Dict[str, Any], db):
         await comment_crud.update_comment(comment_id, updated_data)
     except Exception as e:
         logging.error(f"Error handling comment updating: {e}")
+
 
 async def handle_comment_deleted(event_data: Dict[str, Any], db):
     try:
@@ -121,6 +133,7 @@ async def handle_user_events(event_type: str, event_data: Dict[str, Any], db):
         await handler(event_data, db)
     else:
         logging.warning(f"Unknown event type: {event_type}")
+
 
 async def handle_post_events(event_type: str, event_data: Dict[str, Any], db):
     handlers = {
