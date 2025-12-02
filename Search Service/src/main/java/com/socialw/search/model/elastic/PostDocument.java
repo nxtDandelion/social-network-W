@@ -8,6 +8,7 @@ import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 @Data
@@ -32,6 +33,6 @@ public class PostDocument {
     @Field(type = FieldType.Boolean)
     private Boolean edited;
 
-    @Field(type = FieldType.Object)
-    private Map<String, Object> likers;
+    @Field(type = FieldType.Keyword)
+    private List<String> likers;
 }

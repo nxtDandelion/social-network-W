@@ -1,7 +1,6 @@
 import logging
 from typing import Dict, Any
-import schemas
-import crud
+from . import schemas, crud
 
 
 async def handle_user_registered(event_data: Dict[str, Any], db):
@@ -20,15 +19,14 @@ async def handle_user_registered(event_data: Dict[str, Any], db):
 
 async def handle_profile_updated(event_data: Dict[str, Any], db):
     try:
-        uuid = event_data.get('user_id')
+        user_id = event_data['user_id']
         update_data = event_data.get('update_data', {})
-
         profile_update = schemas.ProfileUpdate(
             username = update_data.get('username', None),
             tag = update_data.get('tag', None)
         )
-        await crud.update_profile(db, uuid, profile_update)
-        logging.info(f"Profile updated for user {uuid}")
+        await crud.update_profile(db, user_id, profile_update)
+        logging.info(f"Profile updated for user {user_id}")
 
     except Exception as e:
         logging.error(f"Error handling profile update: {e}")

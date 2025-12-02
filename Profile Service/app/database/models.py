@@ -19,7 +19,7 @@ class Profile(Base):
     subscribes = Column(JSON, default=dict)
     subscribers = Column(JSON, default=dict)
     subscribers_amount = Column(Integer, default=0)
-    user_posts = Column(JSON, default=dict)
+    user_posts = Column(JSON, default=list)
     tag = Column(VARCHAR, nullable=True)
 
 

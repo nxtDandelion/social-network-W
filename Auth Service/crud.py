@@ -6,6 +6,7 @@ import schemas
 import security
 import uuid
 from datetime import datetime
+import logging
 
 class UserCRUD:
     @staticmethod
@@ -65,6 +66,7 @@ class UserCRUD:
             await db.execute(query)
             await db.commit()
             return await UserCRUD.get_user_by_uuid(db, user_uuid)
+        logging.error("No update")
         return None
 
 

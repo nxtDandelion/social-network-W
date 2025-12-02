@@ -1,4 +1,4 @@
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from pydantic import BaseModel, Field, EmailStr, ConfigDict
 
 
@@ -37,8 +37,8 @@ class ProfileResponse(BaseModel):
         default=0,
         description="Количество подписчиков"
     )
-    user_posts: Dict[str, Any] = Field(
-        default_factory=dict,
+    user_posts: List[int] = Field(
+        default_factory=list,
         description="Посты пользователя"
     )
     tag: Optional[str] = Field(default=None, description="Тег")
@@ -54,3 +54,4 @@ class ProfileUpdate(BaseModel):
         default=None,
         description="Ссылка на аватарку"
     )
+    password: Optional[str] = Field(default=None, description="Новый пароль")

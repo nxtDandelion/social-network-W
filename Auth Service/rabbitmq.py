@@ -40,6 +40,22 @@ class RabbitMqService:
                 self.auth_commands_exchange,
                 routing_key='auth_commands'
             )
+
+            self.profile_events_exchange = await self.channel.declare_exchange(
+                'profile_events',
+                aio_pika.ExchangeType.FANOUT,
+                durable=True
+            )
+
+            self.auth_profile_events_queue = await self.channel.declare_queue(
+                'auth_profile_events_queue',
+                durable=True
+            )
+
+            await self.auth_profile_events_queue.bind(
+                self.profile_events_exchange,
+                routing_key=''
+            )
             self.is_connected = True
             logging.info("Connected to RabbitMQ")
         except Exception as e:
@@ -52,15 +68,15 @@ class RabbitMqService:
                 try:
                     body = message.body.decode()
                     data = json.loads(body)
-                    print(f"Received message: {data}")
+                    logging.error(f"Received message: {data}")
                     async with AsyncSessionLocal() as db:
                         await handle_profile_update(data, db)
 
                 except Exception as e:
-                    print(f"Error processing message: {e}")
+                    logging.error(f"Error processing message: {e}")
 
-        await self.auth_commands_queue.consume(message_wrapper)
-        print(f"Started consuming from {queue_name}")
+        await self.auth_profile_events_queue.consume(message_wrapper)
+        logging.error(f"Started consuming from {queue_name}")
 
     async def close(self):
         if self.connection:
