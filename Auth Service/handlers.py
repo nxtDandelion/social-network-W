@@ -9,6 +9,7 @@ import logging
 async def handle_profile_update(data: dict, db: AsyncSession):
     user_id = data.get("user_id")
     update_data = data.get("update_data", {})
+    update_data = update_data.get("update_data", {})
     logging.error(update_data)
     if not update_data:
         return None

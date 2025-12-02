@@ -56,18 +56,21 @@ class UserCRUD:
 
     @staticmethod
     async def update_profile(db: AsyncSession, user_uuid: str, user_update: schemas.UserUpdate) -> models.User:
-        update_data = user_update.model_dump(exclude_unset=True)
-        if 'password' in update_data:
-            update_data['password'] = security.get_password_hash(update_data['password'])
-        if update_data:
-            query = update(models.User).where(
-                models.User.uuid == user_uuid
-            ).values(**update_data)
-            await db.execute(query)
-            await db.commit()
-            return await UserCRUD.get_user_by_uuid(db, user_uuid)
-        logging.error("No update")
-        return None
+        try:
+            update_data = user_update.model_dump(exclude_unset=True)
+            if 'password' in update_data:
+                update_data['password'] = security.get_password_hash(update_data['password'])
+            if update_data:
+                query = update(models.User).where(
+                    models.User.uuid == user_uuid
+                ).values(**update_data)
+                await db.execute(query)
+                await db.commit()
+                return await UserCRUD.get_user_by_uuid(db, user_uuid)
+            logging.error("No update")
+            return None
+        except Exception as e:
+            logging.error(e)
 
 
     @staticmethod
