@@ -44,9 +44,11 @@ class ProfileService:
 
     async def update_profile(
         self,
-        profile_uuid: str,
+        profile_username: str,
         profile_update: schemas.ProfileUpdate
     ):
+        profile = await self.crud.get_profile_by_username(profile_username)
+        profile_uuid = profile.uuid
         if profile_update.username:
             existing_profile = await self.crud.get_profile_by_username(
                 profile_update.username
@@ -67,7 +69,7 @@ class ProfileService:
                 )
 
         db_profile = await self.crud.update_profile(
-            profile_uuid,
+            profile_username,
             profile_update
         )
         if not db_profile:
