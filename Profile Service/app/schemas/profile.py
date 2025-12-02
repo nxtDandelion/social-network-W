@@ -48,6 +48,7 @@ class ProfileResponse(BaseModel):
 
 class ProfileUpdate(BaseModel):
     username: Optional[str] = Field(default=None, description="Username")
+    login: Optional[str] = Field(default=None, description="Login")
     email: Optional[EmailStr] = Field(default=None, description="Почта")
     tag: Optional[str] = Field(default=None, description="Тег")
     photo: Optional[str] = Field(
