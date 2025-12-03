@@ -17,14 +17,19 @@ async def handle_user_registered(event_data: Dict[str, Any], db):
         logging.error(f"Error handling user registration: {e}")
 
 
-async def handle_profile_updated(event_data: Dict[str, Any], db):
+async def handle_profile_updated(event_data: Dict[Any, Any], db):
     try:
-        user_id = event_data['user_id']
         update_data = event_data.get('update_data', {})
+        update_data = update_data.get('update_data', {})
+        user_id = update_data['uuid']
+        logging.error(f"User {user_id}: {update_data}")
         profile_update = schemas.ProfileUpdate(
-            username = update_data.get('username', None),
-            tag = update_data.get('tag', None)
+            username = update_data.get('username'),
+            tag = update_data.get('tag'),
+            photo = update_data.get('photo'),
+            subscribes = update_data.get('subscribes'),
         )
+        logging.error(profile_update)
         await crud.update_profile(db, user_id, profile_update)
         logging.info(f"Profile updated for user {user_id}")
 

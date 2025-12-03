@@ -16,6 +16,7 @@ class Profile(Base):
         nullable=False
     )
     username = Column(VARCHAR(24), nullable=False)
+    subscribes = Column(JSON, default=dict)
     photo = Column(LargeBinary)
     tag = Column(VARCHAR)
     
