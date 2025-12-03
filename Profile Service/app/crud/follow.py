@@ -43,6 +43,10 @@ class FollowCRUD:
         profile = await self.profile_crud.get_profile(profile_id)
         return profile is not None
 
+    async def get_profile(self, profile_id: str):
+        profile = await self.profile_crud.get_profile(profile_id)
+        return profile
+
     async def get_follow_exists(self, follower_id: str, following_id: str):
         follower = await self.profile_crud.get_profile(follower_id)
         if not follower or not follower.subscribes:

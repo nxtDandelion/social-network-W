@@ -1,10 +1,11 @@
-from pydantic import BaseModel
-from typing import List, Optional
+from pydantic import BaseModel, Field
+from typing import List, Optional, Dict, Any
 from datetime import datetime
 
 class ProfileBase(BaseModel):
     uuid: str
     username: str
+    subscribes: Dict[Any, Any] = Field(default=None)
     tag: Optional[str] = None
 
 class ProfileCreate(ProfileBase):
@@ -12,6 +13,8 @@ class ProfileCreate(ProfileBase):
 
 class ProfileUpdate(BaseModel):
     username: Optional[str] = None
+    subscribes: Optional[Dict[Any, Any]] = Field(default=None)
+    photo: Optional[str] = None
     tag: Optional[str] = None
 
 class Profile(ProfileBase):
