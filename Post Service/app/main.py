@@ -100,6 +100,10 @@ async def create_post(post: PostCreateWithProfile, db: AsyncSession = Depends(ge
 async def get_posts_feed(skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db)):
     return await crud.get_posts_feed(db, skip=skip, limit=limit)
 
+@app.get("/subscribe_feed")
+async def get_subscribe_feed(username: str, db: AsyncSession = Depends(get_db)):
+    return await crud.get_subscribe_feed(db, username)
+
 @app.get("/{post_id}")
 async def get_post(post_id: int, db: AsyncSession = Depends(get_db)):
     post = await crud.get_post(db, post_id)

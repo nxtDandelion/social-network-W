@@ -3,6 +3,7 @@ from sqlalchemy import select, update, delete
 from sqlalchemy.orm.attributes import flag_modified
 from typing import List, Optional
 from . import models, schemas
+import logging
 
 async def create_profile(db: AsyncSession, profile: schemas.ProfileCreate):
     db_profile = models.Profile(
@@ -15,12 +16,23 @@ async def create_profile(db: AsyncSession, profile: schemas.ProfileCreate):
     return db_profile
 
 async def update_profile(db: AsyncSession, profile_uuid: str, profile_update: schemas.ProfileUpdate):
-    update_data = profile_update.model_dump(exclude_unset=True)
-    if update_data:
+    update_data = profile_update.model_dump()
+    logging.error(f"Full update data: {update_data}")
+    filtered_data = {k: v for k, v in update_data.items() if v is not None}
+    logging.error(f"Filtered update data (without None): {filtered_data}")
+    if filtered_data:
+        if 'subscribes' in filtered_data:
+            stmt = (
+                update(models.Profile)
+                .where(models.Profile.uuid == profile_uuid)
+                .values(subscribes=filtered_data['subscribes'])
+            )
+            await db.execute(stmt)
+            await db.commit()
         stmt = (
             update(models.Profile)
             .where(models.Profile.uuid == profile_uuid)
-            .values(**update_data)
+            .values(**filtered_data)
         )
         await db.execute(stmt)
         await db.commit()
@@ -92,6 +104,47 @@ async def get_posts_feed(db: AsyncSession, skip: int = 0, limit: int = 100):
         }
         posts_list.append(post_dict)
 
+    return posts_list
+
+
+async def get_subscribe_feed(db: AsyncSession, username: str, skip: int = 0, limit: int = 100):
+    profile_result = await db.execute(
+        select(models.Profile).where(models.Profile.username == username)
+    )
+    profile = profile_result.scalar_one_or_none()
+    if not profile:
+        return []
+    subscribes = profile.subscribes or {}
+    if not subscribes:
+        return []
+    subscribed_uuids = []
+    for user_info in subscribes.values():
+        if isinstance(user_info, dict) and "uuid" in user_info:
+            subscribed_uuids.append(user_info["uuid"])
+    if not subscribed_uuids:
+        return []
+    result = await db.execute(
+        select(models.Post, models.Profile.username)
+        .join(models.Profile, models.Post.profile_id == models.Profile.uuid)
+        .where(models.Post.profile_id.in_(subscribed_uuids))
+        .order_by(models.Post.create_date.desc())
+        .offset(skip)
+        .limit(limit)
+    )
+    posts_with_username = result.all()
+    posts_list = []
+    for post, username in posts_with_username:
+        post_dict = {
+            "id": post.id,
+            "text": post.text,
+            "profile_id": post.profile_id,
+            "likes_amount": post.likes_amount,
+            "create_date": post.create_date,
+            "edited": post.edited,
+            "likers": post.likers or [],
+            "username": username
+        }
+        posts_list.append(post_dict)
     return posts_list
 
 async def get_profile_posts(db: AsyncSession, profile_id: str):

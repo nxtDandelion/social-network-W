@@ -1,7 +1,11 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
 from app.schemas import follow as schemas
+from app.database import models
 from app.crud.follow import FollowCRUD
+from app.schemas import profile as profile_schema
+from app.rabbitmq import rabbitmq
+import logging
 
 
 class FollowService:
@@ -32,9 +36,18 @@ class FollowService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Follow already exists"
             )
-
         await self.crud.follow_user(follower_id, following_id)
-
+        profile = await self.crud.get_profile(follower_id)
+        profile = profile_schema.ProfileResponse.model_validate(profile)
+        event_data = {
+            "user_id": follower_id,
+            "update_data": profile.model_dump(exclude_unset=True)
+        }
+        try:
+            await rabbitmq.rabbitmq_service.send_profile_updated(event_data)
+            logging.error("Profile follow event sent successfully")
+        except Exception as e:
+            logging.error(f"Failed to send profile follow event: {e}")
         return schemas.FollowResponse(
             follower_id=follower_id,
             following_id=following_id
@@ -60,7 +73,17 @@ class FollowService:
             )
 
         await self.crud.unfollow_user(follower_id, following_id)
-
+        profile = await self.crud.get_profile(follower_id)
+        profile = profile_schema.ProfileResponse.model_validate(profile)
+        event_data = {
+            "user_id": follower_id,
+            "update_data": profile.model_dump(exclude_unset=True)
+        }
+        try:
+            await rabbitmq.rabbitmq_service.send_profile_updated(event_data)
+            logging.error("Profile unfollow event sent successfully")
+        except Exception as e:
+            logging.error(f"Failed to send profile unfollow event: {e}")
         return schemas.FollowResponse(
             follower_id=follower_id,
             following_id=following_id
