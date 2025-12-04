@@ -40,8 +40,10 @@ class Comment(Base):
         ForeignKey("profile.uuid"),
         nullable=False
     )
+    likes_amount = Column(Integer, default=0)
     create_date = Column(DateTime, server_default=func.now())
     edited = Column(Boolean, default=False)
+    likers = Column(JSON, default=[])
     
     post = relationship("Post", back_populates="comments")
     profile = relationship("Profile", back_populates="comments")
