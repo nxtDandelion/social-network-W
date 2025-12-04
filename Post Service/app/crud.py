@@ -264,3 +264,23 @@ async def delete_comment(db: AsyncSession, comment_id: int, profile_id: str):
     await db.execute(stmt)
     await db.commit()
     return {"message": "Comment deleted successfully"}
+
+async def like_comment(db: AsyncSession, comment_id: int, profile_id: str):
+    comment = await get_comment(db, comment_id)
+    if comment and profile_id not in comment.likers:
+        comment.likers.append(profile_id)
+        comment.likes_amount = len(comment.likers)
+        flag_modified(comment, "likers")
+        await db.commit()
+        await db.refresh(comment)
+    return comment
+
+async def unlike_comment(db: AsyncSession, comment_id: int, profile_id: str):
+    comment = await get_comment(db, comment_id)
+    if comment and profile_id in comment.likers:
+        comment.likers.remove(profile_id)
+        comment.likes_amount = len(comment.likers)
+        flag_modified(comment, "likers")
+        await db.commit()
+        await db.refresh(comment)
+    return comment

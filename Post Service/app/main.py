@@ -255,6 +255,38 @@ async def delete_comment(post_id: int, comment_id: int, profile_id: str, db: Asy
         logging.error(f"Error in delete_comment: {e}")
 
 
+@app.post("/comments/{comment_id}/like", response_model=schemas.Comment)
+async def like_comment(comment_id: int, like_request: LikeRequest, db: AsyncSession = Depends(get_db)):
+    try:
+        comment = await crud.like_comment(db, comment_id, like_request.profile_id)
+        if comment is None:
+            raise HTTPException(status_code=404, detail="Post not found")
+        event_data = {
+            "id": comment.id,
+            "user": like_request.profile_id,
+        }
+        # await rabbitmq_service.send_comment_liked(event_data)
+        return comment
+    except Exception as e:
+        logging.error(f"Error in like_post: {e}")
+
+
+@app.delete("/comments/{comment_id}/like", response_model=schemas.Comment)
+async def unlike_comment(comment_id: int, like_request: LikeRequest, db: AsyncSession = Depends(get_db)):
+    try:
+        comment = await crud.unlike_comment(db, comment_id, like_request.profile_id)
+        if comment is None:
+            raise HTTPException(status_code=404, detail="Post not found")
+        event_data = {
+            "id": comment.id,
+            "user": like_request.profile_id,
+        }
+        # await rabbitmq_service.send_comment_unliked(event_data)
+        return comment
+    except Exception as e:
+        logging.error(f"Error in unlike_post: {e}")
+
+
 @app.get("/db_health")
 async def db_health(db: AsyncSession = Depends(get_db)):
     try:
