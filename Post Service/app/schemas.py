@@ -36,6 +36,7 @@ class Comment(CommentBase):
     profile_id: str
     create_date: datetime
     edited: bool
+    likers: List[str]
     
     class Config:
         from_attributes = True
