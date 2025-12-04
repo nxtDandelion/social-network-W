@@ -5,26 +5,43 @@ import {LikeIcon} from "../../../Icons/LikeIcon.jsx";
 import {CommentIcon} from "../../../Icons/CommentsIcon.jsx";
 import CommentForm from "./CommentForm.jsx";
 import CrossIcon from "../../../Icons/CrossIcon.jsx";
+import {comment} from "postcss";
+import PopupBg from "../../../PopupComponents/PopupBg.jsx";
+import { useState, useContext } from "react";
+import { AuthContext } from "../../../../authcontext.jsx";
 
-export default function CommentModalPage({postDate,likeCount,commentCount,postText,userName,userTag,userId,closePage}) {
+export default function CommentModalPage({postDate,likeCount,commentCount,postText,userName,userTag,userId,closePage,comments}) {
+    const [isLiked, setIsLiked] = useState(false);
+    const [isAnimating, setIsAnimating] = useState(false);
+    const { auth } = useContext(AuthContext);
+
     function likeHandleClick() {
+        if (!auth) return;
 
+        setIsAnimating(true);
+        setIsLiked(!isLiked);
+
+        // Останавливаем анимацию через 300ms
+        setTimeout(() => {
+            setIsAnimating(false);
+        }, 300);
     }
+
     function commentHandleClick() {
         closePage();
     }
 
     return(
-        <div className="fixed z-50 inset-0 flex items-start justify-center bg-black bg-opacity-80 p-4">
+        <PopupBg>
             {/* Основной контейнер с прокруткой */}
-            <div className="relative flex flex-col w-[42rem] max-h-[95vh] overflow-y-auto overflow-x-hidden rounded-3xl bg-white scrollbar-thin scrollbar-track-transparent scrollbar-thumb-transparent">
+            <div className="relative flex flex-col w-[42rem] max-h-[95vh] overflow-y-auto overflow-x-hidden rounded-3xl bg-white custom-scrollbar">
                 <div className="flex-shrink-0 bg-white rounded-t-3xl">
                     <div className="flex justify-between w-full max-h-20 pr-4 pl-4 pt-2 bg-black rounded-t-3xl">
                         <ProfileInfo
                             component="post"
                             userName={userName}
                             userTag={userTag}
-                            userAvatar={`${userId}Avatar.png`}
+                            userAvatar={`defaultAvatar.png`}
                         />
                         <OtherFuncMenu/>
                     </div>
@@ -33,11 +50,27 @@ export default function CommentModalPage({postDate,likeCount,commentCount,postTe
                     </div>
                     <div className="flex w-full h-14 bg-black">
                         <div className="flex w-2/4">
-                            <button onClick={likeHandleClick} className="flex w-1/2 items-center ml-3 hover:opacity-80">
-                                <LikeIcon/>
-                                <span className="inline-block text-white text-xl font-bold tracking-wider"> {likeCount}</span>
+                            <button
+                                onClick={likeHandleClick}
+                                className="flex w-1/2 items-center ml-3 hover:opacity-80 transition-opacity duration-200"
+                                disabled={isAnimating}
+                            >
+                                <div className={`
+                                    transition-all duration-300 ease-in-out 
+                                    transform origin-center
+                                    ${isAnimating ? 'scale-125' : 'scale-100'}
+                                `}>
+                                    <LikeIcon color={isLiked ? "red" : "white"} />
+                                </div>
+                                <span className={`
+                                    inline-block text-white text-xl font-bold tracking-wider ml-2
+                                    transition-all duration-300
+                                    ${isAnimating ? 'scale-110' : 'scale-100'}
+                                `}>
+                                    {isLiked ? likeCount + 1 : likeCount}
+                                </span>
                             </button>
-                            <button onClick={commentHandleClick} className="flex w-1/2 items-center ml-3 hover:opacity-80">
+                            <button onClick={commentHandleClick} className="flex w-1/2 items-center ml-3 hover:opacity-80 transition-opacity duration-200">
                                 <CommentIcon/>
                                 <span className="inline-block text-white text-xl font-bold tracking-wider"> {commentCount}</span>
                             </button>
@@ -49,64 +82,35 @@ export default function CommentModalPage({postDate,likeCount,commentCount,postTe
                         </div>
                     </div>
                 </div>
-                <div className="flex-1">
-                    <Comment
-                        userName="Alex"
-                        userTag="@Alex"
-                        id="211"
-                        commentText="Я там был! Все не так! Я там был! Все не так!Я там был! Все не так!Я там был! Все не так!Я там был! Все не так!"
-                        createDate="22.08 12:48"
-                    />
-                    <Comment
-                        userName="Alex"
-                        userTag="@Alex"
-                        id="211"
-                        commentText="Я там был! Все не так! Я там был! Все не так!Я там был! Все не так!Я там был! Все не так!Я там был! Все не так!"
-                        createDate="22.08 12:48"
-                    />
-                    <Comment
-                        userName="Alex"
-                        userTag="@Alex"
-                        id="211"
-                        commentText="Я там был! Все не так! Я там был! Все не так!Я там был! Все не так!Я там был! Все не так!Я там был! Все не так!"
-                        createDate="22.08 12:48"
-                    />
-                    <Comment
-                        userName="Alex"
-                        userTag="@Alex"
-                        id="211"
-                        commentText="Я там был! Все не так! Я там был! Все не так!Я там был! Все не так!Я там был! Все не так!Я там был! Все не так!"
-                        createDate="22.08 12:48"
-                    />
-                    <Comment
-                        userName="Alex"
-                        userTag="@Alex"
-                        id="211"
-                        commentText="Я там был! Все не так! Я там был! Все не так!Я там был! Все не так!Я там был! Все не так!Я там был! Все не так!"
-                        createDate="22.08 12:48"
-                    />
-                    <Comment
-                        userName="Alex"
-                        userTag="@Alex"
-                        id="211"
-                        commentText="Я там был! Все не так! Я там был! Все не так!Я там был! Все не так!Я там был! Все не так!Я там был! Все не так!"
-                        createDate="22.08 12:48"
-                    />
-                    <Comment
-                        userName="Alex"
-                        userTag="@Alex"
-                        id="211"
-                        commentText="Я там был! Все не так! Я там был! Все не так!Я там был! Все не так!Я там был! Все не так!Я там был! Все не так!"
-                        createDate="22.08 12:48"
-                    />
+
+                {/* Комментарии с отступами */}
+                <div className="flex-1 px-4 py-2">
+                    {Object.values(comments).map(comment => (
+                        <Comment
+                            key={comment.id}
+                            userName={comment.profile_id}
+                            userTag="@Alex"
+                            id={comment.id}
+                            commentText={comment.text}
+                            createDate={new Date(comment.create_date).toLocaleDateString('ru-RU')}
+                        />
+                    ))}
                 </div>
-                <div className="sticky bottom-0">
+
+                {/* Форма комментария */}
+                <div className="sticky bottom-0 bg-white border-t border-gray-100">
                     <CommentForm/>
                 </div>
             </div>
-            <button onClick={commentHandleClick} aria-label="Закрыть" className="relative top-0  z-10 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-lg border border-gray-200 hover:scale-110 transition-transform duration-200">
+
+            {/* Кнопка закрытия с улучшенными стилями */}
+            <button
+                onClick={commentHandleClick}
+                aria-label="Закрыть"
+                className="absolute top-4 right-4 z-10 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-lg border border-gray-200 hover:scale-110 hover:bg-gray-50 transition-all duration-200"
+            >
                 <CrossIcon/>
             </button>
-        </div>
+        </PopupBg>
     )
 }

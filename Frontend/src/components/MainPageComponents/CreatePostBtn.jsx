@@ -10,23 +10,61 @@ import {LikeIcon} from "../Icons/LikeIcon.jsx";
 import {CommentIcon} from "../Icons/CommentsIcon.jsx";
 import FormButton from "../FormComponents/FormButton.jsx";
 import CrossIcon from "../Icons/CrossIcon.jsx";
+import {newPost} from "../../API/PostAPI/newPost.js";
+import {responseLog} from "../../API/AuthAPI/auth.js";
+import PopupBg from "../PopupComponents/PopupBg.jsx";
 
 export default function CreatePostBtn() {
-    const {auth,setShowLoginMes} = useContext(AuthContext);
+
+    const {auth,setShowLoginMes,refreshFeed,refreshToken} = useContext(AuthContext);
+    const [userId,setUserId] = useState("")
+    const [userName,setUserName] = useState("");
     const [showCreatePost,setShowCreatePost] = useState(false);
     const [postText,setPostText] = useState("");
     const [isPostSend,setIsPostSend] = useState(false);
     const [allowSend,setAllowSend] = useState(false);
     const [symbolLimit,setSymbolLimit] = useState(false);
+    const [error,setError] = useState('');
     const maxChar = 1000;
     const navigate =useNavigate()
+
+    function handleClose(e) {
+        e.preventDefault();
+        setShowCreatePost(false);
+    }
 
     const createPost = () => {
         if (!auth) {
             setShowLoginMes(true);
         }
         else {
+            setUserId(localStorage.getItem("userId"));
+            setUserName(localStorage.getItem("myUsername"));
             setShowCreatePost(true);
+        }
+    }
+
+    const sendPost = async (e) => {
+        e.preventDefault();
+        setError(null);
+        const response = await newPost(postText);
+
+        if (response.success) {
+            console.log("пост отправлен", response.details, response.data, response.error);
+            refreshFeed();
+            setTimeout(()=>(
+                setShowCreatePost(false)
+            ),1000);
+        }
+        else if (response.statusCode === 401) {
+            console.log('Ошибка 401');
+            console.error(response.error);
+            refreshToken()
+        }
+        else{
+            setError(response.error);
+            console.error(response.error);
+            return response.error;
         }
     }
 
@@ -52,14 +90,19 @@ export default function CreatePostBtn() {
        }
     },[postText])
 
-    function sendPost() {
+    if (error) {
+        return (
+            <div className="flex flex-col gap-5 items-center w-[50rem] pr-3 pl-3 pt-7 bg-white min-h-screen border-r-2 border-l-2 border-black">
+                <div className="text-red-500">{error}</div>
+                <button
+                    onClick={sendPost}
+                    className="px-4 py-2 bg-blue-500 text-white rounded"
+                >
+                    Попробовать снова
+                </button>
+            </div>
+        );
     }
-
-    function handleClose(e) {
-        e.preventDefault();
-        setShowCreatePost(false);
-    }
-
     return (
 
         <div>
@@ -68,7 +111,7 @@ export default function CreatePostBtn() {
                         Создать пост
             </button>
             {showCreatePost &&
-                <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-80">
+                <PopupBg>
                     <form onSubmit={sendPost} className="flex flex-col items-end  relative w-fit h-fit pt-12 px-5 bg-white rounded-[40px]">
                         <button onClick={handleClose} aria-label="Закрыть" className="absolute top-3 right-3 z-10 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-lg border border-gray-200 hover:scale-110 transition-transform duration-200">
                             <CrossIcon/>
@@ -76,9 +119,10 @@ export default function CreatePostBtn() {
                         <div className="flex flex-col w-[42rem]  min-h-96">
                             <div className="flex justify-between w-[42rem]  max-h-20 pr-4 pl-4 pt-2 bg-black rounded-t-3xl">
                                 <ProfileInfo
-                                    userName="Vova Spridonov"
-                                    userTag="@DonSprinion"
-                                    userAvatar="/defaultAvatar.png"
+                                    component="post"
+                                    userName={userName}
+                                    userTag={`@${userName}`}
+                                    userAvatar={"defaultAvatar.png" }
                                 />
                             </div>
                             <div className="flex justify-center w-[42rem] min-h-80 h-fit bg-white border-r-2 border-l-2 border-black">
@@ -91,7 +135,7 @@ export default function CreatePostBtn() {
                             <FormButton text="Сохранить" status={allowSend} enterStatus={isPostSend}/>
                         </div>
                     </form>
-                </div>
+                </PopupBg>
             }
         </div>
     )

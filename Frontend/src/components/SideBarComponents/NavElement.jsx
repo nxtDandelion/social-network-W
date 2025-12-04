@@ -37,6 +37,13 @@ export default function NavElement({label,icon,path}) {
                 setShowLoginMes(true);
             }
         }
+        else{
+            if (path === "/profile"){
+                e.preventDefault();
+                const myProfile = localStorage.getItem("myUsername");
+                navigate(`/profile/${myProfile}`);
+            }
+        }
     }
 
     return (

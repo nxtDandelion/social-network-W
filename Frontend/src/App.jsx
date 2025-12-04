@@ -9,6 +9,7 @@ import RegistrationPage from "./pages/RegistrationPage.jsx";
 import {AuthProvider,AuthContext} from "./authcontext.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import DevMenu from "./DevMenu.jsx";
+import OldTokenPage from "./pages/OldTokenPage.jsx";
 
 const ProtectRoute = ({children,page}) => {
     const { auth, setShowLoginMes } = useContext(AuthContext);
@@ -37,38 +38,45 @@ const ProtectRoute = ({children,page}) => {
     return children;
 }
 
+const TokenValidator = ({ children }) => {
+    const { invalidToken } = useContext(AuthContext);
+
+    if (invalidToken) {
+        return <OldTokenPage/>;
+    }
+    return children;
+}
+
 function App() {
+
     return (
         <AuthProvider>
         <BrowserRouter>
-            <div className="flex items-start w-[62rem] min-h-screen">
-                <DevMenu/>
-                <Sidebar/>
-                    <Routes>
-                        <Route path="/" element={<MainPage/>}/>
-                        <Route path="/home" element={<MainPage/>}/>
-                        <Route path="/profile" element={
-                            <ProtectRoute page="profile">
-                                <ProfilePage cureName="Alex"
-                                             cureLogin="@GUGIguh"
-                                             cureMail="Alex@mail.ru"
-                                             curePassword="12345678"
-                                             subscribes="1000"
-                                             followers="10"
-                                />
-                            </ProtectRoute>}
-                        />
-                        <Route path="/favourites" element={
-                            <ProtectRoute page="favourites">
-                                <FavorsPage/>
-                            </ProtectRoute>}
-                        />
-                        <Route path="/registration" element={<RegistrationPage/>}/>
-                        <Route path="/login" element={<LoginPage/>}/>
-                        <Route path="*" element={<NotFoundPage/>}/>
+            <TokenValidator>
+                <div className="relative flex justify-center w-[62rem] min-h-screen">
+                    <DevMenu/>
+                    <div className="absolute z-50 top-0 left-[-94px]"><Sidebar/></div>
 
-                    </Routes>
-            </div>
+                        <Routes>
+                            <Route path="/" element={<MainPage/>}/>
+                            <Route path="/home" element={<MainPage/>}/>
+                            <Route path="/profile/:username" element={
+                                <ProtectRoute page="profile">
+                                    <ProfilePage/>
+                                </ProtectRoute>}
+                            />
+                            <Route path="/favourites" element={
+                                <ProtectRoute page="favourites">
+                                    <FavorsPage/>
+                                </ProtectRoute>}
+                            />
+                            <Route path="/registration" element={<RegistrationPage/>}/>
+                            <Route path="/login" element={<LoginPage/>}/>
+                            <Route path="*" element={<NotFoundPage/>}/>
+                        </Routes>
+
+                </div>
+            </TokenValidator>
         </BrowserRouter>
         </AuthProvider>
   )

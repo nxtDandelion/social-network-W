@@ -1,7 +1,8 @@
 import axios from "axios";
-import {API_BASE_URL} from "../config.js";
-import {AuthContext} from "../authcontext.jsx";
+import {API_BASE_URL} from "../../config.js";
+import {AuthContext} from "../../authcontext.jsx";
 import {useContext} from "react";
+import {errorHandler} from "../errorsHandler.js";
 
 export const responseLog = async (login,password) =>{
 
@@ -11,16 +12,19 @@ export const responseLog = async (login,password) =>{
             password: password,
             ip:"string"
         });
-        const {access_token,refresh_token,token_type} = response.data;
+        const {access_token,refresh_token,username} = response.data;
         console.log("Запрос на вход успешен");
+        localStorage.setItem("myUsername",username);
+        localStorage.setItem("myLogin",login);
         localStorage.setItem("access_token",access_token);
         localStorage.setItem("refresh_token",refresh_token);
-        return true
+
+
+        return {success:true,data:response.data};
     }
-    catch (error){
-        console.error("Ошибка при авторизации:", error.response?.data || error.message);
-        console.log(error.response.data.detail);
-        return false;
+    catch (error) {
+        const curResponse = "Авторизация:"
+        return errorHandler(error,curResponse);
     }
 }
 
@@ -34,13 +38,12 @@ export const responseReg = async (login, userName, mail, password) => {
             password: password
         });
         console.log("все верно");
-        return true;
+
+        return {success:true,data:response.data};
+
     } catch (error) {
-        console.error("Ошибка при регистрации:", error.response?.data || error.message);
-        // setTimeToClose(true);
-        // setMessage(error.response.data.detail);
-        console.log(error.response.data.detail);
-        return false;
+        const curResponse = "Регистрация:"
+        return (errorHandler(error,curResponse));
     }
 };
 export const logout = () =>{

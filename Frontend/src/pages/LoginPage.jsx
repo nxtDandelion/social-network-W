@@ -7,9 +7,10 @@ import MainPage from "./MainPage.jsx";
 import {useContext, useEffect, useState} from "react";
 import {AuthContext} from "../authcontext.jsx";
 import FormMes from "../components/FormComponents/FormMes.jsx";
-import {lenghtCheck, loginValid, passwordValid} from "../assets/validation.js";
+import {lenghtCheck, loginValid, passwordValid} from "../API/AuthAPI/validation.js";
 import {API_BASE_URL} from "../config.js";
-import {responseLog} from "../assets/auth.js";
+import {responseLog} from "../API/AuthAPI/auth.js";
+import {errorLog} from "../API/errorsHandler.js";
 
 export default function LoginPage() {
     const navigate = useNavigate();
@@ -49,17 +50,19 @@ export default function LoginPage() {
             console.log("Данные валидны",login, password);
 
             const response = await responseLog(login,password);
-            if (response) {
+            if (response.success) {
                 localStorage.setItem("auth","true");
                 setTimeToClose(true);
                 setMessage("Вход успешен");
                 setCorrect(true);
                 setAuth(true);
+                const myProfile = localStorage.getItem("myUsername");
                 setTimeout(() => {
-                    navigate("/profile");
+                    navigate(`/profile/${myProfile}`);
                 },2000)
             }
             else{
+                errorLog(response);
                 setCorrect(false);
                 setTimeToClose(true);
                 setMessage("Неверное имя пользователя или пароль");
@@ -78,7 +81,9 @@ export default function LoginPage() {
                     <FormInput formType="text" labelText="Логин" formValue={login} onChange={(e) => setLogin(e.target.value)}/>
                     <FormInput formType="password" labelText="Пароль" formValue={password} onChange={(e) => setPassword(e.target.value)} />
 
-                    <FormButton status={isActive} enterStatus={correct} text="Войти"></FormButton>
+                    <div className="my-5">
+                        <FormButton status={isActive} enterStatus={correct} text="Войти"></FormButton>
+                    </div>
                     {message && timeToClose && <FormMes text={message} type={correct ? "message" : "error"}/>}
                 </FormFrame>
         </div>
