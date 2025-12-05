@@ -19,18 +19,20 @@ export default function SubscriptionsItem({name,avatar,id,subscriptions,curUserN
     }
 
     return(
-        <div className={`${profileDisable ? "hidden" : "flex"} justify-between items-end p-4 border-b-[0.25px] border-gray-200`}>
+        <div className={`${profileDisable ? "hidden" : "flex"} flex-col justify-between items-end p-4 border-b-[0.25px] border-gray-200`}>
             <ProfileInfo
                 userName={name}
                 userAvatar={`defaultAvatar.png`}
                 userId={id}
-            />
-            <UnSubscribeButton
-                subscriptionsList={subscriptions}
-                name={name}
-                curUserName={curUserName}
-                hideProfile={deleteProfile}
-            />
+            >
+                <UnSubscribeButton
+                    subscriptionsList={subscriptions}
+                    name={name}
+                    curUserName={curUserName}
+                    hideProfile={deleteProfile}
+                />
+            </ProfileInfo>
+
         </div>
     )
 }

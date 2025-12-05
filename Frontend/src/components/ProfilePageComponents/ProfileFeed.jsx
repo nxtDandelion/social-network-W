@@ -164,9 +164,9 @@ export default function ProfileFeed({ showEdit, onCloseModal, onEditClick }) {
                     src={userAvatar ? `/avatars/${userId}Avatar.png` : "/avatars/defaultAvatar.png"}
                     alt="Ваш аватар"
                 />
-                <div className="absolute left-72 top-48">
-                    <span className="text-2xl p-2">{userProfileName}</span>
-                    <span className="text-2xl p-2 text-gray-600">@{userTag}</span>
+                <div className="absolute flex flex-col left-72 top-48">
+                    <span className="text-3xl px-2">{userProfileName}</span>
+                    <span className="text-xl px-2 text-gray-600">@{userTag}</span>
                     <div className="flex flex-col gap-2 items-start mt-2">
                         <ShowSubscriptionsButton
                             status={guestStatus}

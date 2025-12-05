@@ -130,7 +130,7 @@ export default function CreatePostBtn() {
                             </div>
                             <div className="flex w-2xl h-14 bg-black"></div>
                         </div>
-                        <div className="flex justify-between items-center w-full gap-4 mb-5">
+                        <div className="flex justify-between items-center w-full gap-4 my-5">
                             <div className={` p-2 border-2 border-gray-500 rounded-[40px] ${symbolLimit ? "border-red-600" : "border-gray-500"}`}>{postText.length}/1000</div>
                             <FormButton text="Сохранить" status={allowSend} enterStatus={isPostSend}/>
                         </div>
