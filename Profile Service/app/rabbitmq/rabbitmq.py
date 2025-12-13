@@ -152,8 +152,8 @@ class RabbitMQService:
             message_data = {
                 "event_type": "profile_created",
                 "timestamp": datetime.now().isoformat(),
-                "user_id": profile_data['user_id'],
-                "update_data": profile_data,
+                "user_id": profile_data['uuid'],
+                "profile_data": profile_data,
             }
 
             message = aio_pika.Message(
