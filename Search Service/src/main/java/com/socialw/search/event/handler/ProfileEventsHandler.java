@@ -1,13 +1,11 @@
 package com.socialw.search.event.handler;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.socialw.search.event.dto.ProfileEvent;
 import com.socialw.search.model.elastic.ProfileDocument;
 import com.socialw.search.service.ProfileService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.core.Message;
+import org.springframework.amqp.AmqpRejectAndDontRequeueException;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
@@ -17,77 +15,70 @@ import org.springframework.stereotype.Component;
 public class ProfileEventsHandler {
 
     private final ProfileService profileService;
-    private final ObjectMapper objectMapper;
 
     @RabbitListener(queues = "search_profile_events_queue")
-    public void handleProfileEvent(Message message) {
+    public void handleProfileEvent(ProfileEvent event) {
+        log.info("Received profile event: {} for user ID: {}", event.getEventType(), event.getUserId());
+
         try {
-            String messageBody = new String(message.getBody());
-            log.info("Received raw message: {}", messageBody);
-
-            ProfileEvent event = objectMapper.readValue(messageBody, ProfileEvent.class);
             processProfileEvent(event);
-
-        } catch (JsonProcessingException e) {
-            log.error("Failed to parse ProfileEvent from message: {}", new String(message.getBody()), e);
+            log.info("Successfully processed profile event for user ID: {}", event.getUserId());
         } catch (Exception e) {
-            log.error("Error processing profile event", e);
+            log.error("Failed to process profile event for ID: {}", event.getUserId(), e);
+            throw new AmqpRejectAndDontRequeueException("Failed to process profile event", e);
         }
     }
 
     private void processProfileEvent(ProfileEvent event) {
-        try {
-            log.info("Processing profile event: {} for user: {}", event.getEventType(), event.getUserId());
+        log.info("Processing profile event: {} for user: {}", event.getEventType(), event.getUserId());
 
-            switch (event.getEventType()) {
-                case "profile_created":
-                    handleProfileCreated(event);
-                    break;
-                case "profile_updated":
-                    handleProfileUpdated(event);
-                    break;
-                case "profile_deleted":
-                    handleProfileDeleted(event);
-                    break;
-                default:
-                    log.warn("Unhandled profile event type: {}", event.getEventType());
-            }
-
-        } catch (Exception e) {
-            log.error("Error processing profile event: {}", event.getEventType(), e);
+        switch (event.getEventType()) {
+            case "profile_created":
+                handleProfileCreated(event);
+                break;
+            case "profile_updated":
+                handleProfileUpdated(event);
+                break;
+            case "profile_deleted":
+                handleProfileDeleted(event);
+                break;
+            default:
+                log.warn("Unhandled profile event type: {}", event.getEventType());
+                throw new IllegalArgumentException("Unhandled event type: " + event.getEventType());
         }
     }
 
     private void handleProfileCreated(ProfileEvent event) {
-        ProfileDocument profile = new ProfileDocument();
-        profile.setUuid(event.getUserId());
-        profile.setUsername(event.getUsername());
-        profile.setTag(event.getTag());
-
-        if (event.getPhoto() != null) {
-            profile.setPhoto(event.getPhoto());
-        }
-
+        ProfileDocument profile = convertToProfileDocument(event);
         profileService.create(profile);
-        log.info("Profile created: {}", event.getUserId());
+        log.info("Profile created in Elasticsearch: {}", event.getUserId());
     }
 
     private void handleProfileUpdated(ProfileEvent event) {
-        ProfileDocument profile = new ProfileDocument();
-        profile.setUuid(event.getUserId());
-        profile.setUsername(event.getUsername());
-        profile.setTag(event.getTag());
-
-        if (event.getPhoto() != null) {
-            profile.setPhoto(event.getPhoto());
-        }
-
+        ProfileDocument profile = convertToProfileDocument(event);
         profileService.update(profile);
-        log.info("Profile updated: {}", event.getUserId());
+        log.info("Profile updated in Elasticsearch: {}", event.getUserId());
     }
 
     private void handleProfileDeleted(ProfileEvent event) {
         profileService.delete(event.getUserId());
-        log.info("Profile deleted: {}", event.getUserId());
+        log.info("Profile deleted from Elasticsearch: {}", event.getUserId());
+    }
+
+    private ProfileDocument convertToProfileDocument(ProfileEvent event) {
+        ProfileDocument profile = new ProfileDocument();
+        profile.setUuid(event.getUserId());
+        profile.setUsername(event.getUsername());
+        profile.setTag(event.getTag());
+        profile.setPhoto(event.getPhoto());
+
+        if (event.getPhoto() != null) {
+            log.debug("📸 Photo size for user {}: {} bytes",
+                    event.getUserId(), event.getPhoto().length);
+        } else {
+            log.debug("📸 No photo for user: {}", event.getUserId());
+        }
+
+        return profile;
     }
 }

@@ -72,7 +72,7 @@ public class TestService implements CommandLineRunner {
 
             // CREATE
             PostDocument post = new PostDocument();
-            post.setId("post-123");
+            post.setId(123);
             post.setText("This is a test post content");
             post.setProfileId("user-456");
             post.setLikesAmount(5);
@@ -88,7 +88,7 @@ public class TestService implements CommandLineRunner {
             log.info("✅ Post created: {}", createdPost.getId());
 
             // READ
-            var foundPost = postService.findById("post-123");
+            var foundPost = postService.findById(123);
             if (foundPost.isPresent()) {
                 log.info("✅ Post found: {}", foundPost.get().getText());
             }
@@ -103,11 +103,11 @@ public class TestService implements CommandLineRunner {
             newLikers.add("user1");
             newLikers.add("user2");
             newLikers.add("user3");
-            postService.updateLikers("post-123", newLikers);
+            postService.updateLikers(123, newLikers);
             log.info("✅ Post likers updated");
 
             // DELETE
-            postService.delete("post-123");
+            postService.delete(123);
             log.info("✅ Post deleted");
 
         } catch (Exception e) {

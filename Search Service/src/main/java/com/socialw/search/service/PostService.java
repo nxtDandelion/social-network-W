@@ -27,8 +27,8 @@ public class PostService {
         return saved;
     }
 
-    public Optional<PostDocument> findById(String id) {
-        return postRepository.findById(id);
+    public Optional<PostDocument> findById(Integer postId) {
+        return postRepository.findById(String.valueOf(postId));
     }
 
     public PostDocument update(PostDocument post) {
@@ -38,14 +38,14 @@ public class PostService {
         return updated;
     }
 
-    public void delete(String id) {
-        postRepository.deleteById(id);
-        redisTemplate.delete(POST_CACHE_PREFIX + id);
-        log.info("Post deleted with ID: {}", id);
+    public void delete(Integer postId) {
+        postRepository.deleteById(String.valueOf(postId));
+        redisTemplate.delete(POST_CACHE_PREFIX + postId);
+        log.info("Post deleted with ID: {}", postId);
     }
 
-    public void updateLikers(String postId, List<String> likers) {
-        Optional<PostDocument> postOpt = postRepository.findById(postId);
+    public void updateLikers(Integer postId, List<String> likers) {
+        Optional<PostDocument> postOpt = postRepository.findById(String.valueOf(postId));
         if (postOpt.isPresent()) {
             PostDocument post = postOpt.get();
             post.setLikers(likers);

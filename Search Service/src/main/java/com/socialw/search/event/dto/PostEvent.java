@@ -16,7 +16,7 @@ public class PostEvent {
     private String eventType;
 
     @JsonProperty("id")
-    private String postId;
+    private Integer postId;
 
     @JsonProperty("text")
     private String text;
