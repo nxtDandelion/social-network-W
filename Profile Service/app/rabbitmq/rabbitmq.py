@@ -144,6 +144,35 @@ class RabbitMQService:
             logging.error(f"Failed to send profile_updated message: {e}")
             raise
 
+    async def send_profile_created(self, profile_data: Dict[str, Any]):
+        if not self.is_connected:
+            raise RuntimeError("Not connected to RabbitMQ")
+
+        try:
+            message_data = {
+                "event_type": "profile_created",
+                "timestamp": datetime.now().isoformat(),
+                "user_id": profile_data['user_id'],
+                "update_data": profile_data,
+            }
+
+            message = aio_pika.Message(
+                body=json.dumps(message_data).encode(),
+                delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
+                content_type='application/json',
+                headers={'event': 'profile_created'}
+            )
+
+            await self.profile_events_exchange.publish(
+                message,
+                routing_key='auth_commands'
+            )
+            logging.error("Sent profile_created event")
+
+        except Exception as e:
+            logging.error(f"Failed to send profile_created message: {e}")
+            raise
+
     async def close(self):
         if self.connection:
             await self.connection.close()

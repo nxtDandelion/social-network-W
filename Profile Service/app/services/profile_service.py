@@ -29,8 +29,23 @@ class ProfileService:
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Email already exists"
                 )
-
         db_profile = await self.crud.create_profile(profile)
+        event_data = {
+            "user_id": str(db_profile.id),
+            "event_type": "profile_created",
+            "timestamp": datetime.utcnow().isoformat(),
+            "profile_data": {
+                "username": db_profile.username,
+                "email": db_profile.email,
+                "created_at": db_profile.created_at.isoformat() if db_profile.created_at else None,
+            }
+        }
+
+        try:
+            await rabbitmq.rabbitmq_service.send_profile_created(event_data)
+            logging.info("Profile creation event sent successfully")
+        except Exception as e:
+            logging.error(f"Failed to send profile creation event: {e}")
         return schemas.ProfileResponse.model_validate(db_profile)
 
     async def get_profile(self, profile_uuid: str) -> schemas.ProfileResponse:
