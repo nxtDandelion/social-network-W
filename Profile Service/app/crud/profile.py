@@ -6,6 +6,7 @@ from app.schemas import profile as schemas
 from app.database import models
 
 
+
 class ProfileCRUD:
     def __init__(self, db: AsyncSession):
         self.db = db

@@ -3,6 +3,7 @@ from fastapi import HTTPException, status, Depends
 from app.schemas import profile as schemas
 from app.crud.profile import ProfileCRUD
 from app.rabbitmq import rabbitmq
+from datetime import datetime
 import logging
 
 
@@ -29,8 +30,18 @@ class ProfileService:
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Email already exists"
                 )
-
         db_profile = await self.crud.create_profile(profile)
+        event_data = {
+            "uuid": db_profile.uuid,
+            "username": db_profile.username,
+            "photo": db_profile.photo,
+        }
+        logging.error(f"event_data: {event_data}")
+        try:
+            await rabbitmq.rabbitmq_service.send_profile_created(event_data)
+            logging.error("Profile creation event sent successfully")
+        except Exception as e:
+            logging.error(f"Failed to send profile creation event: {e}")
         return schemas.ProfileResponse.model_validate(db_profile)
 
     async def get_profile(self, profile_uuid: str) -> schemas.ProfileResponse:
