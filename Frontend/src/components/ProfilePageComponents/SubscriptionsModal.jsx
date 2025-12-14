@@ -1,6 +1,4 @@
 import PopupBg from "../PopupComponents/PopupBg.jsx";
-import {SearchIcon} from "../Icons/SearchIcon.jsx";
-import profilePage from "../../pages/ProfilePage.jsx";
 import SubscriptionsItem from "./SubscriptionsItem.jsx";
 import CrossIcon from "../Icons/CrossIcon.jsx";
 

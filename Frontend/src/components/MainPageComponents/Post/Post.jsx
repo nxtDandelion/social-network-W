@@ -3,14 +3,14 @@ import OtherFuncMenu from "./PostComponents/OtherFuncMenu.jsx";
 import {LikeIcon} from "../../Icons/LikeIcon.jsx";
 import {CommentIcon} from "../../Icons/CommentsIcon.jsx";
 import {useContext, useEffect, useState} from "react";
-import {AuthContext} from "../../../authcontext.jsx";
-import CommentModalPage from "./PostComponents/CommentModalPage.jsx";
+import {AuthContext} from "../../../Contexts/AuthContext.jsx";
+import CommentModalPage from "./PostComponents/CommentsComponents/CommentModalPage.jsx";
 import {responseCommentsList} from "../../../API/PostAPI/getCommentsList.js";
 import {postLike} from "../../../API/PostAPI/postLike.js";
 import {deleteLike} from "../../../API/PostAPI/deleteLike.js";
 import OldTokenPage from "../../../pages/OldTokenPage.jsx";
 
-export default function Post({postH,postW,postDate,likers,comments,postText,userName,userTag,userId,postId}) {
+export default function Post({postH,postW,postDate,likers,postText,userName,userTag,userId,postId,isModal,onModalFunc}) {
 
     const {auth,setShowLoginMes,refreshToken} = useContext(AuthContext);
     const [showComments,setShowComments] = useState(false);
@@ -18,7 +18,9 @@ export default function Post({postH,postW,postDate,likers,comments,postText,user
     const [isLiked,setIsLiked] = useState(false);
     const [likersList,setLikersList] = useState([]);
     const [isLoading,setIsLoading] = useState(true);
-    const [isAnimating, setIsAnimating] = useState(false); // Новое состояние для анимации
+    const [isAnimating, setIsAnimating] = useState(false);
+
+
 
     useEffect(() => {
         // 1. Создаем безопасный массив
@@ -38,14 +40,12 @@ export default function Post({postH,postW,postDate,likers,comments,postText,user
         setIsLoading(false);
     }, [likers]);
 
-
     const likeHandleClick = async () => {
         if (!auth) {
             setShowLoginMes(true);
             return;
         }
 
-        // Запускаем анимацию
         setIsAnimating(true);
 
         const curUser = localStorage.getItem("userId");
@@ -91,19 +91,23 @@ export default function Post({postH,postW,postDate,likers,comments,postText,user
         }
     }
 
-    const handleClose = () =>{
-        setShowComments(false);
+    async function commentHandleClick () {
+
+        if (isModal){
+            onModalFunc();
+        }
+        const response = await responseCommentsList(postId);
+        if (response.success) {
+
+            setCommentsList(response.data);
+            setShowComments(true);
+        } else {
+            console.log(response.success);
+        }
     }
 
-    function commentHandleClick() {
-        setShowComments(true);
-        const response = responseCommentsList(postId);
-        if (response.success) {
-            setCommentsList(responseCommentsList(postId));
-            setIsLiked(true);
-        } else {
-            console.log(response.error)
-        }
+    const handleClose = () =>{
+        setShowComments(false);
     }
 
     if (isLoading) {
@@ -138,7 +142,11 @@ export default function Post({postH,postW,postDate,likers,comments,postText,user
                     userAvatar={`defaultAvatar.png`}
                     userId={userId}
                 />
-                <OtherFuncMenu/>
+                <OtherFuncMenu
+                    userId={userId}
+                    postId={postId}
+                    initText={postText}
+                />
             </div>
             <div className="flex w-2xl min-h-80 bg-white border-r-2 border-l-2 border-black">
                 <p className="text-lg p-4"> {postText}</p>
@@ -177,16 +185,19 @@ export default function Post({postH,postW,postDate,likers,comments,postText,user
                     </span>
                 </div>
             </div>
-            {showComments && <CommentModalPage closePage={handleClose}
-                                               postDate={postDate}
-                                               postText={postText}
-                                               commentCount={Object.keys(comments).length}
-                                               likeCount={Object.keys(likers).length}
-                                               userName={userName}
-                                               userTag={userTag}
-                                               userId={userId}
-                                               likers={likersList}
-                                               comments={commentsList}
+            {showComments && <CommentModalPage
+                                   closePage={handleClose}
+                                   postDate={postDate}
+                                   postText={postText}
+                                   postId={postId}
+                                   commentCount={Object.keys(commentsList).length}
+                                   likeCount={Object.keys(likers).length}
+                                   userName={userName}
+                                   userTag={userTag}
+                                   userId={userId}
+                                   likers={likersList}
+                                   comments={commentsList}
+
 
             />}
         </div>

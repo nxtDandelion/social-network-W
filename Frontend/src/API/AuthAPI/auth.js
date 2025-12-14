@@ -1,7 +1,5 @@
 import axios from "axios";
 import {API_BASE_URL} from "../../config.js";
-import {AuthContext} from "../../authcontext.jsx";
-import {useContext} from "react";
 import {errorHandler} from "../errorsHandler.js";
 
 export const responseLog = async (login,password) =>{
@@ -12,13 +10,8 @@ export const responseLog = async (login,password) =>{
             password: password,
             ip:"string"
         });
-        const {access_token,refresh_token,username} = response.data;
         console.log("Запрос на вход успешен");
-        localStorage.setItem("myUsername",username);
-        localStorage.setItem("myLogin",login);
-        localStorage.setItem("access_token",access_token);
-        localStorage.setItem("refresh_token",refresh_token);
-
+        console.log(response.data,"Login");
 
         return {success:true,data:response.data};
     }

@@ -1,7 +1,7 @@
 import {useContext, useEffect, useState} from "react";
 import {followProfile} from "../../API/ProfileAPI/followProfile.jsx";
 import {unFollowProfile} from "../../API/ProfileAPI/unFollowProfile.js";
-import {AuthContext} from "../../authcontext.jsx";
+import {AuthContext} from "../../Contexts/AuthContext.jsx";
 
 export default function ({status,subscribes,profileUsername,updateSubscribersList,size}){
     const [subStatus,setSubStatus] = useState(false);

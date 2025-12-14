@@ -1,19 +1,17 @@
-import Post from "./Post/Post.jsx";
+import Post from "../MainPageComponents/Post/Post.jsx";
 import {useContext, useEffect, useState} from "react";
 import {getPosts} from "../../API/PostAPI/getPosts.jsx";
 import {AuthContext} from "../../Contexts/AuthContext.jsx";
 import {FeedContext} from "../../Contexts/FeedContext.jsx";
 import NotificationCard from "../Other/NotificationCard.jsx";
-import {getFavourPosts} from "../../API/PostAPI/getFavourPost.js";
 
 
 
-export default function Feed({filter}) {
+export default function FavorsPageFeed() {
 
     const [postsList,setPostsList] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error,setError] = useState('');
-    const {userName} = useContext(AuthContext);
     const {postDeleted,postCreated,postUpdated,newPostData} = useContext(FeedContext);
     const [notice,setNotice] = useState(null);
 
@@ -27,13 +25,13 @@ export default function Feed({filter}) {
     }
 
     const refreshFeed = async () => {
-
         setLoading(true);
         setError(null);
         try {
-            const posts = (filter === "favourites" ? await getFavourPosts(userName) : await getPosts());
+            const posts = await getPosts();
             if (posts.success) {
                 setPostsList(posts.data);
+                console.log(postsList,"Список потсов");
             } else {
                 setError("Не удалось загрузить ленту");
             }
@@ -46,7 +44,9 @@ export default function Feed({filter}) {
     }
 
     useEffect(()=>{
+
         refreshFeed();
+
     },[])
 
     useEffect(() => {
@@ -82,7 +82,7 @@ export default function Feed({filter}) {
         if (postUpdated){
             console.log(postUpdated.id,postUpdated.text,"feed");
             setPostsList(prev =>{
-               const postExist = prev.some(post => post.id === postUpdated.id);
+                const postExist = prev.some(post => post.id === postUpdated.id);
                 if (!postExist){
                     console.log("Пост для обновления не найден");
                     return prev;
@@ -137,16 +137,16 @@ export default function Feed({filter}) {
     return (
         <div className="flex flex-col gap-5 items-center w-[50rem] pr-3 pl-3 pt-7 bg-white min-h-screen border-r-2 border-l-2 border-black">
             {postsList.map((post)=>(<Post
-                                        key={post.id}
-                                        postText={post.text}
-                                        likers={post.likers}
-                                        userId={post.profile_id}
-                                        userName={post.username}
-                                        userTag={`@${post.username}`}
+                key={post.id}
+                postText={post.text}
+                likers={post.likers}
+                userId={post.profile_id}
+                userName={post.username}
+                userTag={`@${post.username}`}
 
-                                        postDate={new Date(post.create_date).toLocaleDateString('ru-RU')}
-                                        postId={post.id}
-                                    />))
+                postDate={new Date(post.create_date).toLocaleDateString('ru-RU')}
+                postId={post.id}
+            />))
             }
 
 

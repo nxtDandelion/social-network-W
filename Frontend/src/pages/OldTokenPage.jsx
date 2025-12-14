@@ -1,7 +1,7 @@
 import {SearchIcon} from "../components/Icons/SearchIcon.jsx";
 import {Link} from "react-router-dom";
 
-import {AuthContext} from "../authcontext.jsx";
+import {AuthContext} from "../Contexts/authcontext.jsx";
 import {useContext} from "react";
 
 export default function OldTokenPage() {

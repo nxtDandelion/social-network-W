@@ -1,4 +1,3 @@
-import {responseReg} from "../../API/AuthAPI/auth.js";
 
 export default function PopupBg ({children}){
     return(

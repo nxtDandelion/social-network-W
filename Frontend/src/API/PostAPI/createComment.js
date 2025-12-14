@@ -2,21 +2,24 @@ import axios from "axios";
 import {API_BASE_URL} from "../../config.js";
 import {errorHandler} from "../errorsHandler.js";
 
-export const responseCommentsList = async (postId) =>{
+export const createComment = async (postId,text,profileId) =>{
     const token = localStorage.getItem("access_token");
 
     try {
-        const response = await axios.get(`${API_BASE_URL}/post/${postId}/comments`,{
+        const response = await axios.post(`${API_BASE_URL}/post/${postId}/comments`, {
+            text: text,
+            profile_id: profileId,
+        },{
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             }
         });
-        console.log("Запрос на вход успешен");
+        console.log("Запрос на отпраку комментария успешен");
         return {success:true,data:response.data};
     }
     catch (error) {
-        const curResponse = "Получение комментариев поста:"
+        const curResponse = "Отпрака комментариев поста:"
         return errorHandler(error,curResponse);
     }
 }

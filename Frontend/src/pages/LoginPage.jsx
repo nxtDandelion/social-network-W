@@ -5,7 +5,7 @@ import FormFrame from "../components/FormComponents/FormFrame.jsx";
 import {useNavigate} from "react-router-dom";
 import MainPage from "./MainPage.jsx";
 import {useContext, useEffect, useState} from "react";
-import {AuthContext} from "../authcontext.jsx";
+import {AuthContext} from "../Contexts/AuthContext.jsx";
 import FormMes from "../components/FormComponents/FormMes.jsx";
 import {lenghtCheck, loginValid, passwordValid} from "../API/AuthAPI/validation.js";
 import {API_BASE_URL} from "../config.js";
@@ -14,7 +14,7 @@ import {errorLog} from "../API/errorsHandler.js";
 
 export default function LoginPage() {
     const navigate = useNavigate();
-    const {setAuth} = useContext(AuthContext);
+    const {setAuth,setUserName} = useContext(AuthContext);
     const [timeToClose, setTimeToClose] = useState(true);
     const [login, setLogin] = useState("");
     const [password, setPassword] = useState("");
@@ -55,11 +55,17 @@ export default function LoginPage() {
                 setTimeToClose(true);
                 setMessage("Вход успешен");
                 setCorrect(true);
+                console.log(response.data);
+                localStorage.setItem("myUsername",response.data.username);
+                localStorage.setItem("access_token",response.data.access_token);
+                setUserName(response.data.username);
                 setAuth(true);
+
                 const myProfile = localStorage.getItem("myUsername");
                 setTimeout(() => {
                     navigate(`/profile/${myProfile}`);
-                },2000)
+                },100)
+
             }
             else{
                 errorLog(response);

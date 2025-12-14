@@ -2,7 +2,7 @@ import {useContext, useEffect, useState} from "react";
 import Post from "../MainPageComponents/Post/Post.jsx";
 import ProfileButton from "../ProfilePageComponents/ProfileButton.jsx";
 import {getUserProfile} from "../../API/ProfileAPI/getUserProfile.js";
-import {AuthContext} from "../../authcontext.jsx";
+import {AuthContext} from "../../Contexts/AuthContext.jsx";
 import {useParams} from "react-router-dom";
 import EditForm from "../ProfilePageComponents/EditForm.jsx";
 import SubscribeButton from "../ProfilePageComponents/SubscribeButton.jsx";

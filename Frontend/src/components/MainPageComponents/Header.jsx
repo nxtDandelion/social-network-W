@@ -1,8 +1,6 @@
 import {useContext} from "react";
-import SearchPanel from ".//SearchPanel.jsx";
-import CreatePostBtn from "./CreatePostBtn.jsx";
-import {SearchIcon} from "../Icons/SearchIcon.jsx";
-import {AuthContext} from "../../authcontext.jsx";
+
+import {AuthContext} from "../../Contexts/AuthContext.jsx";
 
 
 

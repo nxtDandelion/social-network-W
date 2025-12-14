@@ -1,15 +1,15 @@
-import ProfileInfo from "./ProfileInfo.jsx";
-import OtherFuncMenu from "./OtherFuncMenu.jsx";
+import ProfileInfo from "../ProfileInfo.jsx";
+import CommentOtherMenu from "./CommentOtherMenu.jsx";
 
-export default function Comment({id,userName,userTag,commentText,createDate}) {
+export default function Comment({commentId,userId,postId,userName,userTag,commentText,createDate}) {
     return (
         <div className="relative flex flex-col w-full p-1 border-b-[0.1px] border-black">
             <div className="flex">
                 <div>
                     <ProfileInfo
                         component="comment"
-                        userId={id}
-                        userAvatar={`${id}Avatar.png`}
+                        userId={userId}
+                        userAvatar={`/defaultAvatar.png`}
                     />
                 </div>
                 <div className="flex flex-col justify-start items-start w-fit max-w-[38rem] h-fit">
@@ -28,7 +28,7 @@ export default function Comment({id,userName,userTag,commentText,createDate}) {
                 <span className="text-[#979797]">{createDate}</span>
             </div>
             <div className="absolute top-1 right-2">
-                <OtherFuncMenu component="comment"/>
+                <CommentOtherMenu commentId={commentId} userId={userId} postId={postId} component="comment"></CommentOtherMenu>
             </div>
     </div>)
 }

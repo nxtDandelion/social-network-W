@@ -1,17 +1,20 @@
 import {useContext, useState} from "react";
-import {DotsIcon} from "../../../Icons/DotsIcon.jsx";
+import {DotsIcon} from "../../../../Icons/DotsIcon.jsx";
 
-import {deletePost} from  "../../../../API/PostAPI/deletePost.js"
+import {deletePost} from  "../../../../../API/PostAPI/deletePost.js"
 
-import {FeedContext} from "../../../../Contexts/FeedContext.jsx";
-import {AuthContext} from "../../../../Contexts/AuthContext.jsx"
-import NotificationCard from "../../../Other/NotificationCard.jsx";
-import {updatePost} from "../../../../API/PostAPI/updatePost.js";
+import {FeedContext} from "../../../../../Contexts/FeedContext.jsx";
+import {AuthContext} from "../../../../../Contexts/AuthContext.jsx"
+import NotificationCard from "../../../../Other/NotificationCard.jsx";
+import {updatePost} from "../../../../../API/PostAPI/updatePost.js";
 
-import EditPostModal from "./EditPostModal.jsx";
+import EditPostModal from "../EditPostModal.jsx";
+import {updateComment} from "../../../../../API/PostAPI/updateComment.js";
+import {deleteComment} from "../../../../../API/PostAPI/deleteComment.js";
+import {CommentContext} from "../../../../../Contexts/CommentContext.jsx";
 
 
-export default function OtherFuncMenu({component,userId,postId,initText}) {
+export default function CommentOtherMenu({component,commentId,userId,postId,initText}) {
 
     const [visible, setVisible] = useState(false);
     const [showEdit,setShowEdit] = useState(false);
@@ -20,13 +23,13 @@ export default function OtherFuncMenu({component,userId,postId,initText}) {
     const {setPostUpdated} = useContext(FeedContext);
 
     const sendToUpdate = async (text) =>{
-        const response = await updatePost(postId,text)
+        const response = await updateComment(userId,postId,commentId,text)
         if (response.success){
             setPostUpdated({id:postId,text:text});
 
             setNote({
                 type: "success",
-                message: "Пост отредактирован",
+                message: "Комментарий отредактирован",
                 duration: 2000
             });
             setShowEdit(false);
@@ -37,7 +40,7 @@ export default function OtherFuncMenu({component,userId,postId,initText}) {
         else return response.error;
     }
 
-    const editPost = () => {
+    const editComment = () => {
         setShowEdit(true);
     }
 
@@ -65,10 +68,11 @@ export default function OtherFuncMenu({component,userId,postId,initText}) {
                     onMouseEnter={() => {setVisible(true)}}
                     onMouseLeave={() => {setVisible(false)}}
                 >
-                    <MenuCard userId={userId}
+                    <MenuCard curUserId={userId}
+                              commentId={commentId}
                               postId={postId}
                               showNote = {setNote}
-                              openEditMenu={editPost}
+                              openEditMenu={editComment}
                     />
                 </div>)}
 
@@ -96,42 +100,37 @@ export default function OtherFuncMenu({component,userId,postId,initText}) {
     )
 }
 
-function MenuCard({userId,postId,showNote,openEditMenu}) {
+function MenuCard({curUserId,commentId,postId,showNote,openEditMenu}) {
+    const {setCommentDeleted} = useContext(CommentContext);
+    const {userId,refreshToken} = useContext(AuthContext);
+    console.log(userId,curUserId);
+    const isMyComment = checkAccess(userId,curUserId);
 
-    const myId = localStorage.getItem("userId");
-    const isMyPost = checkAccess(myId,userId);
-    const {setPostDeleted} = useContext(FeedContext);
-    const {refreshToken} = useContext(AuthContext);
-
-
-
-    const reportPost = async () =>{
-
+    const reportComment = async () =>{
     }
-    const updateMyPost = () =>{
+    const updateMyComment = () =>{
 
-        if (isMyPost){
+        if (isMyComment){
             openEditMenu();
 
         }
         else{
             showNote({
                 type: "error",
-                message: "Вы не можете редактировать этот пост",
+                message: "Вы не можете редактировать этот комментарий",
                 duration: 2000
             });
         }
     }
-    const deleteMyPost =  async () =>{
-        if (isMyPost){
+    const deleteMyComment =  async () =>{
+        if (isMyComment){
 
-            const response = await deletePost(myId,postId);
+            const response = await deleteComment(userId,postId,commentId);
             if (response.success) {
-                console.log("Пост удален");
-                setPostDeleted(postId);
+                setCommentDeleted(commentId);
                 showNote({
                     type: "success",
-                    message: "Пост удален успешно",
+                    message: "Комментарий удален успешно",
                     duration: 2000
                 });
 
@@ -146,26 +145,25 @@ function MenuCard({userId,postId,showNote,openEditMenu}) {
         else{
             showNote({
                 type: "error",
-                message: "Вы не можете удалить этот пост",
+                message: "Вы не можете удалить этот комментарий",
                 duration: 2000
-                });
+            });
         }
     }
 
     return (
         <div className="absolute top-5 right-0 z-10">
             <div className="bg-white border shadow-lg rounded-lg py-1 min-w-32">
-                <button onClick={reportPost} className="w-full text-left px-4 py-2 hover:bg-gray-100">
+                <button onClick={reportComment} className="w-full text-left px-4 py-2 hover:bg-gray-100">
                     Пожаловаться
                 </button>
-                <button onClick={updateMyPost} className="w-full text-left px-4 py-2 hover:bg-gray-100">
+                <button onClick={updateMyComment} className="w-full text-left px-4 py-2 hover:bg-gray-100">
                     Редактировать
                 </button>
-                <button onClick={deleteMyPost} className="w-full text-left px-4 py-2 hover:bg-gray-100">
+                <button onClick={deleteMyComment} className="w-full text-left px-4 py-2 hover:bg-gray-100">
                     Удалить
                 </button>
             </div>
-
         </div>
     )
 }

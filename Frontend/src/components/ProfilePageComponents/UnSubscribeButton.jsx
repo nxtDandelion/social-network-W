@@ -1,5 +1,5 @@
 import {unFollowProfile} from "../../API/ProfileAPI/unFollowProfile.js";
-import {AuthContext} from "../../authcontext.jsx";
+import {AuthContext} from "../../Contexts/AuthContext.jsx";
 import {useContext, useState} from "react";
 
 export default function UnSubscribeButton({name,curUserName,hideProfile}) {

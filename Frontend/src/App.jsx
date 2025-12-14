@@ -6,10 +6,12 @@ import FavorsPage from "./pages/FavorsPage.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
 import NotFoundPage from "./pages/NotFoundPage.jsx";
 import RegistrationPage from "./pages/RegistrationPage.jsx";
-import {AuthProvider,AuthContext} from "./authcontext.jsx";
+import {AuthProvider,AuthContext} from "./Contexts/AuthContext.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import DevMenu from "./DevMenu.jsx";
 import OldTokenPage from "./pages/OldTokenPage.jsx";
+import {FeedProvider} from "./Contexts/FeedContext.jsx";
+import {CommentProvider} from "./Contexts/CommentContext.jsx";
 
 const ProtectRoute = ({children,page}) => {
     const { auth, setShowLoginMes } = useContext(AuthContext);
@@ -51,33 +53,37 @@ function App() {
 
     return (
         <AuthProvider>
-        <BrowserRouter>
-            <TokenValidator>
-                <div className="relative flex justify-center w-[62rem] min-h-screen">
-                    <DevMenu/>
-                    <div className="absolute z-50 top-0 left-[-94px]"><Sidebar/></div>
+            <FeedProvider>
+                <CommentProvider>
+                    <BrowserRouter>
+                        <TokenValidator>
+                            <div className="relative flex justify-center w-[62rem] min-h-screen">
+                                <DevMenu/>
+                                <div className="absolute z-50 top-0 left-[-94px]"><Sidebar/></div>
 
-                        <Routes>
-                            <Route path="/" element={<MainPage/>}/>
-                            <Route path="/home" element={<MainPage/>}/>
-                            <Route path="/profile/:username" element={
-                                <ProtectRoute page="profile">
-                                    <ProfilePage/>
-                                </ProtectRoute>}
-                            />
-                            <Route path="/favourites" element={
-                                <ProtectRoute page="favourites">
-                                    <FavorsPage/>
-                                </ProtectRoute>}
-                            />
-                            <Route path="/registration" element={<RegistrationPage/>}/>
-                            <Route path="/login" element={<LoginPage/>}/>
-                            <Route path="*" element={<NotFoundPage/>}/>
-                        </Routes>
+                                    <Routes>
+                                        <Route path="/" element={<MainPage/>}/>
+                                        <Route path="/home" element={<MainPage/>}/>
+                                        <Route path="/profile/:username" element={
+                                            <ProtectRoute page="profile">
+                                                <ProfilePage/>
+                                            </ProtectRoute>}
+                                        />
+                                        <Route path="/favourites" element={
+                                            <ProtectRoute page="favourites">
+                                                <FavorsPage/>
+                                            </ProtectRoute>}
+                                        />
+                                        <Route path="/registration" element={<RegistrationPage/>}/>
+                                        <Route path="/login" element={<LoginPage/>}/>
+                                        <Route path="*" element={<NotFoundPage/>}/>
+                                    </Routes>
 
-                </div>
-            </TokenValidator>
-        </BrowserRouter>
+                            </div>
+                        </TokenValidator>
+                    </BrowserRouter>
+                </CommentProvider>
+            </FeedProvider>
         </AuthProvider>
   )
 }
