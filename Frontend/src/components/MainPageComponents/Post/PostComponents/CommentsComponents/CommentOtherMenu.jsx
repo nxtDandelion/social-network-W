@@ -12,6 +12,7 @@ import EditPostModal from "../EditPostModal.jsx";
 import {updateComment} from "../../../../../API/PostAPI/updateComment.js";
 import {deleteComment} from "../../../../../API/PostAPI/deleteComment.js";
 import {CommentContext} from "../../../../../Contexts/CommentContext.jsx";
+import EditCommentModal from "./EditCommentModal.jsx";
 
 
 export default function CommentOtherMenu({component,commentId,userId,postId,initText}) {
@@ -26,7 +27,6 @@ export default function CommentOtherMenu({component,commentId,userId,postId,init
         const response = await updateComment(userId,postId,commentId,text)
         if (response.success){
             setPostUpdated({id:postId,text:text});
-
             setNote({
                 type: "success",
                 message: "Комментарий отредактирован",
@@ -90,7 +90,7 @@ export default function CommentOtherMenu({component,commentId,userId,postId,init
             }
 
             {showEdit &&
-                <EditPostModal
+                <EditCommentModal
                     sendForm={sendToUpdate}
                     closeModal={handleClose}
                     initText={initText}

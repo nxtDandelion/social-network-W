@@ -9,9 +9,10 @@ import NotificationCard from "../../../Other/NotificationCard.jsx";
 import {updatePost} from "../../../../API/PostAPI/updatePost.js";
 
 import EditPostModal from "./EditPostModal.jsx";
+import PopUpConfirm from "../../../PopupComponents/PopUpConfirm.jsx";
 
 
-export default function OtherFuncMenu({component,userId,postId,initText}) {
+export default function OtherFuncMenu({component,userId,postId,initText,edited}) {
 
     const [visible, setVisible] = useState(false);
     const [showEdit,setShowEdit] = useState(false);
@@ -90,6 +91,7 @@ export default function OtherFuncMenu({component,userId,postId,initText}) {
                     sendForm={sendToUpdate}
                     closeModal={handleClose}
                     initText={initText}
+                    edited={edited}
                 />
             }
         </div>
@@ -102,6 +104,7 @@ function MenuCard({userId,postId,showNote,openEditMenu}) {
     const isMyPost = checkAccess(myId,userId);
     const {setPostDeleted} = useContext(FeedContext);
     const {refreshToken} = useContext(AuthContext);
+    const [confirmDelete,setConfirmDelete] = useState(false);
 
 
 
@@ -122,26 +125,30 @@ function MenuCard({userId,postId,showNote,openEditMenu}) {
             });
         }
     }
-    const deleteMyPost =  async () =>{
+
+    const deleteP = async ()=>{
+        const response = await deletePost(myId,postId);
+        if (response.success) {
+            console.log("Пост удален");
+            setPostDeleted(postId);
+            showNote({
+                type: "success",
+                message: "Пост удален успешно",
+                duration: 2000
+            });
+
+        }
+        else if (response.statusCode===401){
+            refreshToken();
+        }
+        else {
+            return response.error;
+        }
+    }
+    const deleteMyPost = () =>{
         if (isMyPost){
+            setConfirmDelete(true);
 
-            const response = await deletePost(myId,postId);
-            if (response.success) {
-                console.log("Пост удален");
-                setPostDeleted(postId);
-                showNote({
-                    type: "success",
-                    message: "Пост удален успешно",
-                    duration: 2000
-                });
-
-            }
-            else if (response.statusCode===401){
-                refreshToken();
-            }
-            else {
-                return response.error;
-            }
         }
         else{
             showNote({
@@ -150,6 +157,10 @@ function MenuCard({userId,postId,showNote,openEditMenu}) {
                 duration: 2000
                 });
         }
+    }
+
+    function close(){
+        setConfirmDelete(false);
     }
 
     return (
@@ -165,6 +176,7 @@ function MenuCard({userId,postId,showNote,openEditMenu}) {
                     Удалить
                 </button>
             </div>
+            {confirmDelete && <PopUpConfirm confirm={deleteP} close={close}/>}
 
         </div>
     )

@@ -26,7 +26,7 @@ export default function EditForm({curUserId,curUserLogin,curUserName,curUserMail
     }
 
 
-    const checkChanges = (newUserLogin,newUserName,newUserMail,newUserNewTag,newUserData,updateProfilePage) =>{
+    const checkChanges = (newUserLogin,newUserName,newUserMail,newUserData,updateProfilePage) =>{
         return (newUserName !== curUserName || newUserLogin !== curUserLogin || newUserMail !== curUserMail)
 
     }
@@ -40,10 +40,11 @@ export default function EditForm({curUserId,curUserLogin,curUserName,curUserMail
     const handleSubmit = async (e) =>{
         e.preventDefault();
         console.log("форма отправлена");
-        const response = await updateUserProfile(newUserName,newUserMail,newUserLogin,newUserPhoto,newUserPassword);
+        console.log(curUserName,"МОе имя");
+        const response = await updateUserProfile(newUserName,newUserLogin,newUserMail,newUserTag,newUserPhoto,newUserPassword,curUserName);
         console.log(response);
         if (response.success){
-            console.log("good");
+            console.log("good update");
             console.log(response.data);
             // await updateUserProfile(response.data);
             navigate(`/profile/${response.data.username}`);

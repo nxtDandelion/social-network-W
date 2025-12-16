@@ -11,17 +11,14 @@ import NotFoundPage from "../../pages/NotFoundPage.jsx";
 import ShowSubscriptionsButton from "./ShowSubscriptionsButton.jsx";
 import {getFollowing} from "../../API/ProfileAPI/getFollowing.js";
 
-// Принимаем пропсы из родительского компонента
 export default function ProfileFeed({ showEdit, onCloseModal, onEditClick }) {
-    const [isActive, setIsActive] = useState(false);
     const [loading, setLoading] = useState(true);
     const [userId, setUserId] = useState("");
     const [userData, setUserData] = useState([]);
     const [postsList, setPostsList] = useState([]);
-    const [userPassword, setUserPassword] = useState("");
     const [subscribers, setSubscribers] = useState({});
     const [subscribes, setSubscribes] = useState({});
-    const [userPasswordConfirm, setPasswordConfirm] = useState("");
+
     const [userProfileName, setUserProfileName] = useState("");
     const [userTag, setUserTag] = useState("");
     const [userMail, setUserMail] = useState("");
@@ -31,12 +28,6 @@ export default function ProfileFeed({ showEdit, onCloseModal, onEditClick }) {
     const {refreshToken, guestStatus, setGuestStatus} = useContext(AuthContext);
     const {username} = useParams();
 
-    // Убираем локальное состояние showEdit, используем пропс
-    // const [showEdit, setShowEdit] = useState(false); // УДАЛИТЬ
-
-    // Убираем локальные функции, используем пропсы
-    // const editProf = () => { setShowEdit(true); }; // УДАЛИТЬ
-    // function closeModalPage() { setShowEdit(false); } // УДАЛИТЬ
 
     useEffect(() => {
         console.log("postsList обновился:", postsList);
@@ -202,7 +193,7 @@ export default function ProfileFeed({ showEdit, onCloseModal, onEditClick }) {
                                 userTag={`@${userProfileName}`}
                                 userName={userProfileName}
                                 userId={userId}
-                                likers={post.likers}  // Убедитесь, что передаете объект, а не число
+                                likers={post.likers}
                                 comments={post.comments}
                                 postText={post.text}
                             />
@@ -216,7 +207,7 @@ export default function ProfileFeed({ showEdit, onCloseModal, onEditClick }) {
             </div>
             {showEdit && (
                 <EditForm
-                    closeModalPage={onCloseModal}  // Используем пропс
+                    closeModalPage={onCloseModal}
                     curUserId={userId}
                     curUserLogin={localStorage.getItem("myLogin")}
                     curUserName={userProfileName}

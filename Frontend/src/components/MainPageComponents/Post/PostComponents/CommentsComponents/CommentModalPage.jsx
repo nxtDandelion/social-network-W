@@ -6,7 +6,8 @@ import Post from "../../Post.jsx";
 
 export default function CommentModalPage({
                                              postDate, likeCount, commentCount, postText, postId,
-                                             userName, userTag, userId, closePage, comments, likers
+                                             userName, userTag, userId, closePage, comments, likers,
+                                                edited
                                          }) {
 
     function commentHandleClick() {
@@ -15,14 +16,9 @@ export default function CommentModalPage({
 
     return(
         <PopupBg>
-
             <div className="relative w-[42rem] h-[95vh] my-auto rounded-3xl bg-white overflow-hidden">
-
-
                 <div className="h-full overflow-y-auto custom-scrollbar-edge">
-
                     <div className="h-full pr-2">
-
                         <div>
                             <Post
                                 postText={postText}
@@ -34,6 +30,7 @@ export default function CommentModalPage({
                                 postId={postId}
                                 onModalFunc={commentHandleClick}
                                 isModal={true}
+                                edited={edited}
                             />
                         </div>
 
@@ -48,6 +45,8 @@ export default function CommentModalPage({
                                     commentId={comment.id}
                                     commentText={comment.text}
                                     createDate={new Date(comment.create_date).toLocaleDateString('ru-RU')}
+                                    // Передаем лайки комментария
+                                    commentLikers={comment.likers || []}
                                 />
                             ))}
 

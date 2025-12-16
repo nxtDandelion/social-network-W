@@ -8,9 +8,9 @@ import CommentModalPage from "./PostComponents/CommentsComponents/CommentModalPa
 import {responseCommentsList} from "../../../API/PostAPI/getCommentsList.js";
 import {postLike} from "../../../API/PostAPI/postLike.js";
 import {deleteLike} from "../../../API/PostAPI/deleteLike.js";
-import OldTokenPage from "../../../pages/OldTokenPage.jsx";
 
-export default function Post({postH,postW,postDate,likers,postText,userName,userTag,userId,postId,isModal,onModalFunc}) {
+
+export default function Post({postH,postW,postDate,likers,postText,userName,userTag,userId,edited,postId,isModal,onModalFunc}) {
 
     const {auth,setShowLoginMes,refreshToken} = useContext(AuthContext);
     const [showComments,setShowComments] = useState(false);
@@ -19,6 +19,10 @@ export default function Post({postH,postW,postDate,likers,postText,userName,user
     const [likersList,setLikersList] = useState([]);
     const [isLoading,setIsLoading] = useState(true);
     const [isAnimating, setIsAnimating] = useState(false);
+
+
+
+    console.log(edited,"edited",userName);
 
 
 
@@ -142,11 +146,18 @@ export default function Post({postH,postW,postDate,likers,postText,userName,user
                     userAvatar={`defaultAvatar.png`}
                     userId={userId}
                 />
-                <OtherFuncMenu
+                <div className="flex flex-col">
+
+                    <OtherFuncMenu
                     userId={userId}
                     postId={postId}
                     initText={postText}
-                />
+                    edited={edited}
+                    />
+                    <div className={`${edited ? "inline-block" : "hidden"} text-white`}>
+                        Отредактирован
+                    </div>
+                </div>
             </div>
             <div className="flex w-2xl min-h-80 bg-white border-r-2 border-l-2 border-black">
                 <p className="text-lg p-4"> {postText}</p>
@@ -158,7 +169,7 @@ export default function Post({postH,postW,postDate,likers,postText,userName,user
                         className="flex w-1/2 items-center ml-3 hover:opacity-80 transition-opacity duration-200"
                         disabled={isAnimating}
                     >
-                        {/* Контейнер для анимации */}
+
                         <div className={`
                             transition-all duration-300 ease-in-out 
                             transform origin-center
@@ -197,6 +208,7 @@ export default function Post({postH,postW,postDate,likers,postText,userName,user
                                    userId={userId}
                                    likers={likersList}
                                    comments={commentsList}
+                                   edited={edited}
 
 
             />}

@@ -2,7 +2,7 @@ import { API_BASE_URL } from "../../config.js";
 import {errorHandler} from "../errorsHandler.js"
 import axios from "axios";
 
-export const updateComment = async (profileId,postId,commentId,text) => {
+export const deleteCommentLike = async (commentId,profileId) => {
     const token = localStorage.getItem("access_token");
 
     if (!token) {
@@ -10,26 +10,22 @@ export const updateComment = async (profileId,postId,commentId,text) => {
         return false;
     }
     try {
-        const profileId = localStorage.getItem("userId");
-        if (!profileId) {
-            return { success: false, error: "Profile ID не найден" };
-        }
-        const response = await axios.put(`${API_BASE_URL}/post/${postId}/comments/${commentId}`,
-            {
-                text: text,
-                profile_id: profileId
-            },
+
+        const response = await axios.delete(`${API_BASE_URL}/post/comments/${commentId}/like`,
             {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
+                },
+                data:{
+                    profile_id: profileId,
                 }
             }
         );
-        console.log("Пост обновлен успешно:", response.data);
+        console.log("Комментарий удален успешно:", response.data);
         return { success: true, data: response.data };
     } catch (error) {
-        const curResponse = "Обновление поста:"
+        const curResponse = "Удаление лайка на комментарий:"
         return  errorHandler(error,curResponse);
     }
 }

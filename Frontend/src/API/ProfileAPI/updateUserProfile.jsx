@@ -2,10 +2,9 @@ import {API_BASE_URL} from "../../config.js";
 import axios from "axios";
 import {errorHandler} from "../errorsHandler.js";
 
-export const updateUserProfile = async (username, email, tag, photo, password) => {
+export const updateUserProfile = async (username,login, email, tag, photo, password,curUserName) => {
     const token = localStorage.getItem("access_token");
-    const curUserName = localStorage.getItem("myUsername");
-
+    console.log(curUserName);
     if (!token) {
         console.error("Токен не найден");
         return false;
@@ -14,6 +13,7 @@ export const updateUserProfile = async (username, email, tag, photo, password) =
     try {
         const response = await axios.put(`${API_BASE_URL}/profile/${curUserName}`, {
             username: username,
+            login: login,
             email: email,
             tag: tag,
             photo: photo,

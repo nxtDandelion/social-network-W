@@ -5,6 +5,7 @@ import {AuthContext} from "../../Contexts/AuthContext.jsx";
 import {FeedContext} from "../../Contexts/FeedContext.jsx";
 import NotificationCard from "../Other/NotificationCard.jsx";
 import {getFavourPosts} from "../../API/PostAPI/getFavourPost.js";
+import {updatePost} from "../../API/PostAPI/updatePost.js";
 
 
 
@@ -88,9 +89,10 @@ export default function Feed({filter}) {
                     return prev;
                 }
                 console.log(postUpdated);
-                return prev.map(post=> post.id === postUpdated.id ? {...post,text:postUpdated.text }: post )
+                return prev.map(post=> post.id === postUpdated.id  ? {...post,edited:true, text:postUpdated.text }: post )
 
             })
+            console.log(postUpdated,"updatePost");
         }
     },[postUpdated])
 
@@ -143,7 +145,7 @@ export default function Feed({filter}) {
                                         userId={post.profile_id}
                                         userName={post.username}
                                         userTag={`@${post.username}`}
-
+                                        edited={post.edited}
                                         postDate={new Date(post.create_date).toLocaleDateString('ru-RU')}
                                         postId={post.id}
                                     />))

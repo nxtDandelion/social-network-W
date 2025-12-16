@@ -59,7 +59,7 @@ function App() {
                         <TokenValidator>
                             <div className="relative flex justify-center w-[62rem] min-h-screen">
                                 <DevMenu/>
-                                <div className="absolute z-50 top-0 left-[-94px]"><Sidebar/></div>
+                                <div className="absolute top-0 left-[-94px]"><Sidebar/></div>
 
                                     <Routes>
                                         <Route path="/" element={<MainPage/>}/>
