@@ -5,6 +5,7 @@ from app.schemas.profile import ProfileCreate
 from app.crud.post import PostCRUD
 from app.crud.profile import ProfileCRUD
 from app.crud.comment import CommentCRUD
+from app.services.profile_service import ProfileService
 
 
 async def handle_user_registered(event_data: Dict[str, Any], db):
@@ -12,13 +13,15 @@ async def handle_user_registered(event_data: Dict[str, Any], db):
         uuid = event_data.get('uuid')
         username = event_data.get('username')
         email = event_data.get('email')
+        login = event_data.get('login')
         profile_create = ProfileCreate(
             uuid=uuid,
             username=username,
-            email=email
+            email=email,
+            login=login
         )
-        profile_crud = ProfileCRUD(db)
-        await profile_crud.create_profile(profile_create)
+        profile_service = ProfileService(db)
+        await profile_service.create_profile(profile_create)
         logging.info(f"User {username} initialized in Post Service")
     except Exception as e:
         logging.error(f"Error handling user registration: {e}")

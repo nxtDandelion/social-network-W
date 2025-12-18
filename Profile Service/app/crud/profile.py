@@ -6,6 +6,7 @@ from app.schemas import profile as schemas
 from app.database import models
 
 
+
 class ProfileCRUD:
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -14,7 +15,8 @@ class ProfileCRUD:
         db_profile = models.Profile(
             uuid=profile.uuid,
             username=profile.username,
-            email=profile.email
+            email=profile.email,
+            login=profile.login,
         )
         self.db.add(db_profile)
         await self.db.commit()
