@@ -14,7 +14,8 @@ class ProfileCRUD:
         db_profile = models.Profile(
             uuid=profile.uuid,
             username=profile.username,
-            email=profile.email
+            email=profile.email,
+            login=profile.login,
         )
         self.db.add(db_profile)
         await self.db.commit()

@@ -19,10 +19,10 @@ async def handle_user_registered(event_data: Dict[str, Any], db):
 
 async def handle_profile_updated(event_data: Dict[Any, Any], db):
     try:
+        logging.info(event_data)
         update_data = event_data.get('update_data', {})
+        user_id = update_data['user_id']
         update_data = update_data.get('update_data', {})
-        user_id = update_data['uuid']
-        logging.error(f"User {user_id}: {update_data}")
         profile_update = schemas.ProfileUpdate(
             username = update_data.get('username'),
             tag = update_data.get('tag'),

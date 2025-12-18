@@ -17,7 +17,7 @@ class Profile(Base):
     )
     username = Column(VARCHAR(24), nullable=False)
     subscribes = Column(JSON, default=dict)
-    photo = Column(LargeBinary)
+    photo = Column(VARCHAR, nullable=True)
     tag = Column(VARCHAR)
     
     posts = relationship("Post", back_populates="profile")
@@ -62,6 +62,7 @@ class Post(Base):
         nullable=False
     )
     likes_amount = Column(Integer, default=0)
+    comments_amount = Column(Integer, default=0)
     create_date = Column(DateTime, server_default=func.now())
     edited = Column(Boolean, default=False)
     likers = Column(JSON, default=[])
