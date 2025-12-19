@@ -55,6 +55,7 @@ class TokenPayload(BaseModel):
 class UserRegisteredEvent(BaseModel):
     uuid: str
     username: str
+    login: str
     email: EmailStr
 
     def to_json(self) -> str:

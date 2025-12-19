@@ -37,6 +37,8 @@ class Comment(CommentBase):
     create_date: datetime
     edited: bool
     likers: List[str]
+    username: Optional[str] = None
+    photo: Optional[str] = None
     
     class Config:
         from_attributes = True

@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, update, func
 from app.database import models
 
 
@@ -16,6 +16,12 @@ class CommentCRUD:
             edited=False
         )
         self.db.add(comment)
+        stmt = (
+            update(models.Post)
+            .where(models.Post.id == comment_data["post_id"])
+            .values(comments_amount=models.Post.comments_amount + 1)
+        )
+        await self.db.execute(stmt)
         await self.db.commit()
         await self.db.refresh(comment)
         return comment
@@ -43,8 +49,14 @@ class CommentCRUD:
         comment = await self.get_comment(comment_id)
         if not comment:
             return False
-
+        post_id = comment.post_id
         await self.db.delete(comment)
+        stmt = (
+            update(models.Post)
+            .where(models.Post.id == post_id)
+            .values(comments_amount=func.greatest(models.Post.comments_amount - 1, 0))
+        )
+        await self.db.execute(stmt)
         await self.db.commit()
         return True
 

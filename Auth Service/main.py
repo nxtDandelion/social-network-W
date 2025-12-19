@@ -61,7 +61,8 @@ async def register(user: schemas.UserCreate,
     user_event = schemas.UserRegisteredEvent(
         uuid = new_user.uuid,
         username=new_user.username,
-        email=new_user.email,)
+        email=new_user.email,
+        login=new_user.login,)
     await rabbit_mq.send_user_register(user_event)
     return new_user
 
@@ -80,7 +81,8 @@ async def login(auth_data: schemas.TokenCreate, db: AsyncSession = Depends(get_d
     response = {
         "access_token": token_pair.access_token,
         "refresh_token": token_pair.refresh_token,
-        "username": user.username
+        "username": user.username,
+        "id": user.uuid
     }
     return response
 
