@@ -11,10 +11,11 @@ import {lenghtCheck, loginValid, passwordValid} from "../API/AuthAPI/validation.
 import {API_BASE_URL} from "../config.js";
 import {responseLog} from "../API/AuthAPI/auth.js";
 import {errorLog} from "../API/errorsHandler.js";
+import {getUserProfile} from "../API/ProfileAPI/getUserProfile.js";
 
 export default function LoginPage() {
     const navigate = useNavigate();
-    const {setAuth,setUserName} = useContext(AuthContext);
+    const {setAuth,setContextUserName} = useContext(AuthContext);
     const [timeToClose, setTimeToClose] = useState(true);
     const [login, setLogin] = useState("");
     const [password, setPassword] = useState("");
@@ -56,15 +57,15 @@ export default function LoginPage() {
                 setMessage("Вход успешен");
                 setCorrect(true);
                 console.log(response.data);
+                // const profileResponse = await getUserProfile(response.data.username);
+                // localStorage.setItem("myId",profileResponse.data.uuid);
                 localStorage.setItem("myUsername",response.data.username);
+                localStorage.setItem("myLogin",login);
                 localStorage.setItem("access_token",response.data.access_token);
-                setUserName(response.data.username);
+                setContextUserName(response.data.username);
                 setAuth(true);
+                navigate(`/home`);
 
-                const myProfile = localStorage.getItem("myUsername");
-                setTimeout(() => {
-                    navigate(`/profile/${myProfile}`);
-                },100)
 
             }
             else{
@@ -90,7 +91,10 @@ export default function LoginPage() {
                     <div className="my-5">
                         <FormButton status={isActive} enterStatus={correct} text="Войти"></FormButton>
                     </div>
-                    {message && timeToClose && <FormMes text={message} type={correct ? "message" : "error"}/>}
+                    <div className="h-10">
+                        {message && timeToClose && <FormMes text={message} type={correct ? "message" : "error"}/>}
+
+                    </div>
                 </FormFrame>
         </div>
     )

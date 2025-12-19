@@ -3,9 +3,9 @@ import {createContext, use, useMemo, useState} from "react";
 export const CommentContext = createContext();
 
 export const CommentProvider =({children}) => {
-    const [commentCreated, setCommentCreated] = useState(false);
+    const [commentCreated, setCommentCreated] = useState({});
     const [commentUpdated,setCommentUpdated] = useState({id:null,text:""});
-    const [commentDeleted,setCommentDeleted] = useState("");
+    const [commentDeleted,setCommentDeleted] = useState(null);
     const [newCommentData,setNewCommentData] = useState(null);
 
     const refreshFeed = (comment) => {
@@ -13,7 +13,7 @@ export const CommentProvider =({children}) => {
         setCommentCreated(comment.id);
 
         console.log(newCommentData,"новый пост - контекс");
-        console.log(comment.id,"ноый пост id")
+        console.log(comment.id,"ноый пост id");
     };
 
 

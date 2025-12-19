@@ -1,11 +1,9 @@
 import Feed from "../components/MainPageComponents/Feed.jsx";
-
 import Header from "../components/MainPageComponents/Header.jsx";
 import {useContext, useEffect} from "react";
 import {AuthContext} from "../Contexts/authcontext.jsx";
 import {SearchIcon} from "../components/Icons/SearchIcon.jsx";
 import CrossIcon from "../components/Icons/CrossIcon.jsx";
-import {useNavigate} from "react-router-dom";
 import PopupBg from "../components/PopupComponents/PopupBg.jsx";
 import SearchPanel from "../components/MainPageComponents/SearchPanel.jsx";
 import CreatePostBtn from "../components/MainPageComponents/CreatePostBtn.jsx";

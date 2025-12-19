@@ -8,7 +8,7 @@ import {AuthContext} from "../../../../Contexts/AuthContext.jsx";
 import {usePostTextValidation} from "../../../../Hooks/UsePostValidation.jsx";
 
 export default function EditPostModal({sendForm,closeModal,initText,edited}) {
-    const {userName,userId} = useContext(AuthContext);
+    const {contextUserName} = useContext(AuthContext);
     const [postText,setPostText] = useState(initText || "");
     const [isPostSend,setIsPostSend] = useState(false);
     const maxChar = 1000;
@@ -44,8 +44,8 @@ export default function EditPostModal({sendForm,closeModal,initText,edited}) {
                     <div className="flex justify-between w-[42rem]  max-h-20 pr-4 pl-4 pt-2 bg-black rounded-t-3xl">
                         <ProfileInfo
                             component="post"
-                            userName={userName}
-                            userTag={`@${userName}`}
+                            userName={contextUserName}
+                            userTag={`@${contextUserName}`}
                             userAvatar={"defaultAvatar.png" }
                         />
                         <div className={`${edited ? "inline-block" : "hidden"} text-white`}>
@@ -53,8 +53,12 @@ export default function EditPostModal({sendForm,closeModal,initText,edited}) {
                         </div>
                     </div>
 
-                    <div className="flex justify-center w-[42rem] min-h-80 h-fit bg-white border-r-2 border-l-2 border-black">
-                        <textarea className="w-[40rem] min-h-80 h-fit outline-none resize-none" value={postText} onChange={handleTextChange}/>
+                    <div className="flex justify-center w-[42rem] min-h-80 h-fit p-2 bg-white border-r-2 border-l-2 border-black">
+                        <textarea className="w-[40rem] min-h-80 h-fit outline-none resize-none"
+                                  value={postText}
+                                  onChange={handleTextChange}
+                                  placeholder="Диктуйте миру ваши мысли..."
+                        />
                     </div>
                     <div className="flex w-2xl h-14 bg-black"></div>
                 </div>

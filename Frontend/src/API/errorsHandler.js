@@ -1,5 +1,28 @@
 export const errorHandler = (error,curResponse) => {
     if (error.response) {
+        console.log(error.response.data.detail.code);
+        if (error.response.data.detail.code){
+            switch (error.response.data.detail.code) {
+                case "USERNAME_EXISTS":
+                    return {
+                        custom:true,
+                        success: false,
+                        message: "Такое имя пользователя уже существует"
+                    }
+                case "LOGIN_EXISTS":
+                    return {
+                        custom:true,
+                        success: false,
+                        message: "Такой логин уже существует"
+                    }
+                case "EMAIL_EXISTS":
+                    return {
+                        custom:true,
+                        success: false,
+                        message: "Такой email уже существует"
+                    }
+            }
+        }
         console.log("Ошибка",error);
         const {status, data} = error.response;
 

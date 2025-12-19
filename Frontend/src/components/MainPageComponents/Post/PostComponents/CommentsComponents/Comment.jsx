@@ -11,7 +11,7 @@ export default function Comment({
                                     commentText, createDate, commentLikers = []
                                 }) {
 
-    const {auth,setShowLoginMes,userName,userId,refreshToken} = useContext(AuthContext);
+    const {auth,setShowLoginMes,contextUserName,contextUserId,refreshToken} = useContext(AuthContext);
     const [isLiked, setIsLiked] = useState(false);
     const [likersList, setLikersList] = useState([]);
     const [isAnimating, setIsAnimating] = useState(false);
@@ -41,19 +41,18 @@ export default function Comment({
 
         setIsAnimating(true);
 
-        const curUser = localStorage.getItem("userId");
-        const wasLiked = likersList.includes(curUser);
+
+        const wasLiked = likersList.includes(contextUserId);
 
         try {
             let response;
 
-            // TODO: ЗАМЕНИТЬ ЭТИ ЗАГЛУШКИ НА РЕАЛЬНЫЕ API ФУНКЦИИ
             if (wasLiked) {
-                response = await deleteCommentLike(commentId,userId);
+                response = await deleteCommentLike(commentId,contextUserId);
                 console.log("Удаляем лайк с комментария:", commentId);
                 response = { success: true, data: { commentId } };
             } else {
-                response = await postCommentLike(commentId,userId);
+                response = await postCommentLike(commentId,contextUserId);
                 console.log("Добавляем лайк к комментарию:", commentId);
                 response = { success: true, data: { commentId } };
             }
@@ -63,9 +62,9 @@ export default function Comment({
                 setIsLiked(!wasLiked);
 
                 if (wasLiked) {
-                    setLikersList(prev => prev.filter(id => id !== curUser));
+                    setLikersList(prev => prev.filter(id => id !== contextUserId));
                 } else {
-                    setLikersList(prev => [...prev, curUser]);
+                    setLikersList(prev => [...prev, contextUserId]);
                 }
                 setTimeout(() => {
                     setIsAnimating(false);
@@ -152,11 +151,11 @@ export default function Comment({
             </div>
             <div className="absolute top-1 right-2">
                 <CommentOtherMenu
+                    component="comment"
                     commentId={commentId}
-                    initText={commentText}
                     userId={commentUserId}
                     postId={postId}
-                    component="comment"
+                    initText={commentText}
                 />
             </div>
         </div>

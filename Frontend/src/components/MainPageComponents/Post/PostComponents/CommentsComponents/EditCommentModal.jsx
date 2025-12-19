@@ -9,12 +9,12 @@ import {usePostTextValidation} from "../../../../../Hooks/UsePostValidation.jsx"
 import CommentOtherMenu from "./CommentOtherMenu.jsx";
 
 export default function EditCommentModal({sendForm,closeModal,initText}) {
-    const {userName,userId} = useContext(AuthContext);
+    const {contextUserName,contextUserId} = useContext(AuthContext);
     const [postText,setPostText] = useState(initText || "");
     const [isPostSend,setIsPostSend] = useState(false);
     const maxChar = 100;
     const {allowSend, symbolLimit} = usePostTextValidation(postText, maxChar,initText);
-
+    console.log(allowSend,"allowSend");
     function handleClose(e) {
         e.preventDefault();
         closeModal();
@@ -43,15 +43,15 @@ export default function EditCommentModal({sendForm,closeModal,initText}) {
                     <div className="relative flex flex-col w-full p-1">
                         <div className="flex">
                             <div>
-                                <img className="w-14 h-14 rounded-full object-cover" src={`/avatars/defaultAvatar.png`}  alt={`Аватар ${userName}`} />
+                                <img className="w-14 h-14 rounded-full object-cover" src={`/avatars/defaultAvatar.png`}  alt={`Аватар ${contextUserName}`} />
                             </div>
                             <div className="flex flex-col justify-start items-start w-fit max-w-[38rem] h-fit">
                                 <div className="w-[28rem]">
                                     <span className="mr-1">
-                                        {userName}
+                                        {contextUserName}
                                     </span>
                                     <span className="text-gray-600">
-                                        {`@${userName}`}
+                                        {`@${contextUserName}`}
                                     </span>
                                 </div>
                                 <textarea className="min-w-[38rem] h-fit outline-none resize-none"

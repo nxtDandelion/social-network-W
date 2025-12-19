@@ -12,16 +12,12 @@ import EditPostModal from "./Post/PostComponents/EditPostModal.jsx";
 
 export default function CreatePostBtn() {
 
-    const {auth,setShowLoginMes,refreshToken,userName} = useContext(AuthContext);
+    const {auth,setShowLoginMes,refreshToken,ContextUserName} = useContext(AuthContext);
     const {refreshFeed,logContext} = useContext(FeedContext);
-    const [userId,setUserId] = useState("")
     const [showCreatePost,setShowCreatePost] = useState(false);
-    const [postText,setPostText] = useState("");
-    const [isPostSend,setIsPostSend] = useState(false);
     const [error,setError] = useState('');
     const [notice,setNotice] = useState(null);
-    const maxChar = 1000;
-    const navigate =useNavigate();
+
 
     function handleClose() {
         setShowCreatePost(false);
@@ -48,7 +44,7 @@ export default function CreatePostBtn() {
                 message: "Пост добавлен успешно",
                 duration: 1000
             })
-            const postData = { ...response.data, username: userName}
+            const postData = { ...response.data, username: ContextUserName}
             refreshFeed(postData);
             setTimeout(()=>(
                 setShowCreatePost(false)

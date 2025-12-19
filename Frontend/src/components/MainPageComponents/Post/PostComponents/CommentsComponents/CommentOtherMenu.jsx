@@ -1,14 +1,8 @@
 import {useContext, useState} from "react";
 import {DotsIcon} from "../../../../Icons/DotsIcon.jsx";
 
-import {deletePost} from  "../../../../../API/PostAPI/deletePost.js"
-
-import {FeedContext} from "../../../../../Contexts/FeedContext.jsx";
 import {AuthContext} from "../../../../../Contexts/AuthContext.jsx"
 import NotificationCard from "../../../../Other/NotificationCard.jsx";
-import {updatePost} from "../../../../../API/PostAPI/updatePost.js";
-
-import EditPostModal from "../EditPostModal.jsx";
 import {updateComment} from "../../../../../API/PostAPI/updateComment.js";
 import {deleteComment} from "../../../../../API/PostAPI/deleteComment.js";
 import {CommentContext} from "../../../../../Contexts/CommentContext.jsx";
@@ -21,12 +15,13 @@ export default function CommentOtherMenu({component,commentId,userId,postId,init
     const [showEdit,setShowEdit] = useState(false);
     const [note, setNote] = useState(null);
     const {refreshToken} = useContext(AuthContext);
-    const {setPostUpdated} = useContext(FeedContext);
+    const {setCommentUpdated,setCommentDeleted} =useContext(CommentContext);
+    console.log(userId,postId,commentId,"otherMrnuInfo");
 
     const sendToUpdate = async (text) =>{
         const response = await updateComment(userId,postId,commentId,text)
         if (response.success){
-            setPostUpdated({id:postId,text:text});
+            setCommentUpdated({id:commentId,text:text});
             setNote({
                 type: "success",
                 message: "Комментарий отредактирован",
@@ -102,9 +97,9 @@ export default function CommentOtherMenu({component,commentId,userId,postId,init
 
 function MenuCard({curUserId,commentId,postId,showNote,openEditMenu}) {
     const {setCommentDeleted} = useContext(CommentContext);
-    const {userId,refreshToken} = useContext(AuthContext);
-    console.log(userId,curUserId);
-    const isMyComment = checkAccess(userId,curUserId);
+    const {contextUserId,refreshToken} = useContext(AuthContext);
+    const isMyComment = checkAccess(contextUserId,curUserId);
+    console.log(contextUserId,"CUI",curUserId,"PI");
 
     const reportComment = async () =>{
     }
@@ -125,7 +120,7 @@ function MenuCard({curUserId,commentId,postId,showNote,openEditMenu}) {
     const deleteMyComment =  async () =>{
         if (isMyComment){
 
-            const response = await deleteComment(userId,postId,commentId);
+            const response = await deleteComment(curUserId,postId,commentId);
             if (response.success) {
                 setCommentDeleted(commentId);
                 showNote({
@@ -169,5 +164,6 @@ function MenuCard({curUserId,commentId,postId,showNote,openEditMenu}) {
 }
 
 function checkAccess(userId,postUserId){
+    console.log(userId,postUserId,"UI,PUI");
     return userId === postUserId;
 }

@@ -18,15 +18,9 @@ export default function Feed({filter}) {
     const {postDeleted,postCreated,postUpdated,newPostData} = useContext(FeedContext);
     const [notice,setNotice] = useState(null);
 
-    // const parentDateBroadcast = (postDate) => {
-    //     feedFunc(postDate);
-    // }
-
-
     const closeNotification = () =>{
         setNotice(null);
     }
-
     const refreshFeed = async () => {
 
         setLoading(true);
@@ -35,12 +29,12 @@ export default function Feed({filter}) {
             const posts = (filter === "favourites" ? await getFavourPosts(userName) : await getPosts());
             if (posts.success) {
                 setPostsList(posts.data);
+                console.log(posts.data);
             } else {
                 setError("Не удалось загрузить ленту");
             }
         } catch (err) {
             setError("Ошибка при загрузке");
-            console.error("Ошибка в fetchFeed:", err);
         } finally {
             setLoading(false);
         }
@@ -54,7 +48,6 @@ export default function Feed({filter}) {
         const postID = postDeleted;
         const newPostList = postsList.filter(post => post.id !== postID);
         if (newPostList.length === postsList.length) {
-            console.warn("Пост не был удален! Проверьте ID");
             return;
         }
         setPostsList(newPostList);
@@ -63,17 +56,13 @@ export default function Feed({filter}) {
             message: "Пост удален успешно",
             duration: 2000
         })
-        console.log("Удаленный пост убран из списка постов")
     }, [postDeleted]);
 
     useEffect(()=>{
         if (newPostData){
-            console.log("Новая инфаа");
             const postExist = postsList.some(post => post.id === newPostData.id);
             if (!postExist){
-                console.log(newPostData,"Данные нового поста");
                 setPostsList(prevState => [newPostData,...prevState]);
-                console.log(postsList,"Список потсов обнов");
             }
         }
         console.log(postsList);

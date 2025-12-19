@@ -7,21 +7,21 @@ export const AuthProvider =({children}) =>{
     const [showLoginMes, setShowLoginMes] = useState(false);
     const [invalidToken,setInvalidToken] = useState(false);
     const [guestStatus,setGuestStatus] = useState(false);
-    const [userId,setUserId] = useState(()=>{return localStorage.getItem("userId") || ""});
-    const [userName,setUserName] = useState(()=>{return localStorage.getItem("myUsername") || ""})
+    const [contextUserId,setContextUserId] = useState(()=>{return localStorage.getItem("userId") || ""});
+    const [contextUserName,setContextUserName] = useState(()=>{return localStorage.getItem("myUsername") || ""})
     const [actualSubscribes,setActualSubscribes] = useState(true);
 
 
 
     useEffect(()=>{
         if (auth){
-            if (!userName){
+            if (!contextUserName){
                const storedName = localStorage.getItem("myUsername");
-               setUserName(storedName);
+               setContextUserName(storedName);
             }
-            if (!userId){
+            if (!contextUserId){
                 const storedId = localStorage.getItem("userId");
-                setUserId(storedId);
+                setContextUserId(storedId);
             }
         }
     },[auth])
@@ -32,7 +32,7 @@ export const AuthProvider =({children}) =>{
         localStorage.removeItem('auth');
         setInvalidToken(true);
         localStorage.removeItem("myUsername");
-        localStorage.removeItem("myId");
+        localStorage.removeItem("userId");
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
     };
@@ -43,9 +43,9 @@ export const AuthProvider =({children}) =>{
         invalidToken, setInvalidToken,
         refreshToken,
         guestStatus,setGuestStatus,
-        userName,setUserName,
-        userId,setUserId,
-    }), [auth, showLoginMes,invalidToken,guestStatus,userName]);
+        contextUserName,setContextUserName,
+        contextUserId,setContextUserId,
+    }), [auth, showLoginMes,invalidToken,guestStatus,contextUserName,contextUserId]);
 
     return (
         <AuthContext.Provider value={contextValue}>
