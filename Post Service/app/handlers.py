@@ -5,6 +5,7 @@ from . import schemas, crud
 
 async def handle_user_registered(event_data: Dict[str, Any], db):
     try:
+        logging.info(f"Register event: {event_data}")
         uuid = event_data['uuid']
         username = event_data.get('username')
         profile_create = schemas.ProfileCreate(
@@ -20,19 +21,15 @@ async def handle_user_registered(event_data: Dict[str, Any], db):
 async def handle_profile_updated(event_data: Dict[Any, Any], db):
     try:
         logging.info(event_data)
-        update_data = event_data.get('update_data', {})
-        user_id = update_data['user_id']
-        update_data = update_data.get('update_data', {})
+        user_id = event_data['uuid']
         profile_update = schemas.ProfileUpdate(
-            username = update_data.get('username'),
-            tag = update_data.get('tag'),
-            photo = update_data.get('photo'),
-            subscribes = update_data.get('subscribes'),
+            username = event_data.get('username'),
+            tag = event_data.get('tag'),
+            photo = event_data.get('photo'),
+            subscribes = event_data.get('subscribes'),
         )
-        logging.error(profile_update)
         await crud.update_profile(db, user_id, profile_update)
         logging.info(f"Profile updated for user {user_id}")
-
     except Exception as e:
         logging.error(f"Error handling profile update: {e}")
 

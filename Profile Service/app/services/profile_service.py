@@ -89,14 +89,14 @@ class ProfileService:
                 detail="Profile not found"
             )
         event_data = {
-            "user_id": profile_uuid,
-            "update_data": profile_update.dict(exclude_unset=True)
+            "uuid": profile_uuid,
+            **profile_update.dict(exclude_unset=True)
         }
 
         if profile_update.username is None:
-            event_data["update_data"]["username"] = db_profile.username
+            event_data["username"] = db_profile.username
         if profile_update.email is None:
-            event_data["update_data"]["email"] = db_profile.email
+            event_data["email"] = db_profile.email
         try:
             await rabbitmq.rabbitmq_service.send_profile_updated(event_data)
             logging.error("Profile update event sent successfully")
