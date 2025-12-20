@@ -15,25 +15,18 @@ async def create_profile(db: AsyncSession, profile: schemas.ProfileCreate):
     await db.refresh(db_profile)
     return db_profile
 
+
 async def update_profile(db: AsyncSession, profile_uuid: str, profile_update: schemas.ProfileUpdate):
     update_data = profile_update.model_dump()
-    logging.error(f"Full update data: {update_data}")
     filtered_data = {k: v for k, v in update_data.items() if v is not None}
-    logging.error(f"Filtered update data (without None): {filtered_data}")
+
     if filtered_data:
-        if 'subscribes' in filtered_data:
-            stmt = (
-                update(models.Profile)
-                .where(models.Profile.uuid == profile_uuid)
-                .values(subscribes=filtered_data['subscribes'])
-            )
-            await db.execute(stmt)
-            await db.commit()
         stmt = (
             update(models.Profile)
             .where(models.Profile.uuid == profile_uuid)
             .values(**filtered_data)
         )
+        logging.error(f"Update stmt: {stmt}")
         await db.execute(stmt)
         await db.commit()
 
@@ -254,16 +247,41 @@ async def get_comments_by_post(db: AsyncSession, post_id: int):
 
     return comments_list
 
+
 async def get_comment(db: AsyncSession, comment_id: int):
     result = await db.execute(
-        select(models.Comment).where(models.Comment.id == comment_id)
+        select(models.Comment, models.Profile.username, models.Profile.photo)
+        .join(models.Profile, models.Comment.profile_id == models.Profile.uuid)
+        .where(models.Comment.id == comment_id)
     )
-    return result.scalars().first()
+    row = result.first()
+    if row is None:
+        return None
+    comment, username, photo = row
+    comment_dict = {
+        "id": comment.id,
+        "text": comment.text,
+        "post_id": comment.post_id,
+        "profile_id": comment.profile_id,
+        "likes_amount": comment.likes_amount,
+        "create_date": comment.create_date,
+        "edited": comment.edited,
+        "likers": comment.likers or [],
+        "username": username,
+        "photo": photo
+    }
+    return comment_dict
 
 async def update_comment(db: AsyncSession, comment_id: int, comment_update: schemas.CommentUpdate, profile_id: str):
-    comment = await get_comment(db, comment_id)
-    if not comment:
+    result = await db.execute(
+        select(models.Comment, models.Profile.username, models.Profile.photo)
+        .join(models.Profile, models.Comment.profile_id == models.Profile.uuid)
+        .where(models.Comment.id == comment_id)
+    )
+    row = result.first()
+    if not row:
         return None
+    comment, username, photo = row
     if comment.profile_id != profile_id:
         return None
     

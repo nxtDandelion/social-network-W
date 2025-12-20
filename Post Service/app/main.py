@@ -163,7 +163,7 @@ async def like_post(post_id: int, like_request: LikeRequest, db: AsyncSession = 
             raise HTTPException(status_code=404, detail="Post not found")
         event_data = {
             "id": post.id,
-            "user" : like_request.profile_id,
+            "profile_id" : like_request.profile_id,
         }
         await rabbitmq_service.send_post_liked(event_data)
         return post
@@ -179,7 +179,7 @@ async def unlike_post(post_id: int, like_request: LikeRequest, db: AsyncSession 
             raise HTTPException(status_code=404, detail="Post not found")
         event_data = {
             "id": post.id,
-            "user": like_request.profile_id,
+            "profile_id": like_request.profile_id,
         }
         await rabbitmq_service.send_post_unliked(event_data)
         return post
@@ -202,6 +202,7 @@ async def create_comment(post_id: int, comment: CommentCreateWithProfile, db: As
             "edited": comment.edited
         }
         await rabbitmq_service.send_comment_created(comment_data)
+        comment = await crud.get_comment(db, comment.id)
         return comment
     except Exception as e:
         logging.error(f"Error in create_comment: {e}")
@@ -212,7 +213,7 @@ async def get_comments(post_id: int, db: AsyncSession = Depends(get_db)):
     return await crud.get_comments_by_post(db, post_id)
 
 
-@app.put("/{post_id}/comments/{comment_id}", response_model=schemas.Comment)
+@app.put("/{post_id}/comments/{comment_id}")
 async def update_comment(post_id: int, comment_id: int, comment_update: CommentUpdateWithProfile, db: AsyncSession = Depends(get_db)):
     try:
         post = await crud.get_post(db, post_id)
@@ -229,6 +230,7 @@ async def update_comment(post_id: int, comment_id: int, comment_update: CommentU
             "edited": comment.edited
         }
         await rabbitmq_service.send_comment_updated(comment_data)
+        comment = await crud.get_comment(db, comment_id)
         return comment
     except Exception as e:
         logging.error(f"Error in update_comment: {e}")

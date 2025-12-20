@@ -40,8 +40,7 @@ class FollowService:
         profile = await self.crud.get_profile(follower_id)
         profile = profile_schema.ProfileResponse.model_validate(profile)
         event_data = {
-            "user_id": follower_id,
-            "update_data": profile.model_dump(exclude_unset=True)
+            **profile.model_dump(exclude_unset=True)
         }
         try:
             await rabbitmq.rabbitmq_service.send_profile_updated(event_data)
@@ -76,8 +75,7 @@ class FollowService:
         profile = await self.crud.get_profile(follower_id)
         profile = profile_schema.ProfileResponse.model_validate(profile)
         event_data = {
-            "user_id": follower_id,
-            "update_data": profile.model_dump(exclude_unset=True)
+            **profile.model_dump(exclude_unset=True)
         }
         try:
             await rabbitmq.rabbitmq_service.send_profile_updated(event_data)
