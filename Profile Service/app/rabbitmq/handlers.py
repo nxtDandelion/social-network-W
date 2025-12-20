@@ -71,7 +71,7 @@ async def handle_post_deleted(event_data: Dict[str, Any], db):
 async def handle_post_liked(event_data: Dict[str, Any], db):
     try:
         id = event_data.get("id")
-        user = event_data.get("user")
+        user = event_data.get("profile_id")
         post_crud = PostCRUD(db)
         await post_crud.like_post(id, user)
     except Exception as e:
@@ -81,7 +81,7 @@ async def handle_post_liked(event_data: Dict[str, Any], db):
 async def handle_post_unliked(event_data: Dict[str, Any], db):
     try:
         id = event_data.get("id")
-        user = event_data.get("user")
+        user = event_data.get("profile_id")
         post_crud = PostCRUD(db)
         await post_crud.unlike_post(id, user)
     except Exception as e:
