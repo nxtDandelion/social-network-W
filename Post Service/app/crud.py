@@ -15,25 +15,18 @@ async def create_profile(db: AsyncSession, profile: schemas.ProfileCreate):
     await db.refresh(db_profile)
     return db_profile
 
+
 async def update_profile(db: AsyncSession, profile_uuid: str, profile_update: schemas.ProfileUpdate):
     update_data = profile_update.model_dump()
-    logging.error(f"Full update data: {update_data}")
     filtered_data = {k: v for k, v in update_data.items() if v is not None}
-    logging.error(f"Filtered update data (without None): {filtered_data}")
+
     if filtered_data:
-        if 'subscribes' in filtered_data:
-            stmt = (
-                update(models.Profile)
-                .where(models.Profile.uuid == profile_uuid)
-                .values(subscribes=filtered_data['subscribes'])
-            )
-            await db.execute(stmt)
-            await db.commit()
         stmt = (
             update(models.Profile)
             .where(models.Profile.uuid == profile_uuid)
             .values(**filtered_data)
         )
+        logging.error(f"Update stmt: {stmt}")
         await db.execute(stmt)
         await db.commit()
 
@@ -82,7 +75,7 @@ async def get_post(db: AsyncSession, post_id: int):
 
 async def get_posts_feed(db: AsyncSession, skip: int = 0, limit: int = 100):
     result = await db.execute(
-        select(models.Post, models.Profile.username)
+        select(models.Post, models.Profile.username, models.Profile.photo)
         .join(models.Profile, models.Post.profile_id == models.Profile.uuid)
         .order_by(models.Post.create_date.desc())
         .offset(skip)
@@ -91,19 +84,20 @@ async def get_posts_feed(db: AsyncSession, skip: int = 0, limit: int = 100):
 
     posts_with_username = result.all()
     posts_list = []
-    for post, username in posts_with_username:
+    for post, username, photo in posts_with_username:
         post_dict = {
             "id": post.id,
             "text": post.text,
             "profile_id": post.profile_id,
             "likes_amount": post.likes_amount,
+            "comments_amount": post.comments_amount,
             "create_date": post.create_date,
             "edited": post.edited,
             "likers": post.likers or [],
-            "username": username
+            "username": username,
+            "photo": photo
         }
         posts_list.append(post_dict)
-
     return posts_list
 
 
@@ -124,7 +118,7 @@ async def get_subscribe_feed(db: AsyncSession, username: str, skip: int = 0, lim
     if not subscribed_uuids:
         return []
     result = await db.execute(
-        select(models.Post, models.Profile.username)
+        select(models.Post, models.Profile.username, models.Profile.photo)
         .join(models.Profile, models.Post.profile_id == models.Profile.uuid)
         .where(models.Post.profile_id.in_(subscribed_uuids))
         .order_by(models.Post.create_date.desc())
@@ -133,16 +127,18 @@ async def get_subscribe_feed(db: AsyncSession, username: str, skip: int = 0, lim
     )
     posts_with_username = result.all()
     posts_list = []
-    for post, username in posts_with_username:
+    for post, username, photo in posts_with_username:
         post_dict = {
             "id": post.id,
             "text": post.text,
             "profile_id": post.profile_id,
             "likes_amount": post.likes_amount,
+            "comments_amount": post.comments_amount,
             "create_date": post.create_date,
             "edited": post.edited,
             "likers": post.likers or [],
-            "username": username
+            "username": username,
+            "photo": photo
         }
         posts_list.append(post_dict)
     return posts_list
@@ -215,28 +211,77 @@ async def create_comment(db: AsyncSession, comment: schemas.CommentCreate, post_
         edited=False
     )
     db.add(db_comment)
+    post = (
+        update(models.Post)
+        .where(models.Post.id == post_id)
+        .values(comments_amount=models.Post.comments_amount + 1)
+    )
+    await db.execute(post)
     await db.commit()
     await db.refresh(db_comment)
     return db_comment
 
 async def get_comments_by_post(db: AsyncSession, post_id: int):
     result = await db.execute(
-        select(models.Comment)
+        select(models.Comment, models.Profile.username, models.Profile.photo)
+        .join(models.Profile, models.Comment.profile_id == models.Profile.uuid)
         .where(models.Comment.post_id == post_id)
         .order_by(models.Comment.create_date.asc())
     )
-    return result.scalars().all()
+    comments_with_profile = result.all()
+    comments_list = []
+    for comment, username, photo in comments_with_profile:
+        comment_dict = {
+            "id": comment.id,
+            "text": comment.text,
+            "post_id": comment.post_id,
+            "profile_id": comment.profile_id,
+            "likes_amount": comment.likes_amount,
+            "create_date": comment.create_date,
+            "edited": comment.edited,
+            "likers": comment.likers or [],
+            "username": username,
+            "photo": photo
+        }
+        comments_list.append(comment_dict)
+
+    return comments_list
+
 
 async def get_comment(db: AsyncSession, comment_id: int):
     result = await db.execute(
-        select(models.Comment).where(models.Comment.id == comment_id)
+        select(models.Comment, models.Profile.username, models.Profile.photo)
+        .join(models.Profile, models.Comment.profile_id == models.Profile.uuid)
+        .where(models.Comment.id == comment_id)
     )
-    return result.scalars().first()
+    row = result.first()
+    if row is None:
+        return None
+    comment, username, photo = row
+    comment_dict = {
+        "id": comment.id,
+        "text": comment.text,
+        "post_id": comment.post_id,
+        "profile_id": comment.profile_id,
+        "likes_amount": comment.likes_amount,
+        "create_date": comment.create_date,
+        "edited": comment.edited,
+        "likers": comment.likers or [],
+        "username": username,
+        "photo": photo
+    }
+    return comment_dict
 
 async def update_comment(db: AsyncSession, comment_id: int, comment_update: schemas.CommentUpdate, profile_id: str):
-    comment = await get_comment(db, comment_id)
-    if not comment:
+    result = await db.execute(
+        select(models.Comment, models.Profile.username, models.Profile.photo)
+        .join(models.Profile, models.Comment.profile_id == models.Profile.uuid)
+        .where(models.Comment.id == comment_id)
+    )
+    row = result.first()
+    if not row:
         return None
+    comment, username, photo = row
     if comment.profile_id != profile_id:
         return None
     
@@ -254,13 +299,25 @@ async def update_comment(db: AsyncSession, comment_id: int, comment_update: sche
     return result.scalars().first()
 
 async def delete_comment(db: AsyncSession, comment_id: int, profile_id: str):
-    comment = await get_comment(db, comment_id)
-    if not comment:
+    result = await db.execute(
+        select(models.Comment, models.Post.id.label("post_id"))
+        .join(models.Post, models.Comment.post_id == models.Post.id)
+        .where(models.Comment.id == comment_id)
+    )
+    row = result.first()
+    if not row:
         return {"message": "Comment not found"}
+    comment, post_id = row
     if comment.profile_id != profile_id:
         return {"message": "Not authorized to delete this comment"}
-    
-    stmt = delete(models.Comment).where(models.Comment.id == comment_id)
+
+    await db.delete(comment)
+    stmt = (
+        update(models.Post)
+        .where(models.Post.id == post_id)
+        .where(models.Post.comments_amount > 0)
+        .values(comments_amount=models.Post.comments_amount - 1)
+    )
     await db.execute(stmt)
     await db.commit()
     return {"message": "Comment deleted successfully"}

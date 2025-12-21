@@ -13,10 +13,12 @@ async def handle_user_registered(event_data: Dict[str, Any], db):
         uuid = event_data.get('uuid')
         username = event_data.get('username')
         email = event_data.get('email')
+        login = event_data.get('login')
         profile_create = ProfileCreate(
             uuid=uuid,
             username=username,
-            email=email
+            email=email,
+            login=login
         )
         profile_service = ProfileService(db)
         await profile_service.create_profile(profile_create)
@@ -69,7 +71,7 @@ async def handle_post_deleted(event_data: Dict[str, Any], db):
 async def handle_post_liked(event_data: Dict[str, Any], db):
     try:
         id = event_data.get("id")
-        user = event_data.get("user")
+        user = event_data.get("profile_id")
         post_crud = PostCRUD(db)
         await post_crud.like_post(id, user)
     except Exception as e:
@@ -79,7 +81,7 @@ async def handle_post_liked(event_data: Dict[str, Any], db):
 async def handle_post_unliked(event_data: Dict[str, Any], db):
     try:
         id = event_data.get("id")
-        user = event_data.get("user")
+        user = event_data.get("profile_id")
         post_crud = PostCRUD(db)
         await post_crud.unlike_post(id, user)
     except Exception as e:

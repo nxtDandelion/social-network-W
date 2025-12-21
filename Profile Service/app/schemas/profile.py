@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field, EmailStr, ConfigDict
 class ProfileBase(BaseModel):
     uuid: str = Field(...)
     username: str = Field(description="Username")
+    login: str = Field(description="Username")
     email: EmailStr = Field(default=None, description="Почта")
     tag: Optional[str] = Field(default=None, description="Тэг")
     photo: Optional[str] = Field(
@@ -20,6 +21,7 @@ class ProfileCreate(ProfileBase):
 class ProfileResponse(BaseModel):
     uuid: str = Field(..., description="Идентификатор профиля")
     username: str = Field(..., description="Username")
+    login: str = Field(...)
     email: Optional[str] = Field(default=None, description="Почта")
     photo: Optional[str] = Field(
         default=None,
