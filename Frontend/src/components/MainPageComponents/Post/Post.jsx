@@ -8,29 +8,50 @@ import CommentModalPage from "./PostComponents/CommentsComponents/CommentModalPa
 import {responseCommentsList} from "../../../API/PostAPI/getCommentsList.js";
 import {postLike} from "../../../API/PostAPI/postLike.js";
 import {deleteLike} from "../../../API/PostAPI/deleteLike.js";
+import {CommentContext} from "../../../Contexts/CommentContext.jsx";
 
 
-export default function Post({postH,postW,postDate,likers,postText,userName,userTag,userId,edited,postId,isModal,onModalFunc}) {
+export default function Post({postH,postW,postDate,likers,postText,userName,userTag,
+                                 userAvatar,userId,edited,postId,isModal,onModalFunc,initCommentAmount}) {
 
-    const {auth,setShowLoginMes,refreshToken} = useContext(AuthContext);
+    const {auth,setShowLoginMes,refreshToken,contextUserId} = useContext(AuthContext);
+    const {freshCommentsAmount,commentCreated,commentDeleted} = useContext(CommentContext);
     const [showComments,setShowComments] = useState(false);
     const [commentsList,setCommentsList] = useState({});
+    const [commentsAmount,setCommentsAmount] = useState(initCommentAmount || 0);
     const [isLiked,setIsLiked] = useState(false);
     const [likersList,setLikersList] = useState([]);
     const [isLoading,setIsLoading] = useState(true);
     const [isAnimating, setIsAnimating] = useState(false);
 
+    // useEffect(() => {
+    //     setCommentsAmount(freshCommentsAmount);
+    // },[freshCommentsAmount])
 
-
-    console.log(edited,"edited",userName);
-
+    // const handleCommentDeleted = (deletedCommentId) => {
+    //     setCommentsList(prev => {
+    //         const newState = { ...prev };
+    //         delete newState[deletedCommentId];
+    //         return newState;
+    //     });
+    //     setCommentsAmount(prev => prev - 1);
+    // };
 
 
     useEffect(() => {
-        // 1. Создаем безопасный массив
-        const safeLikers = Array.isArray(likers) ? likers : [];
+        if (commentCreated && commentCreated.post_id === postId) {
+            setCommentsAmount(prev => prev + 1);
+        }
+    },[commentCreated]);
 
-        // 2. Используем safeLikers везде
+    useEffect(() => {
+        if (commentDeleted && commentDeleted.post_id === postId) {
+            setCommentsAmount(prev => prev - 1);
+        }
+    },[commentDeleted]);
+
+    useEffect(() => {
+        const safeLikers = Array.isArray(likers) ? likers : [];
         setLikersList(safeLikers);
 
         const curUser = localStorage.getItem("userId");
@@ -44,16 +65,15 @@ export default function Post({postH,postW,postDate,likers,postText,userName,user
         setIsLoading(false);
     }, [likers]);
 
+
     const likeHandleClick = async () => {
         if (!auth) {
             setShowLoginMes(true);
             return;
         }
-
         setIsAnimating(true);
 
-        const curUser = localStorage.getItem("userId");
-        const wasLiked = likersList.includes(curUser);
+        const wasLiked = likersList.includes(contextUserId);
 
         try {
             let response;
@@ -65,28 +85,22 @@ export default function Post({postH,postW,postDate,likers,postText,userName,user
             }
 
             if (response.success) {
-                // Плавное изменение состояния
                 setIsLiked(!wasLiked);
 
-                // Плавное изменение счетчика
                 if (wasLiked) {
-                    setLikersList(prev => prev.filter(id => id !== curUser));
+                    setLikersList(prev => prev.filter(id => id !==contextUserId));
                 } else {
-                    setLikersList(prev => [...prev, curUser]);
+                    setLikersList(prev => [...prev, contextUserId]);
                 }
-
-                // Останавливаем анимацию через 300ms
                 setTimeout(() => {
                     setIsAnimating(false);
                 }, 300);
 
             } else if (response.statusCode === 401) {
-                console.log('Ошибка 401');
                 console.error(response.error);
                 refreshToken();
                 setIsAnimating(false);
             } else {
-                console.log("ошибка");
                 setIsAnimating(false);
             }
         } catch (error) {
@@ -103,10 +117,15 @@ export default function Post({postH,postW,postDate,likers,postText,userName,user
         const response = await responseCommentsList(postId);
         if (response.success) {
 
-            setCommentsList(response.data);
+            const comments = response.data;
+            const commentsById = {}
+            Object.values(comments).forEach(comment => {
+                commentsById[comment.id] = comment;
+            })
+            setCommentsList(commentsById);
             setShowComments(true);
         } else {
-            console.log(response.success);
+            console.error(response.error);
         }
     }
 
@@ -143,7 +162,7 @@ export default function Post({postH,postW,postDate,likers,postText,userName,user
                     component="post"
                     userName={userName}
                     userTag={userTag}
-                    userAvatar={`defaultAvatar.png`}
+                    userAvatar={userAvatar}
                     userId={userId}
                 />
                 <div className="flex flex-col">
@@ -187,7 +206,7 @@ export default function Post({postH,postW,postDate,likers,postText,userName,user
                     </button >
                     <button onClick={commentHandleClick} className="flex w-1/2 items-center ml-3 hover:opacity-80">
                         <CommentIcon/>
-                        <span className="inline-block text-white text-xl font-bold tracking-wider"> {Object.keys(commentsList).length}</span>
+                        <span className="inline-block text-white text-xl font-bold tracking-wider"> {commentsAmount}</span>
                     </button>
                 </div>
                 <div className="flex w-2/4 justify-end items-center">
@@ -201,14 +220,16 @@ export default function Post({postH,postW,postDate,likers,postText,userName,user
                                    postDate={postDate}
                                    postText={postText}
                                    postId={postId}
-                                   commentCount={Object.keys(commentsList).length}
+                                   commentsAmount={commentsAmount}
                                    likeCount={Object.keys(likers).length}
                                    userName={userName}
                                    userTag={userTag}
                                    userId={userId}
+                                   userAvatar={userAvatar}
                                    likers={likersList}
                                    comments={commentsList}
                                    edited={edited}
+
 
 
             />}

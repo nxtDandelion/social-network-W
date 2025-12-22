@@ -103,64 +103,77 @@ function MenuCard({userId,postId,showNote,openEditMenu}) {
     const myId = localStorage.getItem("userId");
     const isMyPost = checkAccess(myId,userId);
     const {setPostDeleted} = useContext(FeedContext);
-    const {refreshToken} = useContext(AuthContext);
-    const [confirmDelete,setConfirmDelete] = useState(false);
+    const {refreshToken,auth} = useContext(AuthContext);
+    const [confirmAlert,setConfirmAlert] = useState(false);
 
 
 
     const reportPost = async () =>{
-
-    }
-    const updateMyPost = () =>{
-
-        if (isMyPost){
-            openEditMenu();
-
-        }
-        else{
+        if (auth){
             showNote({
-                type: "error",
-                message: "Вы не можете редактировать этот пост",
+                type: "success",
+                message: "Жалоба была успешно отправлена",
                 duration: 2000
             });
         }
+        else refreshToken();
+    }
+    const updateMyPost = () =>{
+        if (auth) {
+            if (isMyPost) {
+                openEditMenu();
+
+            } else {
+                showNote({
+                    type: "error",
+                    message: "Вы не можете редактировать этот пост",
+                    duration: 2000
+                });
+            }
+        }
+        else refreshToken();
     }
 
     const deleteP = async ()=>{
-        const response = await deletePost(myId,postId);
-        if (response.success) {
-            console.log("Пост удален");
-            setPostDeleted(postId);
-            showNote({
-                type: "success",
-                message: "Пост удален успешно",
-                duration: 2000
-            });
+        if (auth){
+            const response = await deletePost(myId,postId);
+            if (response.success) {
+                console.log("Пост удален");
+                setPostDeleted(postId);
+                showNote({
+                    type: "success",
+                    message: "Пост удален успешно",
+                    duration: 2000
+                });
 
+            }
+            else if (response.statusCode===401){
+                refreshToken();
+            }
+            else {
+                return response.error;
+            }
         }
-        else if (response.statusCode===401){
-            refreshToken();
-        }
-        else {
-            return response.error;
-        }
+        else refreshToken();
     }
     const deleteMyPost = () =>{
-        if (isMyPost){
-            setConfirmDelete(true);
+       if (auth) {
+           if (isMyPost) {
+               setConfirmAlert(true);
 
-        }
-        else{
-            showNote({
-                type: "error",
-                message: "Вы не можете удалить этот пост",
-                duration: 2000
-                });
-        }
+           } else {
+               showNote({
+                   type: "error",
+                   message: "Вы не можете удалить этот пост",
+                   duration: 2000
+               });
+           }
+       }
+       else refreshToken();
     }
 
     function close(){
-        setConfirmDelete(false);
+        setConfirmAlert(false);
     }
 
     return (
@@ -176,7 +189,7 @@ function MenuCard({userId,postId,showNote,openEditMenu}) {
                     Удалить
                 </button>
             </div>
-            {confirmDelete && <PopUpConfirm confirm={deleteP} close={close}/>}
+            {confirmAlert && <PopUpConfirm confirm={deleteP} close={close}/>}
 
         </div>
     )

@@ -9,18 +9,18 @@ import {CommentContext} from "../../../../../Contexts/CommentContext.jsx";
 import EditCommentModal from "./EditCommentModal.jsx";
 
 
-export default function CommentOtherMenu({component,commentId,userId,postId,initText}) {
+export default function CommentOtherMenu({component,commentId,userId,postId,initText,setEdit}) {
 
     const [visible, setVisible] = useState(false);
     const [showEdit,setShowEdit] = useState(false);
     const [note, setNote] = useState(null);
     const {refreshToken} = useContext(AuthContext);
     const {setCommentUpdated,setCommentDeleted} =useContext(CommentContext);
-    console.log(userId,postId,commentId,"otherMrnuInfo");
 
     const sendToUpdate = async (text) =>{
         const response = await updateComment(userId,postId,commentId,text)
         if (response.success){
+            setEdit(true);
             setCommentUpdated({id:commentId,text:text});
             setNote({
                 type: "success",
@@ -96,10 +96,9 @@ export default function CommentOtherMenu({component,commentId,userId,postId,init
 }
 
 function MenuCard({curUserId,commentId,postId,showNote,openEditMenu}) {
-    const {setCommentDeleted} = useContext(CommentContext);
+    const {setCommentDeleted,commentDeleted} = useContext(CommentContext);
     const {contextUserId,refreshToken} = useContext(AuthContext);
     const isMyComment = checkAccess(contextUserId,curUserId);
-    console.log(contextUserId,"CUI",curUserId,"PI");
 
     const reportComment = async () =>{
     }
@@ -122,7 +121,8 @@ function MenuCard({curUserId,commentId,postId,showNote,openEditMenu}) {
 
             const response = await deleteComment(curUserId,postId,commentId);
             if (response.success) {
-                setCommentDeleted(commentId);
+                setCommentDeleted({id:commentId,post_id:postId});
+                console.error(commentDeleted,"CommentDeleted");
                 showNote({
                     type: "success",
                     message: "Комментарий удален успешно",
@@ -164,6 +164,5 @@ function MenuCard({curUserId,commentId,postId,showNote,openEditMenu}) {
 }
 
 function checkAccess(userId,postUserId){
-    console.log(userId,postUserId,"UI,PUI");
     return userId === postUserId;
 }

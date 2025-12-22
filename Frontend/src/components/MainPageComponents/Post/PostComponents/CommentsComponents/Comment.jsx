@@ -5,10 +5,12 @@ import {useContext, useEffect, useState} from "react";
 import {AuthContext} from "../../../../../Contexts/AuthContext.jsx";
 import {deleteCommentLike} from "../../../../../API/PostAPI/deleteCommentLike.js";
 import {postCommentLike} from "../../../../../API/PostAPI/postCommentLike.js";
+import CommentUserInfo from "./CommentUserInfo.jsx";
+import {useNavigate} from "react-router-dom";
 
 export default function Comment({
-                                    commentId, commentUserId, postId, commentUserName, userTag,
-                                    commentText, createDate, commentLikers = []
+                                    commentId, commentUserId, postId,userAvatar, commentUserName, userTag,
+                                    commentText, createDate, commentLikers,edited
                                 }) {
 
     const {auth,setShowLoginMes,contextUserName,contextUserId,refreshToken} = useContext(AuthContext);
@@ -16,6 +18,8 @@ export default function Comment({
     const [likersList, setLikersList] = useState([]);
     const [isAnimating, setIsAnimating] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const navigate = useNavigate();
+    const [isEdit,setIsEdit] = useState(edited);
 
     useEffect(() => {
         const safeLikers = Array.isArray(commentLikers) ? commentLikers : [];
@@ -84,6 +88,10 @@ export default function Comment({
         }
     }
 
+    function navigateTo() {
+        navigate(`/profile/${commentUserName}`);
+    }
+
     if (isLoading) {
         return (
             <div className="relative flex flex-col w-full p-1 border-b-[0.1px] border-black animate-pulse">
@@ -108,20 +116,17 @@ export default function Comment({
                 <div>
                     <img
                         className="w-14 h-14 rounded-full object-cover"
-                        src={`/avatars/defaultAvatar.png`}
+                        src={`${userAvatar ? userAvatar :`/avatars/defaultAvatar.png`}`}
                         alt={`Аватар ${commentUserName}`}
+                        onClick={navigateTo}
                     />
                 </div>
                 <div className="flex flex-col justify-start items-start w-fit max-w-[38rem] h-fit ml-2">
-                    <div className="w-[28rem]">
-                        <span className="mr-1 font-medium">
-                            {commentUserName}
-                        </span>
-                        <span className="text-gray-600">
-                            {userTag}
-                        </span>
-                    </div>
+                    <CommentUserInfo userName={commentUserName} userTag={`@${commentUserName}`}/>
+
+
                     <div className="mt-1 mb-1"> {commentText} </div>
+
 
                     <button
                         onClick={likeHandleClick}
@@ -151,12 +156,14 @@ export default function Comment({
             </div>
             <div className="absolute top-1 right-2">
                 <CommentOtherMenu
+                    setEdit = {setIsEdit}
                     component="comment"
                     commentId={commentId}
                     userId={commentUserId}
                     postId={postId}
                     initText={commentText}
                 />
+                <p className={`${isEdit ? `inline-block` :`hidden`} `}> Отредактирован </p>
             </div>
         </div>
     )

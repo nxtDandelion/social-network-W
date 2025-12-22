@@ -15,7 +15,7 @@ import {getUserProfile} from "../API/ProfileAPI/getUserProfile.js";
 
 export default function LoginPage() {
     const navigate = useNavigate();
-    const {setAuth,setContextUserName} = useContext(AuthContext);
+    const {setAuth,setContextUserName,setContextUserId} = useContext(AuthContext);
     const [timeToClose, setTimeToClose] = useState(true);
     const [login, setLogin] = useState("");
     const [password, setPassword] = useState("");
@@ -57,12 +57,12 @@ export default function LoginPage() {
                 setMessage("Вход успешен");
                 setCorrect(true);
                 console.log(response.data);
-                // const profileResponse = await getUserProfile(response.data.username);
-                // localStorage.setItem("myId",profileResponse.data.uuid);
                 localStorage.setItem("myUsername",response.data.username);
+                localStorage.setItem("userId",response.data.id);
                 localStorage.setItem("myLogin",login);
                 localStorage.setItem("access_token",response.data.access_token);
                 setContextUserName(response.data.username);
+                setContextUserId(response.data.id)
                 setAuth(true);
                 navigate(`/home`);
 

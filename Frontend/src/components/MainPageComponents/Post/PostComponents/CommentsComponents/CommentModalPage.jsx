@@ -7,39 +7,40 @@ import {useContext, useEffect, useState} from "react";
 import {CommentContext} from "../../../../../Contexts/CommentContext.jsx";
 
 export default function CommentModalPage({
-                                             postDate, likeCount, commentCount, postText, postId,
-                                             userName, userTag, userId, closePage, comments, likers, edited
+                                             postDate, likeCount, commentsAmount, postText, postId,
+                                             userName, userTag, userId, userAvatar, closePage, comments, likers,
+                                             edited
+
                                          }) {
-    const {commentCreated, commentUpdated, commentDeleted} = useContext(CommentContext);
+    const {commentCreated, commentUpdated, commentDeleted, setFreshCommentsAmount} = useContext(CommentContext);
     const [commentsList, setCommentsList] = useState(comments || {});
+    const [reactComments, setReactComments] = useState(commentsAmount || null);
+
+    useEffect(() => {
+        const updatedCommentsAmount = Object.keys(commentsList).length;
+        setFreshCommentsAmount(updatedCommentsAmount);
+    }, [commentsList]);
 
     useEffect(() => {
         if (commentCreated) {
-            console.log(commentCreated,"CC",commentsList,"CL",sortedComments,"SC");
             if (commentCreated.post_id === postId) {
                 const isCommentExist = Object.values(commentsList).some(comment => comment.id === commentCreated.id);
 
                 if (!isCommentExist) {
+                    setReactComments(prevState =>{
+                        return prevState + 1
+                    });
                     setCommentsList(prevState => {
                         return {
-                        [commentCreated.id]:commentCreated,
+                            [commentCreated.id]: commentCreated,
                             ...prevState
-
                         };
                     });
-                    // Прокручиваем к новому комментарию
-                    // setTimeout(() => {
-                    //     const container = document.querySelector('.custom-scrollbar-edge');
-                    //     if (container) {
-                    //         container.scrollTop = 0;
-                    //     }
-                    // }, 10);
                 }
             }
         }
     }, [commentCreated]);
 
-    // Обработка обновления комментария
     useEffect(() => {
         if (commentUpdated && commentUpdated.id && commentsList[commentUpdated.id]) {
             setCommentsList(prevState => ({
@@ -47,22 +48,21 @@ export default function CommentModalPage({
                 [commentUpdated.id]: {
                     ...prevState[commentUpdated.id],
                     text: commentUpdated.text,
-                    // Другие обновляемые поля
                 }
             }));
         }
     }, [commentUpdated]);
 
-    // Обработка удаления комментария
     useEffect(() => {
-        if (commentDeleted ) {
+        if (commentDeleted && commentDeleted.post_id) {
             setCommentsList(prevState => {
-                console.log(commentDeleted,)
                 const newState = {...prevState};
-                delete newState[commentDeleted];
+                delete newState[commentDeleted.id];
                 return newState;
             });
-
+            setReactComments(prevState => {
+                return prevState - 1
+            })
         }
     }, [commentDeleted]);
 
@@ -70,16 +70,16 @@ export default function CommentModalPage({
         closePage();
     }
 
-    // Сортируем комментарии по дате (новые сверху)
     const sortedComments = Object.values(commentsList).sort((a, b) => {
         return new Date(b.create_date) - new Date(a.create_date);
     });
 
     return(
         <PopupBg>
-            <div className="relative w-[42rem] h-[95vh] my-auto rounded-3xl bg-white overflow-hidden">
-                <div className="h-full overflow-y-auto custom-scrollbar-edge">
-                    <div className="h-full pr-2">
+            <div className="relative w-[42rem] h-[95vh] my-auto rounded-3xl bg-white overflow-hidden flex flex-col">
+                {/* Основной контент с прокруткой */}
+                <div className="flex-1 overflow-y-auto custom-scrollbar-edge pb-24">
+                    <div className="pr-2">
                         <div>
                             <Post
                                 postText={postText}
@@ -87,8 +87,10 @@ export default function CommentModalPage({
                                 userId={userId}
                                 userName={userName}
                                 userTag={userTag}
+                                userAvatar={userAvatar}
                                 postDate={postDate}
                                 postId={postId}
+                                initCommentAmount={reactComments}
                                 onModalFunc={commentHandleClick}
                                 isModal={true}
                                 edited={edited}
@@ -101,14 +103,16 @@ export default function CommentModalPage({
                                     <Comment
                                         key={comment.id}
                                         commentUserId={comment.profile_id}
-                                        commentUserName={comment.profile_id}
-                                        userTag={comment.profile_id}
+                                        commentUserName={comment.username}
+                                        userTag={`@${comment.username}`}
                                         userId={comment.profile_id}
                                         postId={comment.post_id}
+                                        userAvatar={comment.photo}
                                         commentId={comment.id}
                                         commentText={comment.text}
                                         createDate={new Date(comment.create_date).toLocaleDateString('ru-RU')}
                                         commentLikers={comment.likers || []}
+                                        edited={comment.edited}
                                     />
                                 ))
                             ) : (
@@ -116,16 +120,14 @@ export default function CommentModalPage({
                                     Комментариев пока нет. Будьте первым!
                                 </div>
                             )}
-
-                            <div className="h-20"></div>
                         </div>
                     </div>
                 </div>
 
-                <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-100">
+                {/* Форма комментариев - фиксированная внизу */}
+                <div className="border-t border-gray-100 bg-white">
                     <CommentForm
                         postId={postId}
-                        userId={userId}
                     />
                 </div>
             </div>

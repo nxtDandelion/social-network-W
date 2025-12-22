@@ -134,6 +134,8 @@ export default function Feed({filter}) {
                                         userId={post.profile_id}
                                         userName={post.username}
                                         userTag={`@${post.username}`}
+                                        userAvatar={post.photo}
+                                        initCommentAmount={post.comments_amount}
                                         edited={post.edited}
                                         postDate={new Date(post.create_date).toLocaleDateString('ru-RU')}
                                         postId={post.id}

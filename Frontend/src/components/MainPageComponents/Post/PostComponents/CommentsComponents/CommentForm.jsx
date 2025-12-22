@@ -28,14 +28,13 @@ export default function CommentForm({postId}) {
 
         try {
             if (contextUserId) {
+                console.log(contextUserId,"MYID");
                 const response = await createComment(postId, commentText, contextUserId);
 
                 if (response.success) {
                     setCommentCreated(response.data);
                     console.log(commentCreated, "Добавленный коммент");
                     setCommentText("");
-
-
                     setIsPostSend(false);
 
                 } else if (response.status === 401) {

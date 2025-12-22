@@ -10,9 +10,9 @@ import NotificationCard from "../Other/NotificationCard.jsx";
 
 import EditPostModal from "./Post/PostComponents/EditPostModal.jsx";
 
-export default function CreatePostBtn() {
+export default function CreatePostBtn({}) {
 
-    const {auth,setShowLoginMes,refreshToken,ContextUserName} = useContext(AuthContext);
+    const {auth,setShowLoginMes,refreshToken,contextUserName} = useContext(AuthContext);
     const {refreshFeed,logContext} = useContext(FeedContext);
     const [showCreatePost,setShowCreatePost] = useState(false);
     const [error,setError] = useState('');
@@ -44,7 +44,7 @@ export default function CreatePostBtn() {
                 message: "Пост добавлен успешно",
                 duration: 1000
             })
-            const postData = { ...response.data, username: ContextUserName}
+            const postData = { ...response.data, username: contextUserName}
             refreshFeed(postData);
             setTimeout(()=>(
                 setShowCreatePost(false)
@@ -89,6 +89,7 @@ export default function CreatePostBtn() {
             </button>
             {showCreatePost && <EditPostModal
                                     sendForm={sendPost}
+                                    userAvatar={''}
                                     closeModal={handleClose}
                                 />
 
