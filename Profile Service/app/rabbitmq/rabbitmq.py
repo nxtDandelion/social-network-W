@@ -123,8 +123,7 @@ class RabbitMQService:
             message_data = {
                 "event_type": "profile_updated",
                 "timestamp": datetime.now().isoformat(),
-                "user_id": profile_data['user_id'],
-                "update_data": profile_data,
+                **profile_data
             }
 
             message = aio_pika.Message(
@@ -133,7 +132,7 @@ class RabbitMQService:
                 content_type='application/json',
                 headers={'event': 'profile_updated'}
             )
-
+            logging.info(f"Sending profile updated event: {message}")
             await self.profile_events_exchange.publish(
                 message,
                 routing_key='auth_commands'
@@ -152,8 +151,7 @@ class RabbitMQService:
             message_data = {
                 "event_type": "profile_created",
                 "timestamp": datetime.now().isoformat(),
-                "user_id": profile_data['uuid'],
-                "profile_data": profile_data,
+                **profile_data
             }
 
             message = aio_pika.Message(
@@ -162,7 +160,7 @@ class RabbitMQService:
                 content_type='application/json',
                 headers={'event': 'profile_created'}
             )
-
+            logging.info(f"Sending profile created event: {message}")
             await self.profile_events_exchange.publish(
                 message,
                 routing_key='auth_commands'
