@@ -4,10 +4,13 @@ export function ProfileIcon({
                                 className = "",
                                 fill = "none"
                             }) {
+    // Соотношение сторон viewBox (24/25 = 0.96)
+    const aspectRatio = 24 / 25;
+
     return (
         <svg
             width={size}
-            height={size + 1} // 24x25 соотношение
+            height={size / aspectRatio} // Правильное соотношение: size * (25/24)
             viewBox="0 0 24 25"
             fill={fill}
             className={className}

@@ -5,15 +5,17 @@ import FormFrame from "../components/FormComponents/FormFrame.jsx";
 import {useNavigate} from "react-router-dom";
 import MainPage from "./MainPage.jsx";
 import {useContext, useEffect, useState} from "react";
-import {AuthContext} from "../authcontext.jsx";
+import {AuthContext} from "../Contexts/AuthContext.jsx";
 import FormMes from "../components/FormComponents/FormMes.jsx";
-import {lenghtCheck, loginValid, passwordValid} from "../assets/validation.js";
+import {lenghtCheck, loginValid, passwordValid} from "../API/AuthAPI/validation.js";
 import {API_BASE_URL} from "../config.js";
-import {responseLog} from "../assets/auth.js";
+import {responseLog} from "../API/AuthAPI/auth.js";
+import {errorLog} from "../API/errorsHandler.js";
+import {getUserProfile} from "../API/ProfileAPI/getUserProfile.js";
 
 export default function LoginPage() {
     const navigate = useNavigate();
-    const {setAuth} = useContext(AuthContext);
+    const {setAuth,setContextUserName,setContextUserId} = useContext(AuthContext);
     const [timeToClose, setTimeToClose] = useState(true);
     const [login, setLogin] = useState("");
     const [password, setPassword] = useState("");
@@ -49,17 +51,25 @@ export default function LoginPage() {
             console.log("Данные валидны",login, password);
 
             const response = await responseLog(login,password);
-            if (response) {
+            if (response.success) {
                 localStorage.setItem("auth","true");
                 setTimeToClose(true);
                 setMessage("Вход успешен");
                 setCorrect(true);
+                console.log(response.data);
+                localStorage.setItem("myUsername",response.data.username);
+                localStorage.setItem("userId",response.data.id);
+                localStorage.setItem("myLogin",login);
+                localStorage.setItem("access_token",response.data.access_token);
+                setContextUserName(response.data.username);
+                setContextUserId(response.data.id)
                 setAuth(true);
-                setTimeout(() => {
-                    navigate("/profile");
-                },2000)
+                navigate(`/home`);
+
+
             }
             else{
+                errorLog(response);
                 setCorrect(false);
                 setTimeToClose(true);
                 setMessage("Неверное имя пользователя или пароль");
@@ -78,8 +88,13 @@ export default function LoginPage() {
                     <FormInput formType="text" labelText="Логин" formValue={login} onChange={(e) => setLogin(e.target.value)}/>
                     <FormInput formType="password" labelText="Пароль" formValue={password} onChange={(e) => setPassword(e.target.value)} />
 
-                    <FormButton status={isActive} enterStatus={correct} text="Войти"></FormButton>
-                    {message && timeToClose && <FormMes text={message} type={correct ? "message" : "error"}/>}
+                    <div className="my-5">
+                        <FormButton status={isActive} enterStatus={correct} text="Войти"></FormButton>
+                    </div>
+                    <div className="h-10">
+                        {message && timeToClose && <FormMes text={message} type={correct ? "message" : "error"}/>}
+
+                    </div>
                 </FormFrame>
         </div>
     )
