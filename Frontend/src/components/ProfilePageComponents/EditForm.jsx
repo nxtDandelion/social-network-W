@@ -1,4 +1,3 @@
-import PopupHeader from "../PopupComponents/PopupHeader.jsx";
 import FormInput from "../FormComponents/FormInput.jsx";
 import FormButton from "../FormComponents/FormButton.jsx";
 import PopupBg from "../PopupComponents/PopupBg.jsx";
@@ -8,14 +7,12 @@ import { errorLog } from "../../API/errorsHandler.js";
 import { useNavigate } from "react-router-dom";
 import CircleAvatarUpload from "./AvatarUpload.jsx";
 import {fileToBase64Optimized} from "../../utils/fileToBase64.js";
-import NotificationCard from "../Other/NotificationCard.jsx";
 
-export default function EditForm({curUserLogin, curUserName, curUserMail, curUserTag,
+export default function EditForm({curUserLogin, curUserName, curUserMail,
                                      curUserAvatar, closeModalPage, refreshProfile,showNotice}){
     const [newUserLogin, setNewUserLogin] = useState(curUserLogin || "");
     const [newUserName, setNewUserName] = useState(curUserName || "");
     const [newUserMail, setNewUserMail] = useState(curUserMail || "");
-    const [newUserTag, setNewUserTag] = useState(curUserTag || "");
     const [newUserPassword, setNewUserPassword] = useState("");
     const [newPasswordConfirm, setNewPasswordConfirm] = useState("");
     const [newUserAvatar, setNewUserAvatar] = useState(curUserAvatar || null);
@@ -37,11 +34,10 @@ export default function EditForm({curUserLogin, curUserName, curUserMail, curUse
             newUserName !== curUserName ||
             newUserLogin !== curUserLogin ||
             newUserMail !== curUserMail ||
-            newUserTag !== curUserTag ||
             newUserAvatar !== curUserAvatar;
 
         setIsActive(hasChanges);
-    }, [newUserLogin, newUserName, newUserMail, newUserTag, newUserAvatar, curUserName]);
+    }, [newUserLogin, newUserName, newUserMail, newUserAvatar, curUserName]);
 
 
     const handleAvatarChange = async (file) => {
@@ -66,7 +62,6 @@ export default function EditForm({curUserLogin, curUserName, curUserMail, curUse
                 newUserName,
                 newUserLogin,
                 newUserMail,
-                newUserTag,
                 newUserAvatar, // передаем файл аватарки
                 newUserPassword,
                 curUserName
@@ -138,16 +133,6 @@ export default function EditForm({curUserLogin, curUserName, curUserMail, curUse
                                             labelText="Логин"
                                             formValue={newUserLogin}
                                             onChange={(e) => setNewUserLogin(e.target.value)}
-                                        />
-                                    </div>
-
-                                    <div className={`${inputHeight}`}>
-                                        <FormInput
-                                            hintText="Допустимы: [a-z,1-9,0,_]"
-                                            formType="text"
-                                            labelText="Тэг"
-                                            formValue={newUserTag}
-                                            onChange={(e) => setNewUserTag(e.target.value)}
                                         />
                                     </div>
 

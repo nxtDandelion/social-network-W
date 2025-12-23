@@ -20,6 +20,7 @@ export default function ProfileFeed({ showEdit, onCloseModal}) {
     const [subscribes, setSubscribes] = useState({});
     const [userId, setUserId] = useState("");
     const [userProfileName, setUserProfileName] = useState("");
+    const [userLogin, setUserLogin] = useState("");
     const [userTag, setUserTag] = useState("");
     const [userMail, setUserMail] = useState("");
     const [userAvatar, setUserAvatar] = useState("");
@@ -42,6 +43,7 @@ export default function ProfileFeed({ showEdit, onCloseModal}) {
         if (userInfo.success) {
             setUserData(userInfo.data);
             setUserProfileName(userInfo.data.username);
+            setUserLogin(userInfo.data.login)
             setUserTag(userInfo.data.username);
             setUserMail(userInfo.data.email);
             setSubscribes(userInfo.data.subscribes);
@@ -232,10 +234,9 @@ export default function ProfileFeed({ showEdit, onCloseModal}) {
                 <EditForm
                     closeModalPage={onCloseModal}
                     curUserId={userId}
-                    curUserLogin={localStorage.getItem("myLogin")}
+                    curUserLogin={userLogin}
                     curUserName={userProfileName}
                     curUserMail={userMail}
-                    curUserTag={userTag}
                     curUserAvatar={userAvatar}
                     refreshProfile={refreshProfile}
                     showNotice={showNotice}
