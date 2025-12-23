@@ -34,4 +34,7 @@ public class PostDocument {
 
     @Field(type = FieldType.Keyword)
     private List<String> likers;
+
+    @Field(type = FieldType.Integer)
+    private Integer commentsAmount;
 }

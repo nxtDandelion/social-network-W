@@ -18,19 +18,19 @@ public class ProfileEventsHandler {
 
     @RabbitListener(queues = "search_profile_events_queue")
     public void handleProfileEvent(ProfileEvent event) {
-        log.info("Received profile event: {} for user ID: {}", event.getEventType(), event.getUserId());
+        log.info("Received profile event: {} for user ID: {}", event.getEventType(), event.getUuid());
 
         try {
             processProfileEvent(event);
-            log.info("Successfully processed profile event for user ID: {}", event.getUserId());
+            log.info("Successfully processed profile event for user ID: {}", event.getUuid());
         } catch (Exception e) {
-            log.error("Failed to process profile event for ID: {}", event.getUserId(), e);
+            log.error("Failed to process profile event for ID: {}", event.getUuid(), e);
             throw new AmqpRejectAndDontRequeueException("Failed to process profile event", e);
         }
     }
 
     private void processProfileEvent(ProfileEvent event) {
-        log.info("Processing profile event: {} for user: {}", event.getEventType(), event.getUserId());
+        log.info("Processing profile event: {} for user: {}", event.getEventType(), event.getUuid());
 
         switch (event.getEventType()) {
             case "profile_created":
@@ -51,33 +51,25 @@ public class ProfileEventsHandler {
     private void handleProfileCreated(ProfileEvent event) {
         ProfileDocument profile = convertToProfileDocument(event);
         profileService.create(profile);
-        log.info("Profile created in Elasticsearch: {}", event.getUserId());
+        log.info("Profile created in Elasticsearch: {}", event.getUuid());
     }
 
     private void handleProfileUpdated(ProfileEvent event) {
         ProfileDocument profile = convertToProfileDocument(event);
         profileService.update(profile);
-        log.info("Profile updated in Elasticsearch: {}", event.getUserId());
+        log.info("Profile updated in Elasticsearch: {}", event.getUuid());
     }
 
     private void handleProfileDeleted(ProfileEvent event) {
-        profileService.delete(event.getUserId());
-        log.info("Profile deleted from Elasticsearch: {}", event.getUserId());
+        profileService.delete(event.getUuid());
+        log.info("Profile deleted from Elasticsearch: {}", event.getUuid());
     }
 
     private ProfileDocument convertToProfileDocument(ProfileEvent event) {
         ProfileDocument profile = new ProfileDocument();
-        profile.setUuid(event.getUserId());
+        profile.setUuid(event.getUuid());
         profile.setUsername(event.getUsername());
-        profile.setTag(event.getTag());
         profile.setPhoto(event.getPhoto());
-
-        if (event.getPhoto() != null) {
-            log.debug("📸 Photo size for user {}: {} bytes",
-                    event.getUserId(), event.getPhoto().length);
-        } else {
-            log.debug("📸 No photo for user: {}", event.getUserId());
-        }
 
         return profile;
     }

@@ -1,5 +1,6 @@
 package com.socialw.search.controller;
 
+import com.socialw.search.dto.PostWithProfileResponse;
 import com.socialw.search.model.elastic.PostDocument;
 import com.socialw.search.model.elastic.ProfileDocument;
 import com.socialw.search.repository.elastic.PostRepository;
@@ -18,7 +19,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -72,26 +75,10 @@ public class SearchController {
             log.info("Searching posts with query: '{}', exact: {}, page: {}, size: {}",
                     query, exact, page, size);
 
-            Pageable pageable = PageRequest.of(page, size);
-            Page<PostDocument> results;
+            Map<String, Object> response = searchPostsInternal(query, exact, page, size);
 
-            if (exact) {
-                // Поиск по полным словам
-                results = postRepository.searchByText(query, pageable);
-            } else {
-                // Поиск по части слова (по умолчанию)
-                results = postRepository.searchByPartialText(query, pageable);
-            }
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("query", query);
-            response.put("exact", exact);
-            response.put("results", results.getContent());
-            response.put("page", results.getNumber());
-            response.put("size", results.getSize());
-            response.put("totalPages", results.getTotalPages());
-            response.put("totalElements", results.getTotalElements());
-            response.put("timestamp", LocalDateTime.now());
+            @SuppressWarnings("unchecked")
+            List<PostWithProfileResponse> results = (List<PostWithProfileResponse>) response.get("results");
 
             if (results.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
@@ -108,40 +95,25 @@ public class SearchController {
         }
     }
 
-    @GetMapping("/user/{username}")
-    public ResponseEntity<Map<String, Object>> searchPostsByUsername(
-            @PathVariable String username,
+    @GetMapping("/hashtag")
+    public ResponseEntity<Map<String, Object>> searchByHashtag(
+            @RequestParam String query,
+            @RequestParam(defaultValue = "false") boolean exact,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
         try {
-            log.info("Searching posts for username: {}, page: {}, size: {}", username, page, size);
+            // Добавляем # к запросу если его нет
+            String hashtagQuery = query.startsWith("#") ? query : "#" + query;
+            log.info("Searching hashtag with query: '{}', processed: '{}', exact: {}, page: {}, size: {}",
+                    query, hashtagQuery, exact, page, size);
 
-            // 1. Находим профиль по username
-            var profileOpt = profileRepository.findByUsername(username);
-            if (profileOpt.isEmpty()) {
-                Map<String, Object> error = new HashMap<>();
-                error.put("error", "User not found");
-                error.put("message", "User with username '" + username + "' does not exist");
-                error.put("timestamp", LocalDateTime.now());
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
-            }
+            Map<String, Object> response = searchPostsInternal(hashtagQuery, exact, page, size);
+            response.put("query", query);
+            response.put("hashtag", hashtagQuery);
 
-            ProfileDocument profile = profileOpt.get();
-
-            // 2. Ищем посты по profileId (UUID профиля)
-            Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createDate"));
-            Page<PostDocument> results = postRepository.findByProfileId(profile.getUuid(), pageable);
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("username", username);
-            response.put("userId", profile.getUuid());
-            response.put("results", results.getContent());
-            response.put("page", results.getNumber());
-            response.put("size", results.getSize());
-            response.put("totalPages", results.getTotalPages());
-            response.put("totalElements", results.getTotalElements());
-            response.put("timestamp", LocalDateTime.now());
+            @SuppressWarnings("unchecked")
+            List<PostWithProfileResponse> results = (List<PostWithProfileResponse>) response.get("results");
 
             if (results.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
@@ -150,9 +122,9 @@ public class SearchController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            log.error("Error searching posts for username: {}", username, e);
+            log.error("Error searching hashtag with query: {}", query, e);
             Map<String, Object> error = new HashMap<>();
-            error.put("error", "Search failed");
+            error.put("error", "Hashtag search failed");
             error.put("message", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
@@ -167,4 +139,57 @@ public class SearchController {
         return ResponseEntity.ok(stats);
     }
 
+    // Общий метод для поиска постов
+    private Map<String, Object> searchPostsInternal(String query, boolean exact, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createDate"));
+        Page<PostDocument> postResults;
+
+        if (exact) {
+            // Поиск по полным словам
+            postResults = postRepository.searchByText(query, pageable);
+        } else {
+            // Поиск по части слова (по умолчанию)
+            postResults = postRepository.searchByPartialText(query, pageable);
+        }
+
+        // Преобразуем посты в DTO с информацией о профиле
+        List<PostWithProfileResponse> results = postResults.getContent().stream()
+                .map(this::convertToPostWithProfile)
+                .collect(Collectors.toList());
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("query", query);
+        response.put("exact", exact);
+        response.put("results", results);
+        response.put("page", postResults.getNumber());
+        response.put("size", postResults.getSize());
+        response.put("totalPages", postResults.getTotalPages());
+        response.put("totalElements", postResults.getTotalElements());
+        response.put("timestamp", LocalDateTime.now());
+
+        return response;
+    }
+
+    private PostWithProfileResponse convertToPostWithProfile(PostDocument post) {
+        PostWithProfileResponse response = new PostWithProfileResponse();
+        response.setId(post.getId());
+        response.setText(post.getText());
+        response.setProfileId(post.getProfileId());
+        response.setLikesAmount(post.getLikesAmount());
+        response.setCommentsAmount(post.getCommentsAmount());
+        response.setCreateDate(post.getCreateDate());
+        response.setEdited(post.getEdited());
+        response.setLikers(post.getLikers());
+
+        // Получаем информацию о профиле
+        if (post.getProfileId() != null) {
+            // Используем findById для получения профиля
+            profileRepository.findById(post.getProfileId()).ifPresent(profile -> {
+                response.setUsername(profile.getUsername());
+                response.setPhoto(profile.getPhoto());
+            });
+        }
+
+        return response;
+    }
 }

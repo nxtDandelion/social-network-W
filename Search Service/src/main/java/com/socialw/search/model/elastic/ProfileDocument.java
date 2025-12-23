@@ -17,8 +17,5 @@ public class ProfileDocument {
     private String username;
 
     @Field(type = FieldType.Binary)
-    private byte[] photo;
-
-    @Field(type = FieldType.Keyword)
-    private String tag;
+    private String photo;
 }

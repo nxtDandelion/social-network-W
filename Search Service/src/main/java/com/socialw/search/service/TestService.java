@@ -36,8 +36,7 @@ public class TestService implements CommandLineRunner {
             ProfileDocument profile = new ProfileDocument();
             profile.setUuid("test-uuid-123");
             profile.setUsername("testuser");
-            profile.setTag("#testtag");
-            profile.setPhoto("test-photo-data".getBytes());
+            profile.setPhoto("test-photo-data");
 
             ProfileDocument createdProfile = profileService.create(profile);
             log.info("✅ Profile created: {}", createdProfile.getUuid());
@@ -54,7 +53,7 @@ public class TestService implements CommandLineRunner {
             log.info("✅ Profile updated: {}", updatedProfile.getUsername());
 
             // UPDATE PHOTO
-            profileService.updatePhoto("test-uuid-123", "updated-photo".getBytes());
+            profileService.updatePhoto("test-uuid-123", "updated-photo");
             log.info("✅ Profile photo updated");
 
             // DELETE

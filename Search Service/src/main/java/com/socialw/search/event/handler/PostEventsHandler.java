@@ -45,8 +45,10 @@ public class PostEventsHandler {
                 handlePostDeleted(event);
                 break;
             case "post_liked":
+                handlePostLiked(event);
+                break;
             case "post_unliked":
-                handlePostLike(event);
+                handlePostUnliked(event);
                 break;
             default:
                 log.warn("Unhandled post event type: {}", event.getEventType());
@@ -71,9 +73,26 @@ public class PostEventsHandler {
         log.info("Post deleted from Elasticsearch: {}", event.getPostId());
     }
 
-    private void handlePostLike(PostEvent event) {
-        postService.updateLikers(event.getPostId(), event.getLikers());
-        log.info("Post likers updated in Elasticsearch: {}", event.getPostId());
+    private void handlePostLiked(PostEvent event) {
+        String profileId = event.getProfileId();
+        if (profileId == null || profileId.trim().isEmpty()) {
+            log.error("Profile ID is missing for like event on post ID: {}", event.getPostId());
+            return;
+        }
+
+        postService.addLiker(event.getPostId(), profileId);
+        log.info("User {} liked post {} in Elasticsearch", profileId, event.getPostId());
+    }
+
+    private void handlePostUnliked(PostEvent event) {
+        String profileId = event.getProfileId();
+        if (profileId == null || profileId.trim().isEmpty()) {
+            log.error("Profile ID is missing for unlike event on post ID: {}", event.getPostId());
+            return;
+        }
+
+        postService.removeLiker(event.getPostId(), profileId);
+        log.info("User {} unliked post {} in Elasticsearch", profileId, event.getPostId());
     }
 
     private PostDocument convertToPostDocument(PostEvent event) {
@@ -85,6 +104,7 @@ public class PostEventsHandler {
         post.setCreateDate(event.getCreateDate());
         post.setEdited(event.getEdited() != null ? event.getEdited() : false);
         post.setLikers(event.getLikers() != null ? event.getLikers() : new ArrayList<>());
+        post.setCommentsAmount(event.getCommentsAmount() != null ? event.getCommentsAmount() : 0);
         return post;
     }
 }
