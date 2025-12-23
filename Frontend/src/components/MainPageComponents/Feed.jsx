@@ -14,7 +14,7 @@ export default function Feed({filter}) {
     const [postsList,setPostsList] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error,setError] = useState('');
-    const {userName} = useContext(AuthContext);
+    const {contextUserName} = useContext(AuthContext);
     const {postDeleted,postCreated,postUpdated,newPostData} = useContext(FeedContext);
     const [notice,setNotice] = useState(null);
 
@@ -26,7 +26,7 @@ export default function Feed({filter}) {
         setLoading(true);
         setError(null);
         try {
-            const posts = (filter === "favourites" ? await getFavourPosts(userName) : await getPosts());
+            const posts = (filter === "favourites" ? await getFavourPosts(contextUserName) : await getPosts());
             if (posts.success) {
                 setPostsList(posts.data);
                 console.log(posts.data);

@@ -4,38 +4,29 @@ import {LikeIcon} from "../../Icons/LikeIcon.jsx";
 import {CommentIcon} from "../../Icons/CommentsIcon.jsx";
 import {useContext, useEffect, useState} from "react";
 import {AuthContext} from "../../../Contexts/AuthContext.jsx";
-import CommentModalPage from "./PostComponents/CommentsComponents/CommentModalPage.jsx";
-import {responseCommentsList} from "../../../API/PostAPI/getCommentsList.js";
 import {postLike} from "../../../API/PostAPI/postLike.js";
 import {deleteLike} from "../../../API/PostAPI/deleteLike.js";
 import {CommentContext} from "../../../Contexts/CommentContext.jsx";
 
 
-export default function Post({postH,postW,postDate,likers,postText,userName,userTag,
-                                 userAvatar,userId,edited,postId,isModal,onModalFunc,initCommentAmount}) {
+export default function PostPreview({postH,postW,postDate,likers,postText,userName,userTag,
+                                 userAvatar,userId,edited,postId,onModalFunc,commentsList}) {
 
     const {auth,setShowLoginMes,refreshToken,contextUserId} = useContext(AuthContext);
     const {freshCommentsAmount,commentCreated,commentDeleted} = useContext(CommentContext);
-    const [showComments,setShowComments] = useState(false);
-    const [commentsList,setCommentsList] = useState({});
-    const [commentsAmount,setCommentsAmount] = useState(initCommentAmount || 0);
+    const [commentsAmount,setCommentsAmount] = useState(Object.keys(commentsList).length);
     const [isLiked,setIsLiked] = useState(false);
     const [likersList,setLikersList] = useState([]);
     const [isLoading,setIsLoading] = useState(true);
     const [isAnimating, setIsAnimating] = useState(false);
 
 
-    useEffect(() => {
-        if (commentCreated && commentCreated.post_id === postId) {
-            setCommentsAmount(prev => prev + 1);
-        }
-    },[commentCreated]);
 
     useEffect(() => {
-        if (commentDeleted && commentDeleted.post_id === postId) {
-            setCommentsAmount(prev => prev - 1);
-        }
-    },[commentDeleted]);
+        const commentsCount = Object.keys(commentsList).length;
+        setCommentsAmount(commentsCount);
+    },[commentsList]);
+
 
     useEffect(() => {
         const safeLikers = Array.isArray(likers) ? likers : [];
@@ -98,26 +89,24 @@ export default function Post({postH,postW,postDate,likers,postText,userName,user
 
     async function commentHandleClick () {
 
-        if (isModal){
-            onModalFunc();
-        }
-        const response = await responseCommentsList(postId);
-        if (response.success) {
 
-            const comments = response.data;
-            const commentsById = {}
-            Object.values(comments).forEach(comment => {
-                commentsById[comment.id] = comment;
-            })
-            setCommentsList(commentsById);
-            setShowComments(true);
-        } else {
-            console.error(response.error);
-        }
-    }
-
-    const handleClose = () =>{
-        setShowComments(false);
+        onModalFunc();
+        // if (isModal){
+        //     onModalFunc();
+        // }
+        // const response = await responseCommentsList(postId);
+        // if (response.success) {
+        //
+        //     const comments = response.data;
+        //     const commentsById = {}
+        //     Object.values(comments).forEach(comment => {
+        //         commentsById[comment.id] = comment;
+        //     })
+        //     setCommentsList(commentsById);
+        //     setShowComments(true);
+        // } else {
+        //     console.error(response.error);
+        // }
     }
 
     if (isLoading) {
@@ -202,24 +191,6 @@ export default function Post({postH,postW,postDate,likers,postText,userName,user
                     </span>
                 </div>
             </div>
-            {showComments && <CommentModalPage
-                closePage={handleClose}
-                postDate={postDate}
-                postText={postText}
-                postId={postId}
-                commentsAmount={commentsAmount}
-                likeCount={Object.keys(likers).length}
-                userName={userName}
-                userTag={userTag}
-                userId={userId}
-                userAvatar={userAvatar}
-                likers={likersList}
-                comments={commentsList}
-                edited={edited}
-
-
-
-            />}
         </div>
     )
 }

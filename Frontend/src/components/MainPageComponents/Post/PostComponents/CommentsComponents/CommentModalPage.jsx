@@ -5,6 +5,7 @@ import PopupBg from "../../../../PopupComponents/PopupBg.jsx";
 import Post from "../../Post.jsx";
 import {useContext, useEffect, useState} from "react";
 import {CommentContext} from "../../../../../Contexts/CommentContext.jsx";
+import PostPreview from "../../PostPreview.jsx";
 
 export default function CommentModalPage({
                                              postDate, likeCount, commentsAmount, postText, postId,
@@ -74,6 +75,8 @@ export default function CommentModalPage({
         return new Date(b.create_date) - new Date(a.create_date);
     });
 
+    console.log(commentsList);
+
     return(
         <PopupBg>
             <div className="relative w-[42rem] h-[95vh] my-auto rounded-3xl bg-white overflow-hidden flex flex-col">
@@ -81,7 +84,7 @@ export default function CommentModalPage({
                 <div className="flex-1 overflow-y-auto custom-scrollbar-edge pb-24">
                     <div className="pr-2">
                         <div>
-                            <Post
+                            <PostPreview
                                 postText={postText}
                                 likers={likers}
                                 userId={userId}
@@ -90,9 +93,9 @@ export default function CommentModalPage({
                                 userAvatar={userAvatar}
                                 postDate={postDate}
                                 postId={postId}
+                                commentsList={commentsList}
                                 initCommentAmount={reactComments}
                                 onModalFunc={commentHandleClick}
-                                isModal={true}
                                 edited={edited}
                             />
                         </div>
