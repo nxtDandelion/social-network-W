@@ -33,7 +33,6 @@ export const passwordValid = (value) => {
     return {isValid: true, message: "Пароль корректный"};
 }
 
-
 export const emailValid = (value) => {
         if (!value || value.length === 0) {
             return {isValid: false, message: "Поле email должно быть заполнено"};
@@ -41,15 +40,13 @@ export const emailValid = (value) => {
         if (value.length > 40) {
             return {isValid: false, message: "Email должен содержать не более 40 символов"};
         }
-
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(value)) {
             return {isValid: false, message: "Некорректный формат email"};
         }
-
         return {isValid: true, message: "Email корректен" };
+}
 
-    };
 export const lenghtCheck = (value) =>{
     if (!(!value || value.length === 0)) {
         console.log(value,"true");
@@ -57,6 +54,5 @@ export const lenghtCheck = (value) =>{
     } else {
         console.log(value,"false");
         return false
-
     }
 }

@@ -1,13 +1,18 @@
+import {useState} from "react";
+import SubscribesModal from "./SubscriptionsModal.jsx";
 
 
-export default function ProfileButton({text,count}){
+export default function ProfileButton({text,count,status,subscribes,update3}){
+    const [showSubscribers,setShowSubscribers ] = useState(false)
 
-    function handleClick() {
-    }
 
     return(
-        <button onClick={handleClick} className="flex items-start min-w-52 w-fit px-3 py-1 text-xl border-black border-2 rounded-full">
+        <>
+        <button  disabled={status} className="text-xl px-2 hover:opacity-60">
             {text}: {count}
         </button>
+            {showSubscribers && <SubscribesModal subscribes={subscribes} ></SubscribesModal>}
+        </>
+
     )
 }
