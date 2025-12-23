@@ -257,20 +257,11 @@ async def get_comment(db: AsyncSession, comment_id: int):
     row = result.first()
     if row is None:
         return None
+
     comment, username, photo = row
-    comment_dict = {
-        "id": comment.id,
-        "text": comment.text,
-        "post_id": comment.post_id,
-        "profile_id": comment.profile_id,
-        "likes_amount": comment.likes_amount,
-        "create_date": comment.create_date,
-        "edited": comment.edited,
-        "likers": comment.likers or [],
-        "username": username,
-        "photo": photo
-    }
-    return comment_dict
+    comment.username = username
+    comment.photo = photo
+    return comment
 
 async def update_comment(db: AsyncSession, comment_id: int, comment_update: schemas.CommentUpdate, profile_id: str):
     result = await db.execute(
