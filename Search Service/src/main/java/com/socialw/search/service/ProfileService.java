@@ -42,7 +42,7 @@ public class ProfileService {
         log.info("Profile deleted with UUID: {}", uuid);
     }
 
-    public void updatePhoto(String uuid, byte[] photo) {
+    public void updatePhoto(String uuid, String photo) {
         Optional<ProfileDocument> profileOpt = profileRepository.findById(uuid);
         if (profileOpt.isPresent()) {
             ProfileDocument profile = profileOpt.get();

@@ -13,17 +13,14 @@ public class ProfileEvent {
     @JsonProperty("event_type")
     private String eventType;
 
-    @JsonProperty("user_id")
-    private String userId;
+    @JsonProperty("uuid")
+    private String uuid;
 
     @JsonProperty("username")
     private String username;
 
     @JsonProperty("photo")
-    private byte[] photo;
-
-    @JsonProperty("tag")
-    private String tag;
+    private String photo;
 
     @JsonProperty("timestamp")
     private LocalDateTime timestamp;

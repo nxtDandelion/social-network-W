@@ -1,22 +1,15 @@
-package com.socialw.search.event.dto;
+package com.socialw.search.dto;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 @Data
-@JsonIgnoreProperties(ignoreUnknown = true)
-public class PostEvent {
-
-    @JsonProperty("event_type")
-    private String eventType;
-
+public class PostWithProfileResponse {
     @JsonProperty("id")
-    private Integer postId;
+    private Integer id;
 
     @JsonProperty("text")
     private String text;
@@ -27,6 +20,9 @@ public class PostEvent {
     @JsonProperty("likes_amount")
     private Integer likesAmount;
 
+    @JsonProperty("comments_amount")
+    private Integer commentsAmount;
+
     @JsonProperty("create_date")
     private LocalDateTime createDate;
 
@@ -36,9 +32,9 @@ public class PostEvent {
     @JsonProperty("likers")
     private List<String> likers;
 
-    @JsonProperty("timestamp")
-    private LocalDateTime timestamp;
+    @JsonProperty("username")
+    private String username;
 
-    @JsonProperty("comments_amount")
-    private Integer commentsAmount;
+    @JsonProperty("photo")
+    private String photo;
 }

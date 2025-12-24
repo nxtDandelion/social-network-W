@@ -13,12 +13,9 @@ public class ProfileDocument {
     @Id
     private String uuid;
 
-    @Field(type = FieldType.Text, analyzer = "standard")
+    @Field(type = FieldType.Keyword)
     private String username;
 
     @Field(type = FieldType.Binary)
-    private byte[] photo;
-
-    @Field(type = FieldType.Keyword)
-    private String tag;
+    private String photo;
 }

@@ -9,14 +9,13 @@ import org.springframework.data.elasticsearch.annotations.FieldType;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 @Data
 @Document(indexName = "posts")
 public class PostDocument {
 
     @Id
-    private String id;
+    private Integer id;
 
     @Field(type = FieldType.Text, analyzer = "standard")
     private String text;
@@ -35,4 +34,7 @@ public class PostDocument {
 
     @Field(type = FieldType.Keyword)
     private List<String> likers;
+
+    @Field(type = FieldType.Integer)
+    private Integer commentsAmount;
 }
