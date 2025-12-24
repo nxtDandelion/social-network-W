@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { updateUserProfile } from "../../API/ProfileAPI/updateUserProfile.jsx";
 import { errorLog } from "../../API/errorsHandler.js";
 import { useNavigate } from "react-router-dom";
-import CircleAvatarUpload from "./AvatarUpload.jsx";
+import AvatarUpload from "./AvatarUpload.jsx";
 import {fileToBase64Optimized} from "../../utils/fileToBase64.js";
 import {emailValid, loginValid, passwordValid, userNameValid} from "../../API/AuthAPI/validation.js";
 import EditProfileNotification from "./EditProfileNotification.jsx";
@@ -39,10 +39,11 @@ export default function EditForm({curUserLogin, curUserName, curUserMail,
             newUserName !== curUserName ||
             newUserLogin !== curUserLogin ||
             newUserMail !== curUserMail ||
-            newUserAvatar !== curUserAvatar;
+            newUserAvatar !== curUserAvatar||
+            newUserPassword !== "";
 
         setIsActive(hasChanges);
-    }, [newUserLogin, newUserName, newUserMail, newUserAvatar]);
+    }, [newUserLogin, newUserName, newUserMail, newUserAvatar,newUserPassword]);
 
 
     const handleAvatarChange = async (file) => {
@@ -100,9 +101,18 @@ export default function EditForm({curUserLogin, curUserName, curUserMail,
             if (response.success) {
                 console.log("Профиль обновлен:", response.data);
                 showNotice();
+
+
+                refreshProfile(response.data.username);
                 navigate(`/profile/${response.data.username}`);
-                refreshProfile();
                 closeModalPage();
+
+                // setTimeout(() => {
+                //     refreshProfile(response.data.username);
+                //     navigate(`/profile/${response.data.username}`);
+                //     closeModalPage();
+                // }, 2000);
+                // closeModalPage();
             } else {
                 setError(response.error || "Ошибка при обновлении профиля");
                 errorLog(response);
@@ -136,7 +146,7 @@ export default function EditForm({curUserLogin, curUserName, curUserMail,
                         <div className="flex flex-col items-center lg:flex-row gap-8">
                             <div className={`lg:w-1/3 flex flex-col items-center mb-20 ${avatarSectionHeight}`}>
                                 <div className="sticky top-8">
-                                    <CircleAvatarUpload onAvatarChange={handleAvatarChange} />
+                                    <AvatarUpload onAvatarChange={handleAvatarChange} />
                                     <p className="text-sm text-gray-500 text-center mt-4 max-w-xs">
                                         Рекомендуемый размер: 400×400 пикселей. Максимальный вес: 5MB
                                     </p>
@@ -195,8 +205,20 @@ export default function EditForm({curUserLogin, curUserName, curUserMail,
                                         />
                                     </div>
                                 </div>
+                                <div className="relative">
+                                    {error &&
+                                    <div className="absolute -top-5 right-0">
+                                        <EditProfileNotification
+                                            key={errorKey}
+                                            message={error}
+                                            onClose={() => setError(null)}
+                                        />
+                                    </div>
+                                    }
 
-                                <div className="relative flex justify-between items-center mt-10 pt-6 border-t border-gray-100">
+                                </div>
+                                <div className=" flex justify-between items-center mt-10 pt-6 border-t border-gray-100">
+
                                     <button
                                         type="button"
                                         onClick={handleClose}
@@ -214,15 +236,6 @@ export default function EditForm({curUserLogin, curUserName, curUserMail,
                                         className="px-8 py-3 font-medium"
                                     />
 
-                                    {error &&
-                                        <div className="absolute -top-20 right-0">
-                                            <EditProfileNotification
-                                                key={errorKey}
-                                                message={error}
-                                                onClose={() => setError(null)}
-                                            />
-                                        </div>
-                                    }
                                 </div>
                             </div>
                         </div>

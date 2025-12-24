@@ -13,7 +13,7 @@ import EditPostModal from "./Post/PostComponents/EditPostModal.jsx";
 export default function CreatePostBtn({}) {
 
     const {auth,setShowLoginMes,refreshToken,contextUserName} = useContext(AuthContext);
-    const {refreshFeed,logContext} = useContext(FeedContext);
+    const {refreshFeed} = useContext(FeedContext);
     const [showCreatePost,setShowCreatePost] = useState(false);
     const [error,setError] = useState('');
     const [notice,setNotice] = useState(null);
@@ -89,7 +89,6 @@ export default function CreatePostBtn({}) {
             </button>
             {showCreatePost && <EditPostModal
                                     sendForm={sendPost}
-                                    userAvatar={''}
                                     closeModal={handleClose}
                                     myAvatar={myAvatar}
                                 />

@@ -28,7 +28,7 @@ export default function ProfileFeed({ showEdit, onCloseModal}) {
     const [userMail, setUserMail] = useState("");
     const [userAvatar, setUserAvatar] = useState("");
     const [notFound, setNotFound] = useState(false);
-    const {refreshToken, guestStatus, setGuestStatus,setContextUserId} = useContext(AuthContext);
+    const {refreshToken, guestStatus, setGuestStatus,setContextUserId,refreshContext} = useContext(AuthContext);
     const {postDeleted,postCreated,postUpdated,newPostData} = useContext(FeedContext);
     const {username} = useParams();
     const [notice,setNotice] = useState(null);
@@ -202,8 +202,9 @@ export default function ProfileFeed({ showEdit, onCloseModal}) {
         }
     }, [username]);
 
-    const refreshProfile = () => {
-        getProfileInfo(username, false);
+    const refreshProfile = (newUserName) => {
+        getProfileInfo(newUserName, false);
+        refreshContext();
     }
 
     const updateSubscribersList = async () => {
