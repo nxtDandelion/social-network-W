@@ -6,14 +6,11 @@ import {useContext, useEffect, useState} from "react";
 import {AuthContext} from "../../../Contexts/AuthContext.jsx";
 import {postLike} from "../../../API/PostAPI/postLike.js";
 import {deleteLike} from "../../../API/PostAPI/deleteLike.js";
-import {CommentContext} from "../../../Contexts/CommentContext.jsx";
-
 
 export default function PostPreview({postH,postW,postDate,likers,postText,userName,userTag,
                                  userAvatar,userId,edited,postId,onModalFunc,commentsList}) {
 
     const {auth,setShowLoginMes,refreshToken,contextUserId} = useContext(AuthContext);
-    const {freshCommentsAmount,commentCreated,commentDeleted} = useContext(CommentContext);
     const [commentsAmount,setCommentsAmount] = useState(Object.keys(commentsList).length);
     const [isLiked,setIsLiked] = useState(false);
     const [likersList,setLikersList] = useState([]);
@@ -88,25 +85,7 @@ export default function PostPreview({postH,postW,postDate,likers,postText,userNa
     }
 
     async function commentHandleClick () {
-
-
         onModalFunc();
-        // if (isModal){
-        //     onModalFunc();
-        // }
-        // const response = await responseCommentsList(postId);
-        // if (response.success) {
-        //
-        //     const comments = response.data;
-        //     const commentsById = {}
-        //     Object.values(comments).forEach(comment => {
-        //         commentsById[comment.id] = comment;
-        //     })
-        //     setCommentsList(commentsById);
-        //     setShowComments(true);
-        // } else {
-        //     console.error(response.error);
-        // }
     }
 
     if (isLoading) {

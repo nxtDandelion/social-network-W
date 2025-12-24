@@ -7,6 +7,8 @@ import { errorLog } from "../../API/errorsHandler.js";
 import { useNavigate } from "react-router-dom";
 import CircleAvatarUpload from "./AvatarUpload.jsx";
 import {fileToBase64Optimized} from "../../utils/fileToBase64.js";
+import {emailValid, loginValid, passwordValid, userNameValid} from "../../API/AuthAPI/validation.js";
+import EditProfileNotification from "./EditProfileNotification.jsx";
 
 export default function EditForm({curUserLogin, curUserName, curUserMail,
                                      curUserAvatar, closeModalPage, refreshProfile,showNotice}){
@@ -18,17 +20,20 @@ export default function EditForm({curUserLogin, curUserName, curUserMail,
     const [newUserAvatar, setNewUserAvatar] = useState(curUserAvatar || null);
     const [isActive, setIsActive] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [error,setError] = useState(null);
+    const [errorKey, setErrorKey] = useState(0);
     const navigate = useNavigate();
-    const [notice,setNotice] = useState(null);
 
-    const inputHeight = "h-16"; // Высота одного поля ввода
-    const avatarSectionHeight = "h-64"; // Высота секции с аватаркой
+
+    console.log(curUserName);
+
+    const inputHeight = "h-16";
+    const avatarSectionHeight = "h-64";
 
     const handleClose = () => {
         closeModalPage();
     };
 
-    // Проверка изменений
     useEffect(() => {
         const hasChanges =
             newUserName !== curUserName ||
@@ -37,49 +42,74 @@ export default function EditForm({curUserLogin, curUserName, curUserMail,
             newUserAvatar !== curUserAvatar;
 
         setIsActive(hasChanges);
-    }, [newUserLogin, newUserName, newUserMail, newUserAvatar, curUserName]);
+    }, [newUserLogin, newUserName, newUserMail, newUserAvatar]);
 
 
     const handleAvatarChange = async (file) => {
-
         const base64String = await fileToBase64Optimized(file, {
             maxWidth: 400,
             quality: 0.8,
             maxSizeKB: 200
         });
-
-
         setNewUserAvatar(base64String);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!isActive || isLoading) return;
+
         setIsLoading(true);
+        setError(null);
+        setErrorKey(prev => prev + 1);
+
+        const loginValidation = loginValid(newUserLogin);
+        const passwordValidation = passwordValid(newUserPassword);
+        const mailValidation = emailValid(newUserMail);
+        const userNameValidation = userNameValid(newUserName);
+
+        let errorMessage = null;
+
+        if (!userNameValidation.isValid) {
+            errorMessage = userNameValidation.message;
+        } else if (!loginValidation.isValid) {
+            errorMessage = loginValidation.message;
+        } else if (!mailValidation.isValid) {
+            errorMessage = mailValidation.message;
+        } else if (newUserPassword && !passwordValidation.isValid) {
+            errorMessage = passwordValidation.message;
+        } else if (newUserPassword && newUserPassword !== newPasswordConfirm) {
+            errorMessage = "Пароли не совпадают";
+        }
+
+        if (errorMessage) {
+            setError(errorMessage);
+            setIsLoading(false);
+            return;
+        }
+
         try {
-            console.log(newUserAvatar,"photo");
             const response = await updateUserProfile(
                 newUserName,
                 newUserLogin,
                 newUserMail,
-                newUserAvatar, // передаем файл аватарки
+                newUserAvatar,
                 newUserPassword,
                 curUserName
             );
 
             if (response.success) {
                 console.log("Профиль обновлен:", response.data);
-                showNotice()
+                showNotice();
                 navigate(`/profile/${response.data.username}`);
                 refreshProfile();
                 closeModalPage();
-
             } else {
+                setError(response.error || "Ошибка при обновлении профиля");
                 errorLog(response);
-                console.log("Ошибка:", response.error);
             }
         } catch (error) {
             console.error("Ошибка при обновлении:", error);
+            setError("Произошла ошибка при обновлении профиля");
         } finally {
             setIsLoading(false);
         }
@@ -104,7 +134,6 @@ export default function EditForm({curUserLogin, curUserName, curUserMail,
 
                     <form onSubmit={handleSubmit} className="p-8">
                         <div className="flex flex-col items-center lg:flex-row gap-8">
-
                             <div className={`lg:w-1/3 flex flex-col items-center mb-20 ${avatarSectionHeight}`}>
                                 <div className="sticky top-8">
                                     <CircleAvatarUpload onAvatarChange={handleAvatarChange} />
@@ -167,7 +196,7 @@ export default function EditForm({curUserLogin, curUserName, curUserMail,
                                     </div>
                                 </div>
 
-                                <div className="flex justify-between items-center mt-10 pt-6 border-t border-gray-100">
+                                <div className="relative flex justify-between items-center mt-10 pt-6 border-t border-gray-100">
                                     <button
                                         type="button"
                                         onClick={handleClose}
@@ -184,13 +213,22 @@ export default function EditForm({curUserLogin, curUserName, curUserMail,
                                         text={isLoading ? "Сохранение..." : "Сохранить изменения"}
                                         className="px-8 py-3 font-medium"
                                     />
+
+                                    {error &&
+                                        <div className="absolute -top-20 right-0">
+                                            <EditProfileNotification
+                                                key={errorKey}
+                                                message={error}
+                                                onClose={() => setError(null)}
+                                            />
+                                        </div>
+                                    }
                                 </div>
                             </div>
                         </div>
                     </form>
                 </div>
             </div>
-
         </PopupBg>
     );
 }

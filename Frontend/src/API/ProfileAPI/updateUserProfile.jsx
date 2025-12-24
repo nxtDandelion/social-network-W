@@ -2,7 +2,7 @@ import {API_BASE_URL} from "../../config.js";
 import axios from "axios";
 import {errorHandler} from "../errorsHandler.js";
 
-export const updateUserProfile = async (username,login, email, tag, photo, password,curUserName) => {
+export const updateUserProfile = async (username,login, email, photo, password,curUserName) => {
     const token = localStorage.getItem("access_token");
     console.log(curUserName);
     if (!token) {
@@ -15,7 +15,7 @@ export const updateUserProfile = async (username,login, email, tag, photo, passw
             username: username,
             login: login,
             email: email,
-            tag: tag,
+            tag: "",
             photo: photo,
             password: password,
         },

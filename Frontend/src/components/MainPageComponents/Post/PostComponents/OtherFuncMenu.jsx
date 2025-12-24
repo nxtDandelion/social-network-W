@@ -138,7 +138,7 @@ function MenuCard({userId,postId,showNote,openEditMenu}) {
         if (auth){
             const response = await deletePost(myId,postId);
             if (response.success) {
-                console.log("Пост удален");
+                console.log("Пост удалЕн",postId);
                 setPostDeleted(postId);
                 showNote({
                     type: "success",

@@ -1,11 +1,11 @@
-import {createContext, use, useMemo, useState} from "react";
+import {createContext, useMemo, useState} from "react";
 
 export const FeedContext = createContext();
 
 export const FeedProvider =({children}) => {
     const [postCreated, setPostCreated] = useState(false);
-    const [postUpdated,setPostUpdated] = useState({id:null,text:""});
-    const [postDeleted,setPostDeleted] = useState("");
+    const [postUpdated,setPostUpdated] = useState(null);
+    const [postDeleted,setPostDeleted] = useState(null);
     const [newPostData,setNewPostData] = useState(null);
 
     const refreshFeed = (post) => {
@@ -24,7 +24,7 @@ export const FeedProvider =({children}) => {
         postDeleted,setPostDeleted,
         newPostData,setNewPostData,
         refreshFeed
-    }),[postCreated,postUpdated,postDeleted,refreshFeed]);
+    }),[postCreated,postUpdated,postDeleted,refreshFeed,newPostData]);
 
     return (
         <FeedContext.Provider value={contextValue}>

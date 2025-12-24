@@ -25,17 +25,20 @@ export default function Post({postH,postW,postDate,likers,postText,userName,user
     const [isAnimating, setIsAnimating] = useState(false);
 
 
-    useEffect(() => {
-        if (commentCreated && commentCreated.post_id === postId) {
-            setCommentsAmount(prev => prev + 1);
-        }
-    },[commentCreated]);
 
-    useEffect(() => {
-        if (commentDeleted && commentDeleted.post_id === postId) {
-            setCommentsAmount(prev => prev - 1);
-        }
-    },[commentDeleted]);
+    // useEffect(() => {
+    //     if (commentCreated && commentCreated.post_id === postId) {
+    //         setCommentsAmount(prev => prev + 1);
+    //     }
+    // },[commentCreated]);
+    //
+    // useEffect(() => {
+    //     if (commentDeleted && commentDeleted.post_id === postId) {
+    //         setCommentsAmount(prev => prev - 1);
+    //     }
+    // },[commentDeleted]);
+
+
 
     useEffect(() => {
         const safeLikers = Array.isArray(likers) ? likers : [];
@@ -116,9 +119,13 @@ export default function Post({postH,postW,postDate,likers,postText,userName,user
         }
     }
 
-    const handleClose = () =>{
+    const handleClose = (commentsList) =>{
+        const count = Object.keys(commentsList).length;
+        setCommentsAmount(count);
         setShowComments(false);
     }
+
+    // console.log(commentsAmount,"Число комментариев (POST)")
 
     if (isLoading) {
         return (

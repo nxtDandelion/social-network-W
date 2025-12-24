@@ -1,4 +1,3 @@
-import ProfileInfo from "../ProfileInfo.jsx";
 import CommentOtherMenu from "./CommentOtherMenu.jsx";
 import {LikeIcon} from "../../../../Icons/LikeIcon.jsx";
 import {useContext, useEffect, useState} from "react";
@@ -13,7 +12,7 @@ export default function Comment({
                                     commentText, createDate, commentLikers,edited
                                 }) {
 
-    const {auth,setShowLoginMes,contextUserName,contextUserId,refreshToken} = useContext(AuthContext);
+    const {auth,setShowLoginMes,contextUserId,refreshToken} = useContext(AuthContext);
     const [isLiked, setIsLiked] = useState(false);
     const [likersList, setLikersList] = useState([]);
     const [isAnimating, setIsAnimating] = useState(false);
@@ -23,9 +22,7 @@ export default function Comment({
 
     useEffect(() => {
         const safeLikers = Array.isArray(commentLikers) ? commentLikers : [];
-
         setLikersList(safeLikers);
-
         const curUser = localStorage.getItem("userId");
 
         if (safeLikers.includes(curUser)) {
@@ -33,7 +30,6 @@ export default function Comment({
         } else {
             setIsLiked(false);
         }
-
         setIsLoading(false);
     }, [commentLikers]);
 
@@ -42,10 +38,7 @@ export default function Comment({
             setShowLoginMes(true);
             return;
         }
-
         setIsAnimating(true);
-
-
         const wasLiked = likersList.includes(contextUserId);
 
         try {
@@ -53,18 +46,14 @@ export default function Comment({
 
             if (wasLiked) {
                 response = await deleteCommentLike(commentId,contextUserId);
-                console.log("Удаляем лайк с комментария:", commentId);
                 response = { success: true, data: { commentId } };
             } else {
                 response = await postCommentLike(commentId,contextUserId);
-                console.log("Добавляем лайк к комментарию:", commentId);
                 response = { success: true, data: { commentId } };
             }
 
             if (response.success) {
-
                 setIsLiked(!wasLiked);
-
                 if (wasLiked) {
                     setLikersList(prev => prev.filter(id => id !== contextUserId));
                 } else {
@@ -73,17 +62,13 @@ export default function Comment({
                 setTimeout(() => {
                     setIsAnimating(false);
                 }, 100);
-
             } else if (response.statusCode === 401) {
-                console.log('Ошибка 401 при лайке комментария');
                 refreshToken();
                 setIsAnimating(false);
             } else {
-                console.log("Ошибка при лайке комментария");
                 setIsAnimating(false);
             }
         } catch (error) {
-            console.error("Ошибка при обработке лайка комментария:", error);
             setIsAnimating(false);
         }
     }
@@ -112,58 +97,66 @@ export default function Comment({
 
     return (
         <div className="relative flex flex-col w-full p-1 border-b-[0.1px] border-black">
-            <div className="flex">
-                <div>
+            <div className="flex items-start">
+                <div className="flex-shrink-0">
                     <img
-                        className="w-14 h-14 rounded-full object-cover"
+                        className="w-14 h-14 rounded-full object-cover cursor-pointer"
                         src={`${userAvatar ? userAvatar :`/avatars/defaultAvatar.png`}`}
                         alt={`Аватар ${commentUserName}`}
                         onClick={navigateTo}
                     />
                 </div>
-                <div className="flex flex-col justify-start items-start w-fit max-w-[38rem] h-fit ml-2">
-                    <CommentUserInfo userName={commentUserName} userTag={`@${commentUserName}`}/>
 
+                <div className="flex flex-col ml-2 flex-grow min-w-0 relative">
+                    <div className="flex justify-between items-start">
+                        <CommentUserInfo userName={commentUserName} userTag={`@${commentUserName}`}/>
+                        <CommentOtherMenu
+                            setEdit={setIsEdit}
+                            component="comment"
+                            commentId={commentId}
+                            userId={commentUserId}
+                            postId={postId}
+                            initText={commentText}
+                        />
+                    </div>
 
-                    <div className="mt-1 mb-1"> {commentText} </div>
+                    <div className="mt-1 mb-1 break-words whitespace-pre-wrap overflow-wrap-anywhere w-full pr-10">
+                        {commentText}
+                    </div>
 
+                    <div className="flex justify-between items-center mt-2">
+                        <button
+                            onClick={likeHandleClick}
+                            className="flex items-center gap-1 hover:opacity-80 transition-opacity duration-200"
+                            disabled={isAnimating}
+                        >
+                            <div className={`
+                                transition-all duration-300 ease-in-out 
+                                transform origin-center
+                                ${isAnimating ? 'scale-125' : 'scale-100'}
+                            `}>
+                                <LikeIcon color={isLiked ? "red" : "gray"} size={16} />
+                            </div>
+                            <span className={`
+                                text-sm font-medium
+                                transition-all duration-300
+                                ${isAnimating ? 'scale-110' : 'scale-100'}
+                                ${isLiked ? 'text-red-500' : 'text-gray-500'}
+                            `}>
+                                {likersList.length}
+                            </span>
+                        </button>
 
-                    <button
-                        onClick={likeHandleClick}
-                        className="flex items-center gap-1 hover:opacity-80 transition-opacity duration-200"
-                        disabled={isAnimating}
-                    >
-                        <div className={`
-                            transition-all duration-300 ease-in-out 
-                            transform origin-center
-                            ${isAnimating ? 'scale-125' : 'scale-100'}
-                        `}>
-                            <LikeIcon color={isLiked ? "red" : "gray"} size={16} />
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm text-[#979797]">{createDate}</span>
+                            {isEdit && (
+                                <span className="text-xs text-gray-500 italic whitespace-nowrap">
+                                    Отредактирован
+                                </span>
+                            )}
                         </div>
-                        <span className={`
-                            text-sm font-medium
-                            transition-all duration-300
-                            ${isAnimating ? 'scale-110' : 'scale-100'}
-                            ${isLiked ? 'text-red-500' : 'text-gray-500'}
-                        `}>
-                            {likersList.length}
-                        </span>
-                    </button>
+                    </div>
                 </div>
-            </div>
-            <div className="flex justify-end mr-1 mt-1">
-                <span className="text-sm text-[#979797]">{createDate}</span>
-            </div>
-            <div className="absolute top-1 right-2">
-                <CommentOtherMenu
-                    setEdit = {setIsEdit}
-                    component="comment"
-                    commentId={commentId}
-                    userId={commentUserId}
-                    postId={postId}
-                    initText={commentText}
-                />
-                <p className={`${isEdit ? `inline-block` :`hidden`} `}> Отредактирован </p>
             </div>
         </div>
     )

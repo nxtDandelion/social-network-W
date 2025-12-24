@@ -11,11 +11,14 @@ import NotFoundPage from "../../pages/NotFoundPage.jsx";
 import ShowSubscriptionsButton from "./ShowSubscriptionsButton.jsx";
 import {getFollowing} from "../../API/ProfileAPI/getFollowing.js";
 import NotificationCard from "../Other/NotificationCard.jsx";
+import { getCurrentPost } from "../../API/PostAPI/GetCurrentPost.js";
+import {FeedContext} from "../../Contexts/FeedContext.jsx";
 
 export default function ProfileFeed({ showEdit, onCloseModal}) {
     const [loading, setLoading] = useState(true);
     const [userData, setUserData] = useState([]);
     const [postsList, setPostsList] = useState([]);
+    const [postsData, setPostsData] = useState([]);
     const [subscribers, setSubscribers] = useState({});
     const [subscribes, setSubscribes] = useState({});
     const [userId, setUserId] = useState("");
@@ -26,29 +29,153 @@ export default function ProfileFeed({ showEdit, onCloseModal}) {
     const [userAvatar, setUserAvatar] = useState("");
     const [notFound, setNotFound] = useState(false);
     const {refreshToken, guestStatus, setGuestStatus,setContextUserId} = useContext(AuthContext);
+    const {postDeleted,postCreated,postUpdated,newPostData} = useContext(FeedContext);
     const {username} = useParams();
     const [notice,setNotice] = useState(null);
+    const [loadingPosts, setLoadingPosts] = useState(false);
+    const [postsError, setPostsError] = useState(null);
 
     useEffect(() => {
         console.log("postsList обновился:", postsList);
+        if (postsList && postsList.length > 0) {
+            loadPostsData(postsList);
+        } else {
+            setPostsData([]);
+        }
     }, [postsList]);
+
+    const loadPostsData = async (postIds) => {
+        setLoadingPosts(true);
+        setPostsError(null);
+
+        try {
+            const postsPromises = postIds.map(postId => getCurrentPost(postId));
+            const postsResults = await Promise.all(postsPromises);
+
+            console.log("Результаты загрузки постов:", postsResults);
+
+            const successfulPosts = postsResults
+                .filter(result => result && result.success)
+                .map(result => result.data);
+
+            // СОРТИРОВКА: от новых к старым
+            const sortedPosts = successfulPosts.sort((a, b) => {
+                return new Date(b.create_date) - new Date(a.create_date);
+            });
+
+            setPostsData(sortedPosts);
+
+            const failedPosts = postsResults.filter(result => !result || !result.success);
+            if (failedPosts.length > 0) {
+                console.warn(`Не удалось загрузить ${failedPosts.length} постов`);
+            }
+        } catch (error) {
+            console.error("Ошибка при загрузке постов:", error);
+            setPostsError("Ошибка при загрузке постов");
+        } finally {
+            setLoadingPosts(false);
+        }
+    };
+
+    // Обновленный useEffect для удаления поста
+    useEffect(() => {
+        const postID = postDeleted;
+        if (!postID) return;
+
+        // Фильтруем оба массива
+        const newPostsList = postsList.filter(id => id !== postID);
+        const newPostsData = postsData.filter(post => post.id !== postID);
+
+        if (newPostsList.length === postsList.length &&
+            newPostsData.length === postsData.length) {
+            return;
+        }
+
+        setPostsList(newPostsList);
+        setPostsData(newPostsData);
+
+        setNotice({
+            type: "success",
+            message: "Пост удален успешно",
+            duration: 2000
+        });
+    }, [postDeleted]);
+
+    // Обновленный useEffect для создания поста
+    useEffect(() => {
+        if (newPostData) {
+            const postExist = postsData.some(post => post.id === newPostData.id);
+            if (!postExist) {
+                // Добавляем новый пост и сразу сортируем от новых к старым
+                setPostsData(prevState => {
+                    const newData = [newPostData, ...prevState];
+                    // Сортируем после добавления
+                    return newData.sort((a, b) => {
+                        return new Date(b.create_date) - new Date(a.create_date);
+                    });
+                });
+                // Также добавляем ID в postsList
+                setPostsList(prev => [...prev, newPostData.id]);
+            }
+        }
+    }, [postCreated, newPostData]);
+
+    // Обновленный useEffect для обновления поста
+    useEffect(() => {
+        if (postUpdated && postUpdated.id) {
+            console.log(postUpdated.id, postUpdated.text, "feed");
+            setPostsData(prev => {
+                const postExist = prev.some(post => post.id === postUpdated.id);
+                if (!postExist) {
+                    console.log("Пост для обновления не найден");
+                    return prev;
+                }
+
+                // Обновляем пост и сохраняем сортировку
+                const updatedData = prev.map(post =>
+                    post.id === postUpdated.id
+                        ? {...post, edited: true, text: postUpdated.text }
+                        : post
+                );
+
+                // Возвращаем отсортированный массив (на всякий случай)
+                return updatedData.sort((a, b) => {
+                    return new Date(b.create_date) - new Date(a.create_date);
+                });
+            });
+            console.log(postUpdated, "updatePost");
+        }
+    }, [postUpdated]);
 
     const getProfileInfo = async (profileUserName, isGuest) => {
         setLoading(true);
+        setPostsError(null);
 
         console.log(profileUserName, "Грузим этот профиль");
         const userInfo = await getUserProfile(profileUserName);
-        console.log(userInfo);
+        console.log("Данные профиля:", userInfo);
 
         if (userInfo.success) {
             setUserData(userInfo.data);
             setUserProfileName(userInfo.data.username);
-            setUserLogin(userInfo.data.login)
+            setUserLogin(userInfo.data.login);
             setUserTag(userInfo.data.username);
             setUserMail(userInfo.data.email);
             setSubscribes(userInfo.data.subscribes);
             setSubscribers(userInfo.data.subscribers);
-            setPostsList(userInfo.data.user_posts);
+
+            let postIds = [];
+            if (userInfo.data.user_posts) {
+                if (Array.isArray(userInfo.data.user_posts)) {
+                    postIds = userInfo.data.user_posts;
+                } else if (typeof userInfo.data.user_posts === 'object') {
+                    postIds = Object.values(userInfo.data.user_posts).map(post => post.post_id || post.id);
+                }
+            }
+
+            setPostsList(postIds);
+            console.log("ID постов для загрузки:", postIds);
+
             setUserAvatar(userInfo.data.photo);
             setUserId(userInfo.data.uuid);
 
@@ -56,8 +183,7 @@ export default function ProfileFeed({ showEdit, onCloseModal}) {
                 console.log("Я обновляю свой ID - я не на гостевой странице");
                 localStorage.setItem("userId", userInfo.data.uuid);
                 setContextUserId(userInfo.data.uuid);
-                localStorage.setItem("myUserName",userInfo.data.username);
-                // localStorage.setItem("myLogin",userInfo.data.login);
+                localStorage.setItem("myUserName", userInfo.data.username);
             }
         } else if (userInfo.statusCode === 401) {
             console.error(userInfo.error);
@@ -128,6 +254,13 @@ export default function ProfileFeed({ showEdit, onCloseModal}) {
         setNotice(null);
     }
 
+    // Функция для повторной загрузки постов
+    const retryLoadPosts = () => {
+        if (postsList.length > 0) {
+            loadPostsData(postsList);
+        }
+    };
+
     if (notFound) {
         return <NotFoundPage />;
     }
@@ -179,7 +312,7 @@ export default function ProfileFeed({ showEdit, onCloseModal}) {
                         <div className="flex-1 pb-8">
                             <div className="flex flex-col mb-4">
                                 <span className="text-3xl px-2">{userProfileName}</span>
-                                <span className="text-xl px-2 text-gray-600">@{userTag}</span>
+                                <span className="text-xl px-2 text-gray-600">@{userProfileName}</span>
                             </div>
 
                             <div className="flex flex-col gap-2 items-start">
@@ -209,20 +342,40 @@ export default function ProfileFeed({ showEdit, onCloseModal}) {
                 </div>
 
                 <div className="flex flex-wrap justify-center items-center max-w-[50rem] mt-48 p-2 gap-3">
-                    {Object.keys(postsList).length > 0 ? (
-                        Object.values(postsList).map((post, index) => (
+                    {postsError ? (
+                        <div className="text-center py-8 w-full">
+                            <div className="text-red-500 mb-4">{postsError}</div>
+                            <button
+                                onClick={retryLoadPosts}
+                                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                            >
+                                Попробовать снова
+                            </button>
+                        </div>
+                    ) : loadingPosts ? (
+                        <div className="text-gray-500 text-center py-8">
+                            Загрузка постов...
+                        </div>
+                    ) : postsData.length > 0 ? (
+                        postsData.map((post) => (
                             <Post
-                                key={index}
-                                postId={post.post_id}
-                                postDate={post.create_date}
-                                userTag={`@${userProfileName}`}
-                                userName={userProfileName}
-                                userId={userId}
+                                key={post.id}
+                                postId={post.id}
+                                postDate={new Date(post.create_date).toLocaleDateString('ru-RU')}
+                                userTag={`@${post.username || userProfileName}`}
+                                userName={post.username || userProfileName}
+                                userId={post.uuid || userId}
                                 likers={post.likers}
-                                comments={post.comments}
                                 postText={post.text}
+                                initCommentAmount={post.comments_amount}
+                                userAvatar={post.photo}
+                                edited={post.edited}
                             />
                         ))
+                    ) : postsList.length > 0 ? (
+                        <div className="text-gray-500 text-center py-8">
+                            Загрузка постов...
+                        </div>
                     ) : (
                         <div className="text-gray-500 text-center py-8">
                             {userProfileName} еще не опубликовал(а) постов
@@ -248,9 +401,7 @@ export default function ProfileFeed({ showEdit, onCloseModal}) {
                 duration={notice.duration}
                 isVisible={"true"}
                 onClose={closeNotice}
-
-            />
-            }
+            />}
         </div>
     );
 }
