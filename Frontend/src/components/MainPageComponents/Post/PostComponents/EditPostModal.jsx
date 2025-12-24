@@ -7,7 +7,7 @@ import {AuthContext} from "../../../../Contexts/AuthContext.jsx";
 
 import {usePostTextValidation} from "../../../../Hooks/UsePostValidation.jsx";
 
-export default function EditPostModal({sendForm,closeModal,initText,edited}) {
+export default function EditPostModal({sendForm,closeModal,initText,edited,myAvatar}) {
     const {contextUserName} = useContext(AuthContext);
     const [postText,setPostText] = useState(initText || "");
     const [isPostSend,setIsPostSend] = useState(false);
@@ -46,7 +46,7 @@ export default function EditPostModal({sendForm,closeModal,initText,edited}) {
                             component="post"
                             userName={contextUserName}
                             userTag={`@${contextUserName}`}
-                            userAvatar={"defaultAvatar.png" }
+                            userAvatar={myAvatar}
                         />
                         <div className={`${edited ? "inline-block" : "hidden"} text-white`}>
                             Отредактирован

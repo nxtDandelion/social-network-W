@@ -77,12 +77,10 @@ export default function ProfileFeed({ showEdit, onCloseModal}) {
         }
     };
 
-    // Обновленный useEffect для удаления поста
     useEffect(() => {
         const postID = postDeleted;
         if (!postID) return;
 
-        // Фильтруем оба массива
         const newPostsList = postsList.filter(id => id !== postID);
         const newPostsData = postsData.filter(post => post.id !== postID);
 
@@ -101,26 +99,21 @@ export default function ProfileFeed({ showEdit, onCloseModal}) {
         });
     }, [postDeleted]);
 
-    // Обновленный useEffect для создания поста
     useEffect(() => {
         if (newPostData) {
             const postExist = postsData.some(post => post.id === newPostData.id);
             if (!postExist) {
-                // Добавляем новый пост и сразу сортируем от новых к старым
                 setPostsData(prevState => {
                     const newData = [newPostData, ...prevState];
-                    // Сортируем после добавления
                     return newData.sort((a, b) => {
                         return new Date(b.create_date) - new Date(a.create_date);
                     });
                 });
-                // Также добавляем ID в postsList
                 setPostsList(prev => [...prev, newPostData.id]);
             }
         }
     }, [postCreated, newPostData]);
 
-    // Обновленный useEffect для обновления поста
     useEffect(() => {
         if (postUpdated && postUpdated.id) {
             console.log(postUpdated.id, postUpdated.text, "feed");
@@ -131,14 +124,12 @@ export default function ProfileFeed({ showEdit, onCloseModal}) {
                     return prev;
                 }
 
-                // Обновляем пост и сохраняем сортировку
                 const updatedData = prev.map(post =>
                     post.id === postUpdated.id
                         ? {...post, edited: true, text: postUpdated.text }
                         : post
                 );
 
-                // Возвращаем отсортированный массив (на всякий случай)
                 return updatedData.sort((a, b) => {
                     return new Date(b.create_date) - new Date(a.create_date);
                 });
@@ -166,6 +157,7 @@ export default function ProfileFeed({ showEdit, onCloseModal}) {
 
             let postIds = [];
             if (userInfo.data.user_posts) {
+
                 if (Array.isArray(userInfo.data.user_posts)) {
                     postIds = userInfo.data.user_posts;
                 } else if (typeof userInfo.data.user_posts === 'object') {
@@ -180,7 +172,9 @@ export default function ProfileFeed({ showEdit, onCloseModal}) {
             setUserId(userInfo.data.uuid);
 
             if (!isGuest) {
+
                 console.log("Я обновляю свой ID - я не на гостевой странице");
+                localStorage.setItem("UserPhoto", userInfo.data.photo);
                 localStorage.setItem("userId", userInfo.data.uuid);
                 setContextUserId(userInfo.data.uuid);
                 localStorage.setItem("myUserName", userInfo.data.username);
@@ -368,7 +362,7 @@ export default function ProfileFeed({ showEdit, onCloseModal}) {
                                 likers={post.likers}
                                 postText={post.text}
                                 initCommentAmount={post.comments_amount}
-                                userAvatar={post.photo}
+                                userAvatar={userAvatar}
                                 edited={post.edited}
                             />
                         ))

@@ -24,7 +24,6 @@ export default function Feed({filter}) {
         setNotice(null);
     }
 
-    // Функция загрузки постов
     const fetchPosts = useCallback(async (currentSkip, isInitial = false) => {
         console.log(`[Feed] fetchPosts called: skip=${currentSkip}, initial=${isInitial}, filter=${filter}`);
 

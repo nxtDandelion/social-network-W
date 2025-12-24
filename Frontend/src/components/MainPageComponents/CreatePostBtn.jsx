@@ -17,6 +17,7 @@ export default function CreatePostBtn({}) {
     const [showCreatePost,setShowCreatePost] = useState(false);
     const [error,setError] = useState('');
     const [notice,setNotice] = useState(null);
+    const myAvatar = localStorage.getItem("UserPhoto");
 
 
     function handleClose() {
@@ -28,7 +29,6 @@ export default function CreatePostBtn({}) {
             setShowLoginMes(true);
         }
         else {
-            // setUserId(localStorage.getItem("userId"));
             setShowCreatePost(true);
         }
     }
@@ -44,7 +44,7 @@ export default function CreatePostBtn({}) {
                 message: "Пост добавлен успешно",
                 duration: 1000
             })
-            const postData = { ...response.data, username: contextUserName}
+            const postData = { ...response.data, username: contextUserName,photo:myAvatar}
             refreshFeed(postData);
             setTimeout(()=>(
                 setShowCreatePost(false)
@@ -91,6 +91,7 @@ export default function CreatePostBtn({}) {
                                     sendForm={sendPost}
                                     userAvatar={''}
                                     closeModal={handleClose}
+                                    myAvatar={myAvatar}
                                 />
 
             }
