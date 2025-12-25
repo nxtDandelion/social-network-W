@@ -8,8 +8,8 @@ export const getPosts = async (skip = 0, limit = 15) => {
         console.log(`[API] Запрос общей ленты: skip=${skip}, limit=${limit}`);
         const response = await axios.get(`${API_BASE_URL}/post/feed`, {
             params: {
-                limit: limit,
-                skip: skip
+                page: limit,
+                size: skip
             }
         });
         console.log(`[API] Общая лента: получено ${response.data?.length || 0} постов`);
