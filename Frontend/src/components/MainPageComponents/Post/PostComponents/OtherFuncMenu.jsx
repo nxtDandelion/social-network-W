@@ -1,18 +1,15 @@
 import {useContext, useState} from "react";
 import {DotsIcon} from "../../../Icons/DotsIcon.jsx";
-
 import {deletePost} from  "../../../../API/PostAPI/deletePost.js"
-
 import {FeedContext} from "../../../../Contexts/FeedContext.jsx";
 import {AuthContext} from "../../../../Contexts/AuthContext.jsx"
 import NotificationCard from "../../../Other/NotificationCard.jsx";
 import {updatePost} from "../../../../API/PostAPI/updatePost.js";
-
 import EditPostModal from "./EditPostModal.jsx";
 import PopUpConfirm from "../../../PopupComponents/PopUpConfirm.jsx";
 
 
-export default function OtherFuncMenu({component,userId,postId,initText,edited}) {
+export default function OtherFuncMenu({component,userId,postId,initText,edited,updateThisPost,userAvatar}) {
 
     const [visible, setVisible] = useState(false);
     const [showEdit,setShowEdit] = useState(false);
@@ -92,6 +89,7 @@ export default function OtherFuncMenu({component,userId,postId,initText,edited})
                     closeModal={handleClose}
                     initText={initText}
                     edited={edited}
+                    myAvatar={userAvatar}
                 />
             }
         </div>

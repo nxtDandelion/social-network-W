@@ -1,15 +1,10 @@
 import {useContext, useEffect, useState} from "react";
 
 import {AuthContext} from "../../Contexts/AuthContext.jsx";
-import {useNavigate} from "react-router-dom";
-
 import {newPost} from "../../API/PostAPI/newPost.js";
-
 import {FeedContext} from "../../Contexts/FeedContext.jsx";
 import NotificationCard from "../Other/NotificationCard.jsx";
-
 import EditPostModal from "./Post/PostComponents/EditPostModal.jsx";
-
 export default function CreatePostBtn({}) {
 
     const {auth,setShowLoginMes,refreshToken,contextUserName} = useContext(AuthContext);

@@ -7,7 +7,7 @@ import {deleteComment} from "../../../../../API/PostAPI/deleteComment.js";
 import {CommentContext} from "../../../../../Contexts/CommentContext.jsx";
 import EditCommentModal from "./EditCommentModal.jsx";
 
-export default function CommentOtherMenu({component, commentId, userId, postId, initText, setEdit}) {
+export default function CommentOtherMenu({component, commentId, userId, postId, initText, setEdit,userAvatar}) {
     const [visible, setVisible] = useState(false);
     const [showEdit, setShowEdit] = useState(false);
     const [note, setNote] = useState(null);
@@ -91,6 +91,7 @@ export default function CommentOtherMenu({component, commentId, userId, postId, 
                     sendForm={sendToUpdate}
                     closeModal={handleClose}
                     initText={initText}
+                    userAvatar={userAvatar}
                 />
             )}
         </div>

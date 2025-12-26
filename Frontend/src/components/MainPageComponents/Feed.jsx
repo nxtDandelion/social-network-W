@@ -6,6 +6,7 @@ import { FeedContext } from "../../Contexts/FeedContext.jsx";
 import NotificationCard from "../Other/NotificationCard.jsx";
 import { getFavourPosts } from "../../API/PostAPI/getFavourPost.js";
 import { searchPosts } from "../../API/SearchAPI/searchPosts.js";
+import {normalizePostDate} from "../../utils/dateFormater.jsx";
 
 export default function Feed({ filter, searchResults, searchLoading, searchError, onCloseSearch }) {
     const [postsList, setPostsList] = useState([]);
@@ -23,7 +24,9 @@ export default function Feed({ filter, searchResults, searchLoading, searchError
     const [searchPagination, setSearchPagination] = useState({
         page: 1,
         size: 15,
-        hasMore: true
+        totalElements: 0,
+        totalPages: 0,
+        hasMore: false
     });
 
     const limit = 15;
@@ -34,71 +37,66 @@ export default function Feed({ filter, searchResults, searchLoading, searchError
         setNotice(null);
     }
 
-    // Обработка результатов поиска
     useEffect(() => {
-        if (searchResults !== null) {
+        if (searchResults && searchResults.query) {
+            console.log('[Feed] Активируем режим поиска:', searchResults);
             setIsSearchMode(true);
-            setCurrentSearchQuery(searchResults.query || '');
+            setCurrentSearchQuery(searchResults.query);
 
-            // Если это первая страница результатов
-            if (searchResults.page === 1) {
-                setPostsList(searchResults.posts || []);
-            } else {
-                // Если это доп. страница - добавляем к существующим
-                setPostsList(prev => {
-                    const newPosts = searchResults.posts || [];
-                    const uniqueNewPosts = newPosts.filter(newPost =>
-                        !prev.some(existingPost => existingPost.id === newPost.id)
-                    );
-                    console.log(`[Feed/Поиск] После фильтрации: ${uniqueNewPosts.length} новых постов`);
-                    return [...prev, ...uniqueNewPosts];
-                });
-            }
+            setPostsList(searchResults.posts || []);
 
-            // Обновляем информацию о пагинации
             setSearchPagination({
-                page: searchResults.page,
-                size: searchResults.size,
-                hasMore: searchResults.hasMore
+                page: searchResults.page || 1,
+                size: searchResults.size || 15,
+                totalElements: searchResults.totalElements || (searchResults.posts?.length || 0),
+                totalPages: searchResults.totalPages || 0,
+                hasMore: searchResults.hasMore || false
             });
 
-            setHasMore(searchResults.hasMore);
+            setHasMore(searchResults.hasMore || false);
             setError(searchError || '');
             setLoading(false);
             setLoadingMore(false);
 
-            // Если нет результатов поиска (F_SRCH_6)
-            if (searchResults.posts.length === 0 && searchResults.page === 1 && !searchLoading) {
+            if ((searchResults.posts?.length || 0) === 0 && !searchLoading) {
                 setNotice({
                     type: "info",
-                    message: "Результатов не найдено",
+                    message: `По запросу "${searchResults.query}" ничего не найдено`,
                     duration: 3000
                 });
             }
-        } else {
+        } else if (searchResults === null) {
+            console.log('[Feed] Выходим из режима поиска');
             setIsSearchMode(false);
             setCurrentSearchQuery('');
             setSearchPagination({
                 page: 1,
                 size: 15,
-                hasMore: true
+                totalElements: 0,
+                totalPages: 0,
+                hasMore: false
             });
-            // Возвращаемся к обычной ленте
-            if (postsList.length === 0) {
+
+            if (postsList.length === 0 && !loading) {
+                console.log('[Feed] Загружаем обычную ленту');
                 refreshFeed();
             }
         }
     }, [searchResults, searchError, searchLoading]);
 
     const fetchPosts = useCallback(async (currentSkip, isInitial = false) => {
-        console.log(`[Feed] fetchPosts called: skip=${currentSkip}, initial=${isInitial}, filter=${filter}, searchMode=${isSearchMode}`);
+        console.log(`[Feed] fetchPosts: skip=${currentSkip}, initial=${isInitial}, filter=${filter}`);
 
-        // Если в режиме поиска - не используем эту функцию
         if (isSearchMode) {
+            console.log('[Feed] Пропускаем fetchPosts в режиме поиска');
             return;
         }
 
-        if (isLoadingRef.current) return;
+        if (isLoadingRef.current) {
+            console.log('[Feed] Уже загружается, пропускаем');
+            return;
+        }
+
         isLoadingRef.current = true;
 
         try {
@@ -127,8 +125,6 @@ export default function Feed({ filter, searchResults, searchLoading, searchError
                     setHasMore(newPosts.length === limit);
                     setSkip(prev => prev + newPosts.length);
                 }
-
-                console.log(`[Feed] hasMore установлен в: ${newPosts.length === limit}`);
             } else {
                 console.error(`[Feed] API вернул ошибку:`, posts);
                 setError("Не удалось загрузить ленту");
@@ -149,7 +145,7 @@ export default function Feed({ filter, searchResults, searchLoading, searchError
     }, [filter, contextUserName, limit, isSearchMode]);
 
     const refreshFeed = useCallback(async () => {
-        console.log(`[Feed] refreshFeed called, filter=${filter}, searchMode=${isSearchMode}`);
+        console.log(`[Feed] refreshFeed called, filter=${filter}`);
         if (isSearchMode) return;
 
         setLoading(true);
@@ -159,10 +155,21 @@ export default function Feed({ filter, searchResults, searchLoading, searchError
         await fetchPosts(0, true);
     }, [filter, fetchPosts, isSearchMode]);
 
-    // Функция для загрузки следующей страницы поиска
+    // Функция для загрузки следующей порции обычных постов
+    const loadMoreRegularPosts = useCallback(async () => {
+        console.log(`[Feed] loadMoreRegularPosts: skip=${skip}, hasMore=${hasMore}`);
+        if (loadingMore || !hasMore || isLoadingRef.current) {
+            return;
+        }
+
+        setLoadingMore(true);
+        await fetchPosts(skip, false);
+    }, [skip, hasMore, loadingMore, fetchPosts]);
+
     const loadMoreSearchResults = useCallback(async () => {
+        console.log(`[Feed] loadMoreSearchResults: query="${currentSearchQuery}", page=${searchPagination.page}, hasMore=${searchPagination.hasMore}`);
+
         if (!currentSearchQuery || !searchPagination.hasMore || loadingMore || isLoadingRef.current) {
-            console.log(`[Feed/Поиск] Пропускаем: query=${currentSearchQuery}, hasMore=${searchPagination.hasMore}, loadingMore=${loadingMore}`);
             return;
         }
 
@@ -171,57 +178,46 @@ export default function Feed({ filter, searchResults, searchLoading, searchError
 
         try {
             const nextPage = searchPagination.page + 1;
-            console.log(`[Feed/Поиск] Загружаем страницу ${nextPage} для запроса: "${currentSearchQuery}"`);
+            console.log(`[Feed] Загружаем страницу ${nextPage} поиска`);
 
             const results = await searchPosts(currentSearchQuery, nextPage, 15);
 
             if (results.success) {
                 const newPosts = results.data || [];
-                console.log(`[Feed/Поиск] Получено ${newPosts.length} постов`);
+                console.log(`[Feed] Получено ${newPosts.length} постов поиска`);
 
-                // Добавляем новые посты к существующим
                 setPostsList(prev => {
                     const uniqueNewPosts = newPosts.filter(newPost =>
                         !prev.some(existingPost => existingPost.id === newPost.id)
                     );
-                    console.log(`[Feed/Поиск] После фильтрации: ${uniqueNewPosts.length} новых постов`);
                     return [...prev, ...uniqueNewPosts];
                 });
 
-                // Обновляем информацию о пагинации
                 setSearchPagination(prev => ({
                     ...prev,
                     page: nextPage,
-                    hasMore: results.hasMore
+                    hasMore: results.hasMore,
+                    totalElements: results.totalElements || prev.totalElements,
+                    totalPages: results.totalPages || prev.totalPages
                 }));
 
                 setHasMore(results.hasMore);
             } else {
                 setHasMore(false);
+                setSearchPagination(prev => ({ ...prev, hasMore: false }));
             }
         } catch (err) {
-            console.error("[Feed/Поиск] Ошибка загрузки доп. результатов:", err);
+            console.error("[Feed] Ошибка загрузки доп. результатов:", err);
             setHasMore(false);
+            setSearchPagination(prev => ({ ...prev, hasMore: false }));
         } finally {
             isLoadingRef.current = false;
             setLoadingMore(false);
         }
     }, [currentSearchQuery, searchPagination, loadingMore]);
 
-    // Функция для загрузки следующей порции обычных постов
-    const loadMoreRegularPosts = useCallback(async () => {
-        console.log(`[Feed] loadMoreRegularPosts called, текущий skip=${skip}, hasMore=${hasMore}`);
-        if (loadingMore || !hasMore || isLoadingRef.current) {
-            console.log(`[Feed] Пропускаем загрузку: loadingMore=${loadingMore}, hasMore=${hasMore}`);
-            return;
-        }
-
-        setLoadingMore(true);
-        await fetchPosts(skip, false);
-    }, [skip, hasMore, loadingMore, fetchPosts]);
-
-    // Объединенная функция для загрузки "еще"
     const loadMorePosts = useCallback(async () => {
+        console.log(`[Feed] loadMorePosts: isSearchMode=${isSearchMode}`);
         if (isSearchMode) {
             await loadMoreSearchResults();
         } else {
@@ -229,32 +225,25 @@ export default function Feed({ filter, searchResults, searchLoading, searchError
         }
     }, [isSearchMode, loadMoreSearchResults, loadMoreRegularPosts]);
 
-    // Загрузка обычной ленты при изменении filter
     useEffect(() => {
-        console.log(`[Feed] useEffect для filter: ${filter}, searchMode=${isSearchMode}`);
+        console.log(`[Feed] Изменение filter: ${filter}, isSearchMode=${isSearchMode}`);
         if (!isSearchMode) {
             refreshFeed();
         }
-    }, [filter, refreshFeed, isSearchMode]);
+    }, [filter, isSearchMode]);
 
-    // IntersectionObserver для бесконечного скролла
     useEffect(() => {
         if (!hasMore || loading || loadingMore || isLoadingRef.current) {
-            console.log(`[Feed] Observer пропускает: hasMore=${hasMore}, loading=${loading}, loadingMore=${loadingMore}`);
             return;
         }
 
         const observer = new IntersectionObserver(
             (entries) => {
                 if (entries[0].isIntersecting) {
-                    console.log(`[Feed] Observer: элемент в зоне видимости, загружаем ${isSearchMode ? 'следующую страницу поиска' : 'доп. посты'}`);
                     loadMorePosts();
                 }
             },
-            {
-                threshold: 0.1,
-                rootMargin: '100px'
-            }
+            { threshold: 0.1, rootMargin: '100px' }
         );
 
         const currentTarget = observerTarget.current;
@@ -267,17 +256,11 @@ export default function Feed({ filter, searchResults, searchLoading, searchError
                 observer.unobserve(currentTarget);
             }
         };
-    }, [hasMore, loading, loadingMore, loadMorePosts, isSearchMode]);
+    }, [hasMore, loading, loadingMore, loadMorePosts]);
 
-    // Обработка удаления поста
     useEffect(() => {
         if (postDeleted) {
-            console.log(`[Feed] Удаление поста с ID: ${postDeleted}`);
-            setPostsList(prev => {
-                const newList = prev.filter(post => post.id !== postDeleted);
-                console.log(`[Feed] После удаления: было ${prev.length}, стало ${newList.length}`);
-                return newList;
-            });
+            setPostsList(prev => prev.filter(post => post.id !== postDeleted));
             setNotice({
                 type: "success",
                 message: "Пост удален успешно",
@@ -286,48 +269,44 @@ export default function Feed({ filter, searchResults, searchLoading, searchError
         }
     }, [postDeleted]);
 
-    // Обработка создания поста
     useEffect(() => {
         if (newPostData) {
-            console.log(`[Feed] Добавление нового поста с ID: ${newPostData.id}`);
             setPostsList(prev => {
                 const postExist = prev.some(post => post.id === newPostData.id);
                 if (!postExist) {
-                    console.log(`[Feed] Новый пост добавлен в начало`);
                     return [newPostData, ...prev];
                 }
-                console.log(`[Feed] Пост уже существует, пропускаем`);
                 return prev;
             });
         }
     }, [newPostData, postCreated]);
 
-    // Обработка обновления поста
     useEffect(() => {
         if (postUpdated) {
-            console.log(`[Feed] Обновление поста с ID: ${postUpdated.id}`);
-            setPostsList(prev => {
-                return prev.map(post => post.id === postUpdated.id
-                    ? {...post, edited: true, text: postUpdated.text}
-                    : post);
-            });
+            setPostsList(prev => prev.map(post =>
+                post.id === postUpdated.id ? { ...post, edited: true, text: postUpdated.text } : post
+            ));
         }
     }, [postUpdated]);
 
-    // Логирование состояния
-    useEffect(() => {
-        console.log(`[Feed] Текущее состояние: searchMode=${isSearchMode}, postsCount=${postsList.length}, hasMore=${hasMore}, loading=${loading}, loadingMore=${loadingMore}`);
-    }, [isSearchMode, postsList.length, hasMore, loading, loadingMore]);
-
-    // Рендер заголовка поиска
     const renderSearchHeader = () => {
         if (!isSearchMode) return null;
 
+        const totalElements = searchPagination.totalElements || 0;
+        const foundText = totalElements === 0
+            ? "Ничего не найдено"
+            : `Найдено: ${totalElements} пост${totalElements % 10 === 1 && totalElements % 100 !== 11 ? '' :
+                totalElements % 10 >= 2 && totalElements % 10 <= 4 && (totalElements % 100 < 10 || totalElements % 100 >= 20) ? 'а' : 'ов'}`;
+
         return (
-            <div className="w-full px-4 py-3 bg-gray-50 border-b flex justify-between items-center">
-                <div className="text-lg font-semibold">
-                    Результаты поиска по "{currentSearchQuery}"
-                    {searchLoading && <span className="ml-2">(Загрузка...)</span>}
+            <div className="w-full px-4 pb-8 border-b-[0.5px] border-gray-300 flex justify-between items-center mb-7">
+                <div className="flex flex-col">
+                    <div className="text-lg font-semibold">
+                        Результаты поиска по "{currentSearchQuery}"
+                    </div>
+                    <div className={`text-sm mt-1 ${totalElements === 0 ? 'hidden' : 'text-gray-600'}`}>
+                        {foundText}
+                    </div>
                 </div>
                 <button
                     onClick={onCloseSearch}
@@ -361,72 +340,70 @@ export default function Feed({ filter, searchResults, searchLoading, searchError
         );
     }
 
-    if (postsList.length === 0 && !loading) {
-        return (
-            <div className="flex flex-col gap-5 items-center w-[50rem] pr-3 pl-3 pt-7 bg-white min-h-screen border-r-2 border-l-2 border-black">
-                {renderSearchHeader()}
-                <div>{isSearchMode ? "По вашему запросу ничего не найдено" : "Лента пуста"}</div>
-                { notice &&
-                    <NotificationCard
-                        type={notice.type}
-                        message={notice.message}
-                        duration={notice.duration}
-                        onClose={closeNotification}
-                        isVisible={"true"}
-                    />
-                }
-            </div>
-        );
-    }
-
     return (
-        <div className="flex flex-col items-center w-[50rem] bg-white min-h-screen border-r-2 border-l-2 border-black">
+        <div className="flex flex-col gap-5 items-center w-[50rem] pr-3 pl-3 pt-7 bg-white min-h-screen border-r-2 border-b-2 border-l-2 rounded-b-2xl mb-8 border-black">
             {renderSearchHeader()}
 
-            <div className="flex flex-col gap-5 w-full pr-3 pl-3 pt-7">
-                {postsList.map((post) => (
-                    <Post
-                        key={post.id}
-                        postText={post.text}
-                        likers={post.likers}
-                        userId={post.profile_id}
-                        userName={post.username}
-                        userTag={`@${post.username}`}
-                        userAvatar={post.photo}
-                        initCommentAmount={post.comments_amount}
-                        edited={post.edited}
-                        postDate={new Date(post.create_date).toLocaleDateString('ru-RU')}
-                        postId={post.id}
-                    />
-                ))}
-
-                <div
-                    ref={observerTarget}
-                    className="h-20 flex items-center justify-center"
-                    style={{ minHeight: '80px' }}
-                >
-                    {loadingMore && (
-                        <div className="text-gray-500 animate-pulse">
-                            {isSearchMode ? "Загрузка результатов..." : "Загрузка дополнительных постов..."}
+            {postsList.length === 0 ? (
+                <div className="text-gray-500 py-8 text-center">
+                    {isSearchMode ? (
+                        <div className="flex flex-col items-center">
+                            <svg className="w-16 h-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            <p className="text-xl mb-2">По запросу "{currentSearchQuery}" ничего не найдено</p>
+                            <p className="text-gray-500">Попробуйте изменить запрос или поискать что-то другое</p>
                         </div>
-                    )}
-                    {!hasMore && postsList.length > 0 && (
-                        <div className="text-gray-500 py-4">
-                            {isSearchMode ? "Все результаты загружены" : "Вы достигли конца ленты"}
-                        </div>
+                    ) : (
+                        "Лента пуста"
                     )}
                 </div>
+            ) : (
+                <>
+                    {postsList.map((post) => (
+                        <Post
+                            key={post.id}
+                            postText={post.text}
+                            likers={post.likers}
+                            userId={post.profile_id}
+                            userName={post.username}
+                            userTag={`@${post.username}`}
+                            userAvatar={post.photo}
+                            initCommentAmount={post.comments_amount}
+                            edited={post.edited}
+                            postDate={normalizePostDate(post.create_date)}
+                            postId={post.id}
+                        />
+                    ))}
 
-                { notice &&
-                    <NotificationCard
-                        type={notice.type}
-                        message={notice.message}
-                        duration={notice.duration}
-                        onClose={closeNotification}
-                        isVisible={"true"}
-                    />
-                }
-            </div>
+                    <div
+                        ref={observerTarget}
+                        className="h-20 flex items-center justify-center"
+                        style={{ minHeight: '80px' }}
+                    >
+                        {loadingMore && (
+                            <div className="text-gray-500 animate-pulse">
+                                {isSearchMode ? "Загрузка результатов..." : "Загрузка дополнительных постов..."}
+                            </div>
+                        )}
+                        {/*{!hasMore && postsList.length > 0 && (*/}
+                        {/*    <div className="text-gray-500 py-4">*/}
+                        {/*        {isSearchMode ? "Все результаты загружены" : "Вы достигли конца ленты"}*/}
+                        {/*    </div>*/}
+                        {/*)}*/}
+                    </div>
+                </>
+            )}
+
+            {notice && (
+                <NotificationCard
+                    type={notice.type}
+                    message={notice.message}
+                    duration={notice.duration}
+                    onClose={closeNotification}
+                    isVisible={"true"}
+                />
+            )}
         </div>
     );
 }

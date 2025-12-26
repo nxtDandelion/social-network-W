@@ -23,6 +23,8 @@ export default function Post({postH,postW,postDate,likers,postText,userName,user
     const [isLoading,setIsLoading] = useState(true);
     const [isAnimating, setIsAnimating] = useState(false);
 
+
+    console.log(contextUserId,"UserIdContext",userId,"CurrentUserId");
     useEffect(() => {
         const safeLikers = Array.isArray(likers) ? likers : [];
         setLikersList(safeLikers);
@@ -52,6 +54,7 @@ export default function Post({postH,postW,postDate,likers,postText,userName,user
             let response;
 
             if (wasLiked) {
+                console.log(postId);
                 response = await deleteLike(postId);
             } else {
                 response = await postLike(postId);
@@ -108,7 +111,6 @@ export default function Post({postH,postW,postDate,likers,postText,userName,user
         setShowComments(false);
     }
 
-    // console.log(commentsAmount,"Число комментариев (POST)")
 
     if (isLoading) {
         return (
@@ -149,6 +151,7 @@ export default function Post({postH,postW,postDate,likers,postText,userName,user
                         postId={postId}
                         initText={postText}
                         edited={edited}
+                        userAvatar={userAvatar}
                     />
                     <div className={`${edited ? "inline-block" : "hidden"} text-white`}>
                         Отредактирован
@@ -206,8 +209,6 @@ export default function Post({postH,postW,postDate,likers,postText,userName,user
                 likers={likersList}
                 comments={commentsList}
                 edited={edited}
-
-
 
             />}
         </div>

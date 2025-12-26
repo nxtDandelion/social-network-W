@@ -6,31 +6,46 @@ export default function SearchPanel({ onSearchResults, onSearchLoading, onSearch
     const [isActive, setIsActive] = useState(false);
     const debounceTimer = useRef(null);
 
-    const performSearch = useCallback(async (query, page = 1) => {
+    const performSearch = useCallback(async (query) => {
         if (query.trim().length === 0) {
-            onSearchResults(null);
+            if (onSearchResults && typeof onSearchResults === 'function') {
+                onSearchResults(null);
+            }
             return;
         }
 
-        onSearchLoading(true);
+        if (onSearchLoading && typeof onSearchLoading === 'function') {
+            onSearchLoading(true);
+        }
+
         try {
-            const results = await searchPosts(query, page, 15);
+            const results = await searchPosts(query, 1, 15);
             if (results.success) {
-                onSearchResults({
-                    posts: results.data || [],
-                    page: results.page || page,
-                    size: results.size || 15,
-                    hasMore: results.hasMore || (results.data?.length === 15),
-                    query: query
-                });
+                if (onSearchResults && typeof onSearchResults === 'function') {
+                    console.log(results.data);
+                    onSearchResults({
+                        posts: results.data || [],
+                        page: results.page || 1,
+                        size: results.size || 15,
+                        totalElements: results.totalElements || (results.data?.length || 0),
+                        hasMore: results.hasMore || false,
+                        query: query
+                    });
+                }
             } else {
-                onSearchError("Ошибка при поиске");
+                if (onSearchError && typeof onSearchError === 'function') {
+                    onSearchError("Ошибка при поиске");
+                }
             }
         } catch (err) {
             console.error("[SearchPanel] Ошибка поиска:", err);
-            onSearchError("Ошибка соединения");
+            if (onSearchError && typeof onSearchError === 'function') {
+                onSearchError("Ошибка соединения");
+            }
         } finally {
-            onSearchLoading(false);
+            if (onSearchLoading && typeof onSearchLoading === 'function') {
+                onSearchLoading(false);
+            }
         }
     }, [onSearchResults, onSearchLoading, onSearchError]);
 
@@ -41,13 +56,15 @@ export default function SearchPanel({ onSearchResults, onSearchLoading, onSearch
 
         if (searchQuery.length > 0) {
             debounceTimer.current = setTimeout(() => {
-                performSearch(searchQuery, 1);
-                if (onSearchQueryChange) {
+                performSearch(searchQuery);
+                if (onSearchQueryChange && typeof onSearchQueryChange === 'function') {
                     onSearchQueryChange(searchQuery);
                 }
             }, 300);
         } else {
-            onSearchResults(null);
+            if (onSearchResults && typeof onSearchResults === 'function') {
+                onSearchResults(null);
+            }
         }
 
         return () => {
@@ -68,10 +85,10 @@ export default function SearchPanel({ onSearchResults, onSearchLoading, onSearch
     const handleBlur = () => setIsActive(false);
 
     return (
-        <div className={`w-80 h-12 bg-white rounded-[40px] border-2 ${isActive ? 'border-blue-500' : 'border-gray-300'}`}>
+        <div className={`w-80 h-12 bg-white rounded-[40px] border-2 ${isActive ? 'border-gray-500' : ''}`}>
             <label className="flex justify-center items-center w-full h-12 px-4">
                 <input
-                    className="w-full h-8 text-xl mr-2 outline-none"
+                    className="w-full h-8 text-xl mr-2 outline-none "
                     type="text"
                     placeholder="Поиск..."
                     value={searchQuery}

@@ -117,6 +117,7 @@ export default function Comment({
                             userId={commentUserId}
                             postId={postId}
                             initText={commentText}
+                            userAvatar={userAvatar}
                         />
                     </div>
 

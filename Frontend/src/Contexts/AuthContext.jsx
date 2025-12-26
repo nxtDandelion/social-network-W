@@ -12,8 +12,6 @@ export const AuthProvider =({children}) =>{
     const [actualSubscribes,setActualSubscribes] = useState(true);
 
     function refreshContext(){
-
-
         setContextUserId(localStorage.getItem("userId"));
         setContextUserName(localStorage.getItem("myUsername"));
 
@@ -51,7 +49,7 @@ export const AuthProvider =({children}) =>{
         guestStatus,setGuestStatus,
         contextUserName,setContextUserName,
         contextUserId,setContextUserId,
-    }), [auth, showLoginMes,invalidToken,guestStatus,contextUserName,contextUserId,refreshContext,refreshToken]);
+    }), [auth, showLoginMes,invalidToken,guestStatus,contextUserName,contextUserId,refreshContext]);
 
     return (
         <AuthContext.Provider value={contextValue}>
