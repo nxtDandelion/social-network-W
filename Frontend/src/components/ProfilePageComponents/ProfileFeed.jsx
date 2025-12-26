@@ -149,7 +149,6 @@ export default function ProfileFeed({ showEdit, onCloseModal}) {
             setUserData(userInfo.data);
             setUserProfileName(userInfo.data.username);
             setUserLogin(userInfo.data.login);
-            setUserTag(userInfo.data.username);
             setUserMail(userInfo.data.email);
             setSubscribes(userInfo.data.subscribes);
             setSubscribers(userInfo.data.subscribers);
