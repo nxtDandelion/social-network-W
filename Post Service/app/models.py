@@ -34,7 +34,7 @@ class Comment(Base):
         autoincrement=True
     )
     text = Column(VARCHAR(100), nullable=False)
-    post_id = Column(Integer, ForeignKey("post.id"), nullable=False)
+    post_id = Column(Integer, ForeignKey("post.id", ondelete="CASCADE"), nullable=False)
     profile_id = Column(
         VARCHAR(100),
         ForeignKey("profile.uuid"),
