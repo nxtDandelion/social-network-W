@@ -24,7 +24,6 @@ export default function ProfileFeed({ showEdit, onCloseModal}) {
     const [userId, setUserId] = useState("");
     const [userProfileName, setUserProfileName] = useState("");
     const [userLogin, setUserLogin] = useState("");
-    const [userTag, setUserTag] = useState("");
     const [userMail, setUserMail] = useState("");
     const [userAvatar, setUserAvatar] = useState("");
     const [notFound, setNotFound] = useState(false);
