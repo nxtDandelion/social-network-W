@@ -2,7 +2,7 @@ import { API_BASE_URL } from "../../config.js";
 import {errorHandler} from "../errorsHandler.js"
 import axios from "axios";
 
-export const postLike = async (postId,profileId) => {
+export const postLike = async (postId) => {
     const token = localStorage.getItem("access_token");
 
     if (!token) {

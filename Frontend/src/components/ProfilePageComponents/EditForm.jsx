@@ -107,12 +107,6 @@ export default function EditForm({curUserLogin, curUserName, curUserMail,
                 navigate(`/profile/${response.data.username}`);
                 closeModalPage();
 
-                // setTimeout(() => {
-                //     refreshProfile(response.data.username);
-                //     navigate(`/profile/${response.data.username}`);
-                //     closeModalPage();
-                // }, 2000);
-                // closeModalPage();
             } else {
                 setError(response.error || "Ошибка при обновлении профиля");
                 errorLog(response);

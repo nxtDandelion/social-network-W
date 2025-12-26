@@ -16,7 +16,8 @@ export default function Feed({ filter, searchResults, searchLoading, searchError
     const [hasMore, setHasMore] = useState(true);
     const [skip, setSkip] = useState(0);
     const { contextUserName } = useContext(AuthContext);
-    const { postDeleted, postCreated, postUpdated, newPostData } = useContext(FeedContext);
+    const { postDeleted, postCreated, postUpdated, newPostData,
+        clearPostDeleted, clearPostUpdated, clearPostCreated, clearNewPostData } = useContext(FeedContext);
     const [notice, setNotice] = useState(null);
 
     const [isSearchMode, setIsSearchMode] = useState(false);
@@ -266,8 +267,24 @@ export default function Feed({ filter, searchResults, searchLoading, searchError
                 message: "Пост удален успешно",
                 duration: 2000
             });
+
+            setTimeout(() => {
+                clearPostDeleted();
+            }, 100);
         }
-    }, [postDeleted]);
+    }, [postDeleted, clearPostDeleted]);
+
+    useEffect(() => {
+        if (postUpdated) {
+            setPostsList(prev => prev.map(post =>
+                post.id === postUpdated.id ? { ...post, edited: true, text: postUpdated.text } : post
+            ));
+
+            setTimeout(() => {
+                clearPostUpdated();
+            }, 100);
+        }
+    }, [postUpdated, clearPostUpdated]);
 
     useEffect(() => {
         if (newPostData) {
@@ -278,16 +295,13 @@ export default function Feed({ filter, searchResults, searchLoading, searchError
                 }
                 return prev;
             });
-        }
-    }, [newPostData, postCreated]);
 
-    useEffect(() => {
-        if (postUpdated) {
-            setPostsList(prev => prev.map(post =>
-                post.id === postUpdated.id ? { ...post, edited: true, text: postUpdated.text } : post
-            ));
+            setTimeout(() => {
+                clearNewPostData();
+                clearPostCreated();
+            }, 100);
         }
-    }, [postUpdated]);
+    }, [newPostData, postCreated, clearNewPostData, clearPostCreated]);
 
     const renderSearchHeader = () => {
         if (!isSearchMode) return null;

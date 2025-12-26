@@ -9,7 +9,6 @@ export const AuthProvider =({children}) =>{
     const [guestStatus,setGuestStatus] = useState(false);
     const [contextUserId,setContextUserId] = useState(()=>{return localStorage.getItem("userId") || ""});
     const [contextUserName,setContextUserName] = useState(()=>{return localStorage.getItem("myUsername") || ""})
-    const [actualSubscribes,setActualSubscribes] = useState(true);
 
     function refreshContext(){
         setContextUserId(localStorage.getItem("userId"));
@@ -49,7 +48,7 @@ export const AuthProvider =({children}) =>{
         guestStatus,setGuestStatus,
         contextUserName,setContextUserName,
         contextUserId,setContextUserId,
-    }), [auth, showLoginMes,invalidToken,guestStatus,contextUserName,contextUserId,refreshContext]);
+    }), [auth, showLoginMes,invalidToken,guestStatus,contextUserName,contextUserId,refreshContext,refreshToken]);
 
     return (
         <AuthContext.Provider value={contextValue}>

@@ -8,7 +8,7 @@ import CommentUserInfo from "./CommentUserInfo.jsx";
 import {useNavigate} from "react-router-dom";
 
 export default function Comment({
-                                    commentId, commentUserId, postId,userAvatar, commentUserName, userTag,
+                                    commentId, commentUserId, postId,userAvatar, commentUserName,
                                     commentText, createDate, commentLikers,edited
                                 }) {
 

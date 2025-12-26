@@ -11,11 +11,31 @@ export const updateUserProfile = async (username,login, email, photo, password,c
     }
 
     try {
+
+        if (password === undefined ||  password.length <=0) {
+            const response = await axios.put(`${API_BASE_URL}/profile/${curUserName}`, {
+                    username: username,
+                    login: login,
+                    email: email,
+                    photo: photo,
+                },
+                {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+            console.log("Данные профиля успешно изменены:", response.data);
+            localStorage.setItem("myUsername",username);
+            console.log('Новое имя пользователя',username);
+            return { success: true, data: response.data };
+
+        }
         const response = await axios.put(`${API_BASE_URL}/profile/${curUserName}`, {
             username: username,
             login: login,
             email: email,
-            tag: "",
             photo: photo,
             password: password,
         },

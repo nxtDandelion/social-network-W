@@ -1,4 +1,4 @@
-import {useContext, useEffect, useState} from "react";
+import {useContext, useState} from "react";
 
 import {AuthContext} from "../../Contexts/AuthContext.jsx";
 import {newPost} from "../../API/PostAPI/newPost.js";
