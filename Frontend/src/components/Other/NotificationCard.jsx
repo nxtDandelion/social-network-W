@@ -54,10 +54,10 @@ export default function NotificationCard({message, type, duration, onClose, isVi
             icon: ""
         },
         info: {
-            bg: "bg-blue-50",
-            border: "border-blue-200",
-            text: "text-blue-800",
-            progressColor: "bg-blue-500",
+            bg: "bg-black",
+            border: "border-gray-600",
+            text: "text-black",
+            progressColor: "bg-gray-600",
             icon: ""
         }
     };

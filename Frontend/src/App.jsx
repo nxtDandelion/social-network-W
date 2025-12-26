@@ -41,7 +41,7 @@ const ProtectRoute = ({children,page}) => {
 }
 
 const TokenValidator = ({ children }) => {
-    const { invalidToken } = useContext(AuthContext);
+    const {invalidToken} = useContext(AuthContext);
 
     if (invalidToken) {
         return <OldTokenPage/>;

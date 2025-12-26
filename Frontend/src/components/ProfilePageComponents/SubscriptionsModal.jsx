@@ -18,7 +18,7 @@ export default function SubscriptionsModal({subscriptions,curUserName,func,handl
                 <div className={`relative flex justify-start w-full text-white py-2 h-fit bg-black rounded-t-[20px]`}>
                     <div className="ml-8">Подписки</div>
                 </div>
-                <div className="flex flex-col bg-white w-[23rem] h-[30rem] overflow-y-auto rounded-b-[20px]">
+                <div className="flex flex-col bg-white w-fit min-w-80 h-[30rem] overflow-y-auto rounded-b-[20px]">
                     {Object.values(subscriptions).length !==0 ? (
                         Object.values(subscriptions).map(((profile,index) => (
                         <SubscriptionsItem

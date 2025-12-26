@@ -4,10 +4,8 @@ import FormFrame from "../components/FormComponents/FormFrame.jsx";
 import MainPage from "./MainPage.jsx";
 import {Navigate, useNavigate} from "react-router-dom";
 import {useContext, useEffect, useState} from "react";
-import {emailValid, lenghtCheck, loginValid, passwordValid} from "../API/AuthAPI/validation.js";
+import {emailValid, lenghtCheck, loginValid, passwordValid, userNameValid} from "../API/AuthAPI/validation.js";
 import FormMes from "../components/FormComponents/FormMes.jsx";
-import axios from "axios";
-import {API_BASE_URL} from "../config.js";
 import {responseLog, responseReg} from "../API/AuthAPI/auth.js";
 import {AuthContext} from "../Contexts/AuthContext.jsx";
 
@@ -71,7 +69,8 @@ export default function RegistrationPage() {
         const loginValidation = loginValid(login);
         const passwordValidation = passwordValid(password);
         const mailValidation = emailValid(mail);
-        const userNameValidation = loginValid(userName);
+        const userNameValidation = userNameValid(userName);
+
 
         if (userNameValidation.isValid&&loginValidation.isValid && passwordValidation.isValid && mailValidation.isValid) {
             console.log("Все данные валидны");

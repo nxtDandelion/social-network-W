@@ -1,4 +1,4 @@
-import {useContext, useEffect} from "react";
+import {useContext, useEffect, useState, useCallback} from "react";
 import {AuthContext} from "../Contexts/AuthContext.jsx";
 import Header from "../components/MainPageComponents/Header.jsx";
 import {SearchIcon} from "../components/Icons/SearchIcon.jsx";
@@ -9,28 +9,66 @@ import PopupBg from "../components/PopupComponents/PopupBg.jsx";
 import CrossIcon from "../components/Icons/CrossIcon.jsx";
 
 export default function FavorsPage() {
+    const {showLoginMes, setShowLoginMes, auth} = useContext(AuthContext);
 
-    const {showLoginMes,setShowLoginMes,auth}=useContext(AuthContext);
+    const [searchResults, setSearchResults] = useState(null);
+    const [searchLoading, setSearchLoading] = useState(false);
+    const [searchError, setSearchError] = useState('');
+    const [currentSearchQuery, setCurrentSearchQuery] = useState('');
 
     function handleClose() {
         setShowLoginMes(false);
     }
 
-    useEffect(() => {
+    const handleSearchResults = useCallback((results) => {
+        setSearchResults(results);
+    }, []);
 
+    const handleSearchLoading = useCallback((isLoading) => {
+        setSearchLoading(isLoading);
+    }, []);
+
+    const handleSearchError = useCallback((error) => {
+        setSearchError(error);
+    }, []);
+
+    const handleSearchQueryChange = useCallback((query) => {
+        setCurrentSearchQuery(query);
+    }, []);
+
+    const handleCloseSearch = useCallback(() => {
+        setSearchResults(null);
+        setSearchError('');
+        setCurrentSearchQuery('');
+    }, []);
+
+    useEffect(() => {
+        // Любая логика инициализации
     }, []);
 
     return (
-
         <div className="flex flex-col max-w-[50rem] relative">
             <Header>
                 <SearchIcon/>
-                <SearchPanel/>
+                <SearchPanel
+                    onSearchResults={handleSearchResults}
+                    onSearchLoading={handleSearchLoading}
+                    onSearchError={handleSearchError}
+                    onSearchQueryChange={handleSearchQueryChange}
+                />
                 <div className="min-w-44">
                     {auth && <CreatePostBtn></CreatePostBtn>}
                 </div>
             </Header>
-            <Feed filter = {"favourites"}/>
+
+            <Feed
+                filter={"favourites"}
+                searchResults={searchResults}
+                searchLoading={searchLoading}
+                searchError={searchError}
+                onCloseSearch={handleCloseSearch}
+            />
+
             {showLoginMes && (
                 <PopupBg>
                     <div className="relative flex flex-col justify-center items-center max-w-md w-fit h-fit px-4 py-8 border-black border-[3px] bg-white rounded-[40px]">
@@ -44,5 +82,5 @@ export default function FavorsPage() {
                 </PopupBg>
             )}
         </div>
-    )
+    );
 }

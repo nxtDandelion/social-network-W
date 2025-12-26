@@ -1,22 +1,18 @@
-import {useContext, useEffect, useState} from "react";
+import {useContext, useState} from "react";
 
 import {AuthContext} from "../../Contexts/AuthContext.jsx";
-import {useNavigate} from "react-router-dom";
-
 import {newPost} from "../../API/PostAPI/newPost.js";
-
 import {FeedContext} from "../../Contexts/FeedContext.jsx";
 import NotificationCard from "../Other/NotificationCard.jsx";
-
 import EditPostModal from "./Post/PostComponents/EditPostModal.jsx";
-
 export default function CreatePostBtn({}) {
 
     const {auth,setShowLoginMes,refreshToken,contextUserName} = useContext(AuthContext);
-    const {refreshFeed,logContext} = useContext(FeedContext);
+    const {refreshFeed} = useContext(FeedContext);
     const [showCreatePost,setShowCreatePost] = useState(false);
     const [error,setError] = useState('');
     const [notice,setNotice] = useState(null);
+    const myAvatar = localStorage.getItem("UserPhoto");
 
 
     function handleClose() {
@@ -28,7 +24,6 @@ export default function CreatePostBtn({}) {
             setShowLoginMes(true);
         }
         else {
-            // setUserId(localStorage.getItem("userId"));
             setShowCreatePost(true);
         }
     }
@@ -44,7 +39,7 @@ export default function CreatePostBtn({}) {
                 message: "Пост добавлен успешно",
                 duration: 1000
             })
-            const postData = { ...response.data, username: contextUserName}
+            const postData = { ...response.data, username: contextUserName,photo:myAvatar}
             refreshFeed(postData);
             setTimeout(()=>(
                 setShowCreatePost(false)
@@ -89,8 +84,8 @@ export default function CreatePostBtn({}) {
             </button>
             {showCreatePost && <EditPostModal
                                     sendForm={sendPost}
-                                    userAvatar={''}
                                     closeModal={handleClose}
+                                    myAvatar={myAvatar}
                                 />
 
             }

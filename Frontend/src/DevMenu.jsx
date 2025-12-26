@@ -1,7 +1,7 @@
 
 import {logout, responseLog, responseReg} from "./API/AuthAPI/auth.js";
 import {useContext} from "react";
-import {AuthContext} from "./Contexts/Authcontext.jsx";
+import {AuthContext} from "./Contexts/AuthContext.jsx";
 
 
 export default function DevMenu(){

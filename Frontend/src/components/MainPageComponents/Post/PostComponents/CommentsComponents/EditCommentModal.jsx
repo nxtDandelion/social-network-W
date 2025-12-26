@@ -8,7 +8,7 @@ import {AuthContext} from "../../../../../Contexts/AuthContext.jsx";
 import {usePostTextValidation} from "../../../../../Hooks/UsePostValidation.jsx";
 import CommentOtherMenu from "./CommentOtherMenu.jsx";
 
-export default function EditCommentModal({sendForm,closeModal,initText}) {
+export default function EditCommentModal({sendForm,closeModal,initText,userAvatar}) {
     const {contextUserName,contextUserId} = useContext(AuthContext);
     const [postText,setPostText] = useState(initText || "");
     const [isPostSend,setIsPostSend] = useState(false);
@@ -43,7 +43,7 @@ export default function EditCommentModal({sendForm,closeModal,initText}) {
                     <div className="relative flex flex-col w-full p-1">
                         <div className="flex">
                             <div>
-                                <img className="w-14 h-14 rounded-full object-cover" src={`/avatars/defaultAvatar.png`}  alt={`Аватар ${contextUserName}`} />
+                                <img className="w-14 h-14 rounded-full object-cover" src={`${userAvatar ? userAvatar :`/avatars/defaultAvatar.png`}`}  alt={`Аватар ${contextUserName}`} />
                             </div>
                             <div className="flex flex-col justify-start items-start w-fit max-w-[38rem] h-fit">
                                 <div className="w-[28rem]">

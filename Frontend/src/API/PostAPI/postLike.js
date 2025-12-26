@@ -10,13 +10,13 @@ export const postLike = async (postId) => {
         return false;
     }
     try {
-        const profileId = localStorage.getItem("userId");
-        if (!profileId) {
-            return { success: false, error: "Profile ID не найден" };
-        }
+        // const profileId = localStorage.getItem("userId");
+        // if (!profileId) {
+        //     return { success: false, error: "Profile ID не найден" };
+        // }
         const response = await axios.post(`${API_BASE_URL}/post/${postId}/like`,
             {
-                 jwt: token,
+                 // profile_id: postId,
             },
             {
                 headers: {
@@ -26,7 +26,7 @@ export const postLike = async (postId) => {
             }
         );
         console.log("Лайк поставлен успешно:", response.data);
-        return { success: true, data: response.data };// Возвращаем созданный пост
+        return { success: true, data: response.data };
     } catch (error) {
         const curResponse = "Создание поста:"
         return  errorHandler(error,curResponse);

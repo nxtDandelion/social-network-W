@@ -2,7 +2,6 @@ import Comment from "./Comment.jsx";
 import CommentForm from "./CommentForm.jsx";
 import CrossIcon from "../../../../Icons/CrossIcon.jsx";
 import PopupBg from "../../../../PopupComponents/PopupBg.jsx";
-import Post from "../../Post.jsx";
 import {useContext, useEffect, useState} from "react";
 import {CommentContext} from "../../../../../Contexts/CommentContext.jsx";
 import PostPreview from "../../PostPreview.jsx";
@@ -68,14 +67,14 @@ export default function CommentModalPage({
     }, [commentDeleted]);
 
     function commentHandleClick() {
-        closePage();
+        closePage(commentsList);
     }
 
     const sortedComments = Object.values(commentsList).sort((a, b) => {
         return new Date(b.create_date) - new Date(a.create_date);
     });
 
-    console.log(commentsList);
+    console.log(Object.keys(commentsList).length,"Число комментариев (COMMENT_MODAL_PAGE)")
 
     return(
         <PopupBg>

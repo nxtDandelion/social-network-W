@@ -2,7 +2,7 @@ import {API_BASE_URL} from "../../config.js";
 import axios from "axios";
 import {errorHandler} from "../errorsHandler.js";
 
-export const updateUserProfile = async (username,login, email, tag, photo, password,curUserName) => {
+export const updateUserProfile = async (username,login, email, photo, password,curUserName) => {
     const token = localStorage.getItem("access_token");
     console.log(curUserName);
     if (!token) {
@@ -11,11 +11,31 @@ export const updateUserProfile = async (username,login, email, tag, photo, passw
     }
 
     try {
+
+        if (password === undefined ||  password.length <=0) {
+            const response = await axios.put(`${API_BASE_URL}/profile/${curUserName}`, {
+                    username: username,
+                    login: login,
+                    email: email,
+                    photo: photo,
+                },
+                {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+            console.log("Данные профиля успешно изменены:", response.data);
+            localStorage.setItem("myUsername",username);
+            console.log('Новое имя пользователя',username);
+            return { success: true, data: response.data };
+
+        }
         const response = await axios.put(`${API_BASE_URL}/profile/${curUserName}`, {
             username: username,
             login: login,
             email: email,
-            tag: tag,
             photo: photo,
             password: password,
         },

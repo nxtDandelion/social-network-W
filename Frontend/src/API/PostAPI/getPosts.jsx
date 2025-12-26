@@ -1,21 +1,23 @@
-import {API_BASE_URL} from "../../config.js";
+import { API_BASE_URL } from "../../config.js";
 import axios from "axios";
-import {errorHandler} from "../errorsHandler.js";
+import { errorHandler } from "../errorsHandler.js";
 
-export const getPosts = async () =>{
-
+export const getPosts = async (skip = 0, limit = 15) => {
     try {
-        const response = await axios.get(`${API_BASE_URL}/post/feed`,{
+        console.log(`[API] Запрос общей ленты: skip=${skip}, limit=${limit}`);
+
+        const response = await axios.get(`${API_BASE_URL}/post/feed`, {
             params: {
-                limit: 15,    // опционально: количество постов
-                offset: 0     // опционально: для пагинации
+                skip: skip,
+                limit: limit
             }
         });
-        console.log("Лента GET успешен");
-        return {success:true, data:response.data};
 
-    }catch (error) {
+        console.log(`[API] Общая лента: получено ${response.data?.length || 0} постов`);
+        return { success: true, data: response.data };
+    } catch (error) {
+        console.error("[API] Ошибка при загрузке общей ленты:", error);
         const curResponse = "Получение поста:"
-        return errorHandler(error,curResponse);
+        return errorHandler(error, curResponse);
     }
 }
