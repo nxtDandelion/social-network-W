@@ -40,14 +40,15 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             "/health", "/auth/", "/verify-token", "/refresh"
     );
 
-    // Паттерны путей, которые не требуют авторизации (только для GET запросов)
-    private final Set<String> excludedGetPatterns = Set.of(
-            "^/post/feed$",
-            "^/post/[^/]+/comments$",           // /post/{id_post}/comments
-            "^/profile/[^/]+$",                 // /profile/{username}
-            "^/search$",                        // /search
-            "^/post/[^/]+$"                    // /post/{id_post}
-    );
+     // Паттерны путей, которые не требуют авторизации (только для GET запросов)
+        private final Set<String> excludedGetPatterns = Set.of(
+                "^/post/feed$",
+                "^/post/[^/]+/comments$",           // /post/{id_post}/comments
+                "^/profile/[^/]+$",                 // /profile/{username}
+                "^/search$",                        // /search
+                "^/search/hashtag$",                // /search/hashtag
+                "^/post/[^/]+$"                    // /post/{id_post}
+        );
 
     public JwtAuthenticationFilter(WebClient webClient, RouteLocator routeLocator, ObjectMapper objectMapper) {
         this.webClient = webClient;

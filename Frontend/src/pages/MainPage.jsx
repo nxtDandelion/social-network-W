@@ -1,3 +1,4 @@
+// MainPage.jsx
 import {useContext, useEffect, useState, useCallback} from "react";
 import {AuthContext} from "../Contexts/AuthContext.jsx";
 import Header from "../components/MainPageComponents/Header.jsx";
@@ -7,6 +8,8 @@ import CreatePostBtn from "../components/MainPageComponents/CreatePostBtn.jsx";
 import Feed from "../components/MainPageComponents/Feed.jsx";
 import PopupBg from "../components/PopupComponents/PopupBg.jsx";
 import CrossIcon from "../components/Icons/CrossIcon.jsx";
+import { useLocation } from "react-router-dom";
+import {hashtagSearchPosts} from "../API/SearchAPI/searchPosts.js";
 
 export default function MainPage() {
     const {showLoginMes, setShowLoginMes, auth} = useContext(AuthContext);
@@ -14,6 +17,7 @@ export default function MainPage() {
     const [searchLoading, setSearchLoading] = useState(false);
     const [searchError, setSearchError] = useState('');
     const [currentSearchQuery, setCurrentSearchQuery] = useState('');
+    const location = useLocation(); // Получаем текущий location
 
     function handleClose() {
         setShowLoginMes(false);
@@ -41,9 +45,55 @@ export default function MainPage() {
         setCurrentSearchQuery('');
     }, []);
 
-    useEffect(() => {
-        // Любая логика инициализации
+
+    const handleSetSearchQuery = useCallback((query) => {
+        console.log('[MainPage] Подставляем значение в поисковую строку:', query);
+        setCurrentSearchQuery(query);
     }, []);
+
+    const performSearchByHashtag = useCallback(async (hashtag) => {
+        setSearchLoading(true);
+        setSearchError('');
+
+        try {
+            const results = await hashtagSearchPosts(hashtag, 1, 15);
+
+            if (results.success) {
+                setSearchResults({
+                    posts: results.data || [],
+                    page: results.page || 1,
+                    size: results.size || 15,
+                    totalElements: results.totalElements || 0,
+                    totalPages: results.totalPages || 0,
+                    hasMore: results.hasMore || false,
+                    query: `#${hashtag}`
+                });
+            } else {
+                setSearchError("Не удалось выполнить поиск");
+            }
+        } catch (err) {
+            console.error('[MainPage] Ошибка поиска по хэштегу:', err);
+            setSearchError("Ошибка при поиске");
+        } finally {
+            setSearchLoading(false);
+        }
+    }, []);
+
+
+    useEffect(() => {
+        if (location.state?.hashtagToSearch) {
+            const hashtag = location.state.hashtagToSearch;
+            console.log('[MainPage] Получен хэштег из навигации:', hashtag);
+
+            handleSetSearchQuery(`#${hashtag}`);
+
+            setTimeout(() => {
+                performSearchByHashtag(hashtag);
+            }, 100);
+
+            window.history.replaceState({}, document.title);
+        }
+    }, [location.state]);
 
     return (
         <div className="flex flex-col max-w-[50rem] relative">
@@ -54,6 +104,7 @@ export default function MainPage() {
                     onSearchLoading={handleSearchLoading}
                     onSearchError={handleSearchError}
                     onSearchQueryChange={handleSearchQueryChange}
+                    initialQuery={currentSearchQuery}
                 />
                 <div className="min-w-44">
                     {auth && <CreatePostBtn></CreatePostBtn>}
@@ -65,6 +116,7 @@ export default function MainPage() {
                 searchLoading={searchLoading}
                 searchError={searchError}
                 onCloseSearch={handleCloseSearch}
+                onSetSearchQuery={handleSetSearchQuery}
             />
 
             {showLoginMes && (

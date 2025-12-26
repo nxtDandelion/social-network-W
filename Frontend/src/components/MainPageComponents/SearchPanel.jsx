@@ -1,11 +1,29 @@
+// SearchPanel.jsx
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { searchPosts } from '../../API/SearchAPI/searchPosts.js';
+import { searchPosts, hashtagSearchPosts } from '../../API/SearchAPI/searchPosts.js';
 
-export default function SearchPanel({ onSearchResults, onSearchLoading, onSearchError, onSearchQueryChange }) {
-    const [searchQuery, setSearchQuery] = useState('');
+export default function SearchPanel({
+                                        onSearchResults,
+                                        onSearchLoading,
+                                        onSearchError,
+                                        onSearchQueryChange,
+                                        initialQuery = ''
+                                    }) {
+    const [searchQuery, setSearchQuery] = useState(initialQuery);
     const [isActive, setIsActive] = useState(false);
     const debounceTimer = useRef(null);
 
+    // Эффект для обновления значения при изменении initialQuery
+    useEffect(() => {
+        if (initialQuery !== searchQuery) {
+            setSearchQuery(initialQuery);
+            if (initialQuery) {
+                performSearch(initialQuery);
+            }
+        }
+    }, [initialQuery]);
+
+    // Функция для определения типа поиска и выбора API
     const performSearch = useCallback(async (query) => {
         if (query.trim().length === 0) {
             if (onSearchResults && typeof onSearchResults === 'function') {
@@ -19,15 +37,26 @@ export default function SearchPanel({ onSearchResults, onSearchLoading, onSearch
         }
 
         try {
-            const results = await searchPosts(query, 1, 15);
+            let results;
+
+            // Определяем тип поиска
+            if (query.startsWith('#')) {
+                // Это хэштег - убираем # и отправляем в hashtagSearchPosts
+                const hashtag = query.substring(1);
+                results = await hashtagSearchPosts(hashtag, 1, 15);
+            } else {
+                // Обычный поиск
+                results = await searchPosts(query, 1, 15);
+            }
+
             if (results.success) {
                 if (onSearchResults && typeof onSearchResults === 'function') {
-                    console.log(results.data);
                     onSearchResults({
                         posts: results.data || [],
                         page: results.page || 1,
                         size: results.size || 15,
                         totalElements: results.totalElements || (results.data?.length || 0),
+                        totalPages: results.totalPages || 0,
                         hasMore: results.hasMore || false,
                         query: query
                     });
@@ -64,6 +93,9 @@ export default function SearchPanel({ onSearchResults, onSearchLoading, onSearch
         } else {
             if (onSearchResults && typeof onSearchResults === 'function') {
                 onSearchResults(null);
+            }
+            if (onSearchQueryChange && typeof onSearchQueryChange === 'function') {
+                onSearchQueryChange('');
             }
         }
 

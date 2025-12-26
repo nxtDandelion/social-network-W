@@ -7,6 +7,7 @@ import {AuthContext} from "../../../../Contexts/AuthContext.jsx";
 
 import {usePostTextValidation} from "../../../../Hooks/UsePostValidation.jsx";
 
+
 export default function EditPostModal({sendForm,closeModal,initText,edited,myAvatar}) {
     const {contextUserName} = useContext(AuthContext);
     const [postText,setPostText] = useState(initText || "");
@@ -54,10 +55,11 @@ export default function EditPostModal({sendForm,closeModal,initText,edited,myAva
                     </div>
 
                     <div className="flex justify-center w-[42rem] min-h-80 h-fit p-2 bg-white border-r-2 border-l-2 border-black">
-                        <textarea className="w-[40rem] min-h-80 h-fit outline-none resize-none"
-                                  value={postText}
-                                  onChange={handleTextChange}
-                                  placeholder="Диктуйте миру ваши мысли..."
+                        <textarea
+                            className="w-[40rem] min-h-80 h-fit outline-none resize-none"
+                            value={postText}
+                            onChange={handleTextChange}
+                            placeholder="Диктуйте миру ваши мысли... Используйте @username для упоминаний"
                         />
                     </div>
                     <div className="flex w-2xl h-14 bg-black"></div>

@@ -8,10 +8,10 @@ import CommentModalPage from "./PostComponents/CommentsComponents/CommentModalPa
 import {responseCommentsList} from "../../../API/PostAPI/getCommentsList.js";
 import {postLike} from "../../../API/PostAPI/postLike.js";
 import {deleteLike} from "../../../API/PostAPI/deleteLike.js";
-import {CommentContext} from "../../../Contexts/CommentContext.jsx";
+import TextWithTags from "../../TextWithTag.jsx";
+import {FeedContext} from "../../../Contexts/FeedContext.jsx";
 
-
-export default function Post({postH,postW,postDate,likers,postText,userName,userTag,
+export default function Post({postDate,likers,postText,userName,userTag,onHashtagClick,
                                  userAvatar,userId,edited,postId,isModal,onModalFunc,initCommentAmount}) {
 
     const {auth,setShowLoginMes,refreshToken,contextUserId} = useContext(AuthContext);
@@ -22,9 +22,20 @@ export default function Post({postH,postW,postDate,likers,postText,userName,user
     const [likersList,setLikersList] = useState([]);
     const [isLoading,setIsLoading] = useState(true);
     const [isAnimating, setIsAnimating] = useState(false);
+    const {likeUpdated} = useContext(FeedContext);
 
 
-    console.log(contextUserId,"UserIdContext",userId,"CurrentUserId");
+    useEffect(() => {
+        if (likeUpdated.id ===postId) {
+            if (likeUpdated.list.includes(contextUserId)){
+                setIsLiked(true);
+            }
+            else{
+                setIsLiked(false);
+            }
+        }
+    },[likeUpdated]);
+
     useEffect(() => {
         const safeLikers = Array.isArray(likers) ? likers : [];
         setLikersList(safeLikers);
@@ -40,7 +51,6 @@ export default function Post({postH,postW,postDate,likers,postText,userName,user
         setIsLoading(false);
     }, [likers]);
 
-
     const likeHandleClick = async () => {
         if (!auth) {
             setShowLoginMes(true);
@@ -54,7 +64,6 @@ export default function Post({postH,postW,postDate,likers,postText,userName,user
             let response;
 
             if (wasLiked) {
-                console.log(postId);
                 response = await deleteLike(postId);
             } else {
                 response = await postLike(postId);
@@ -73,7 +82,6 @@ export default function Post({postH,postW,postDate,likers,postText,userName,user
                 }, 300);
 
             } else if (response.statusCode === 401) {
-                console.error(response.error);
                 refreshToken();
                 setIsAnimating(false);
             } else {
@@ -86,13 +94,11 @@ export default function Post({postH,postW,postDate,likers,postText,userName,user
     }
 
     async function commentHandleClick () {
-
         if (isModal){
             onModalFunc();
         }
         const response = await responseCommentsList(postId);
         if (response.success) {
-
             const comments = response.data;
             const commentsById = {}
             Object.values(comments).forEach(comment => {
@@ -110,7 +116,6 @@ export default function Post({postH,postW,postDate,likers,postText,userName,user
         setCommentsAmount(count);
         setShowComments(false);
     }
-
 
     if (isLoading) {
         return (
@@ -135,8 +140,8 @@ export default function Post({postH,postW,postDate,likers,postText,userName,user
     }
 
     return (
-        <div className="flex flex-col w-[42rem]  min-h-96">
-            <div className="flex justify-between w-2xl  max-h-20 pr-4 pl-4 pt-2 bg-black rounded-t-3xl">
+        <div className="flex flex-col w-[42rem] min-h-96">
+            <div className="flex justify-between w-2xl max-h-20 pr-4 pl-4 pt-2 bg-black rounded-t-3xl">
                 <ProfileInfo
                     component="post"
                     userName={userName}
@@ -145,7 +150,6 @@ export default function Post({postH,postW,postDate,likers,postText,userName,user
                     userId={userId}
                 />
                 <div className="flex flex-col">
-
                     <OtherFuncMenu
                         userId={userId}
                         postId={postId}
@@ -159,7 +163,12 @@ export default function Post({postH,postW,postDate,likers,postText,userName,user
                 </div>
             </div>
             <div className="flex w-2xl min-h-80 bg-white border-r-2 border-l-2 border-black">
-                <p className="text-lg p-4"> {postText}</p>
+                <div className="text-lg p-4 whitespace-pre-wrap break-words">
+                    <TextWithTags
+                        text={postText}
+                        onHashtagSearch={onHashtagClick}
+                    />
+                </div>
             </div>
             <div className="flex w-2xl h-14 bg-black">
                 <div className="flex w-2/4">
@@ -168,7 +177,6 @@ export default function Post({postH,postW,postDate,likers,postText,userName,user
                         className="flex w-1/2 items-center ml-3 hover:opacity-80 transition-opacity duration-200"
                         disabled={isAnimating}
                     >
-
                         <div className={`
                             transition-all duration-300 ease-in-out 
                             transform origin-center
@@ -183,7 +191,7 @@ export default function Post({postH,postW,postDate,likers,postText,userName,user
                         `}>
                             {likersList.length}
                         </span>
-                    </button >
+                    </button>
                     <button onClick={commentHandleClick} className="flex w-1/2 items-center ml-3 hover:opacity-80">
                         <CommentIcon/>
                         <span className="inline-block text-white text-xl font-bold tracking-wider"> {commentsAmount}</span>
@@ -209,7 +217,6 @@ export default function Post({postH,postW,postDate,likers,postText,userName,user
                 likers={likersList}
                 comments={commentsList}
                 edited={edited}
-
             />}
         </div>
     )

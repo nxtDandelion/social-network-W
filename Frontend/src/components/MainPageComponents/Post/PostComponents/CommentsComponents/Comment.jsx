@@ -6,6 +6,7 @@ import {deleteCommentLike} from "../../../../../API/PostAPI/deleteCommentLike.js
 import {postCommentLike} from "../../../../../API/PostAPI/postCommentLike.js";
 import CommentUserInfo from "./CommentUserInfo.jsx";
 import {useNavigate} from "react-router-dom";
+import TextWithTags from "../../../../TextWithTag.jsx";
 
 export default function Comment({
                                     commentId, commentUserId, postId,userAvatar, commentUserName,
@@ -122,7 +123,7 @@ export default function Comment({
                     </div>
 
                     <div className="mt-1 mb-1 break-words whitespace-pre-wrap overflow-wrap-anywhere w-full pr-10">
-                        {commentText}
+                        <TextWithTags text={commentText} />
                     </div>
 
                     <div className="flex justify-between items-center mt-2">
