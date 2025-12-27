@@ -11,6 +11,7 @@ import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 
 @Configuration
 @EnableRabbit
@@ -49,10 +50,18 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public MessageConverter jsonMessageConverter() {
+    @Primary
+    public ObjectMapper objectMapper() {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
-        return new Jackson2JsonMessageConverter(objectMapper);
+        return objectMapper;
+    }
+
+    @Bean
+    public MessageConverter jsonMessageConverter(ObjectMapper objectMapper) {
+        Jackson2JsonMessageConverter converter = new Jackson2JsonMessageConverter(objectMapper);
+        converter.setDefaultCharset("UTF-8");
+        return converter;
     }
 
     @Bean
@@ -63,6 +72,8 @@ public class RabbitMQConfig {
         factory.setConnectionFactory(connectionFactory);
         factory.setMessageConverter(messageConverter);
         factory.setDefaultRequeueRejected(false);
+        factory.setConcurrentConsumers(1);
+        factory.setMaxConcurrentConsumers(1);
         return factory;
     }
 
@@ -71,6 +82,7 @@ public class RabbitMQConfig {
                                          MessageConverter messageConverter) {
         RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
         rabbitTemplate.setMessageConverter(messageConverter);
+        rabbitTemplate.setEncoding("UTF-8");
         return rabbitTemplate;
     }
 }

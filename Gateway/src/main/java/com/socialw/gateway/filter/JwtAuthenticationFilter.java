@@ -35,8 +35,18 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     private final RouteLocator routeLocator;
     private final ObjectMapper objectMapper;
 
-    private final Set<String> excludedPaths = Set.of(
-            "/health", "/auth/", "/verify-token", "/refresh", "/post/feed"
+    // Пути, которые НЕ требуют авторизации вообще (для любых HTTP методов)
+    private final Set<String> excludedAnyMethodPaths = Set.of(
+            "/health", "/auth/", "/verify-token", "/refresh"
+    );
+
+    // Паттерны путей, которые не требуют авторизации (только для GET запросов)
+    private final Set<String> excludedGetPatterns = Set.of(
+            "^/post/feed$",
+            "^/post/[^/]+/comments$",           // /post/{id_post}/comments
+            "^/profile/[^/]+$",                 // /profile/{username}
+            "^/search$",                        // /search
+            "^/post/[^/]+$"                    // /post/{id_post}
     );
 
     public JwtAuthenticationFilter(WebClient webClient, RouteLocator routeLocator, ObjectMapper objectMapper) {
@@ -48,42 +58,27 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String path = exchange.getRequest().getURI().getPath();
+        String method = exchange.getRequest().getMethod().name();
 
-        if (excludedPaths.stream().anyMatch(path::startsWith)) {
+        log.debug("Checking authentication for {} {}", method, path);
+
+        if (isExcludedPath(path, method)) {
+            log.debug("Path {} excluded from authentication for method {}", path, method);
             return chain.filter(exchange);
         }
 
         String token = extractTokenFromHeader(exchange.getRequest());
-        if (token != null) {
-            return verifyAndProcessToken(exchange, chain, token, true, null);
+
+        if (token == null || token.isBlank()) {
+            log.warn("No JWT token found in Authorization header for {}: {}", method, path);
+            return unauthorizedResponse(exchange, "JWT token required in Authorization header");
         }
 
-        return readRequestBody(exchange)
-                .flatMap(body -> {
-                    try {
-                        JsonNode jsonNode = objectMapper.readTree(body);
-                        JsonNode jwtNode = jsonNode.get("jwt");
-
-                        if (jwtNode == null) {
-                            return unauthorizedResponse(exchange, "JWT token required in request body");
-                        }
-
-                        String tokenFromBody = jwtNode.asText();
-                        if (tokenFromBody.isBlank()) {
-                            return unauthorizedResponse(exchange, "Empty JWT token");
-                        }
-
-                        return verifyAndProcessToken(exchange, chain, tokenFromBody, false, jsonNode);
-                    } catch (Exception e) {
-                        log.error("Failed to parse request body: {}", e.getMessage());
-                        return unauthorizedResponse(exchange, "Invalid JSON format");
-                    }
-                })
-                .switchIfEmpty(unauthorizedResponse(exchange, "Request body required with JWT token"));
+        return verifyAndProcessToken(exchange, chain, token, method);
     }
 
     private Mono<Void> verifyAndProcessToken(ServerWebExchange exchange, GatewayFilterChain chain,
-                                             String token, boolean fromHeader, JsonNode originalBody) {
+                                             String token, String method) {
         return getAuthServiceUrl()
                 .flatMap(authUrl -> webClient.post()
                         .uri(authUrl + "/verify-token")
@@ -94,7 +89,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                 .flatMap(response -> {
                     if (response.isValid()) {
                         log.info("User authenticated: {}", response.getLogin());
-                        return createModifiedRequest(exchange, chain, response.getUser_uuid(), fromHeader, originalBody);
+                        return createModifiedRequest(exchange, chain, response.getUser_uuid(), method);
                     } else {
                         return unauthorizedResponse(exchange, "Token validation failed");
                     }
@@ -106,12 +101,11 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     }
 
     private Mono<Void> createModifiedRequest(ServerWebExchange exchange, GatewayFilterChain chain,
-                                             String userUuid, boolean fromHeader, JsonNode originalBody) {
+                                             String userUuid, String method) {
         try {
-            if (originalBody != null) {
-                String modifiedBody = modifyBodyWithProfileId(originalBody, userUuid, false);
-                ServerHttpRequest newRequest = createRequestWithBody(exchange.getRequest(), modifiedBody);
-                return chain.filter(exchange.mutate().request(newRequest).build());
+            if ("GET".equalsIgnoreCase(method)) {
+                log.debug("GET request, passing through without modifications");
+                return chain.filter(exchange);
             }
 
             return readRequestBody(exchange)
@@ -121,9 +115,11 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
                             if (body.isEmpty()) {
                                 modifiedBody = "{\"profile_id\":\"" + userUuid + "\"}";
+                                log.debug("Created new body with profile_id={}", userUuid);
                             } else {
                                 JsonNode jsonNode = objectMapper.readTree(body);
-                                modifiedBody = modifyBodyWithProfileId(jsonNode, userUuid, true);
+                                modifiedBody = modifyBodyWithProfileId(jsonNode, userUuid);
+                                log.debug("Modified existing body with profile_id={}", userUuid);
                             }
 
                             ServerHttpRequest newRequest = createRequestWithBody(exchange.getRequest(), modifiedBody);
@@ -138,6 +134,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                     .switchIfEmpty(Mono.defer(() -> {
                         String simpleBody = "{\"profile_id\":\"" + userUuid + "\"}";
                         ServerHttpRequest newRequest = createRequestWithBody(exchange.getRequest(), simpleBody);
+                        log.debug("Created new body with profile_id={} for empty request", userUuid);
                         return chain.filter(exchange.mutate().request(newRequest).build());
                     }));
         } catch (Exception e) {
@@ -146,17 +143,12 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         }
     }
 
-    private String modifyBodyWithProfileId(JsonNode jsonNode, String userUuid, boolean fromHeader) throws Exception {
+    private String modifyBodyWithProfileId(JsonNode jsonNode, String userUuid) throws Exception {
         if (!jsonNode.isObject()) {
             throw new IllegalArgumentException("Request body must be a JSON object");
         }
 
         ObjectNode objectNode = (ObjectNode) jsonNode;
-
-        if (!fromHeader) {
-            objectNode.remove("jwt");
-        }
-
         objectNode.put("profile_id", userUuid);
 
         String result = objectMapper.writeValueAsString(objectNode);
@@ -196,11 +188,9 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                 HttpHeaders headers = new HttpHeaders();
                 headers.putAll(super.getHeaders());
 
-                // Используем длину в байтах, а не в символах
                 byte[] bodyBytes = body.getBytes(StandardCharsets.UTF_8);
                 headers.setContentLength(bodyBytes.length);
 
-                // Явно указываем кодировку UTF-8
                 headers.setContentType(new MediaType(MediaType.APPLICATION_JSON, StandardCharsets.UTF_8));
 
                 return headers;
@@ -224,6 +214,24 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                 .next()
                 .map(route -> route.getUri().toString())
                 .switchIfEmpty(Mono.error(new RuntimeException("Auth service route not found")));
+    }
+
+    private boolean isExcludedPath(String path, String method) {
+        if (excludedAnyMethodPaths.stream().anyMatch(excluded -> {
+            if (excluded.endsWith("/")) {
+                return path.startsWith(excluded);
+            } else {
+                return path.equals(excluded) || path.startsWith(excluded + "/");
+            }
+        })) {
+            return true;
+        }
+
+        if (!"GET".equalsIgnoreCase(method)) {
+            return false;
+        }
+
+        return excludedGetPatterns.stream().anyMatch(pattern -> path.matches(pattern));
     }
 
     private Mono<Void> unauthorizedResponse(ServerWebExchange exchange, String message) {

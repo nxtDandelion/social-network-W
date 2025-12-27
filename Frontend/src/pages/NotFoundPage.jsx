@@ -1,4 +1,5 @@
 import {SearchIcon} from "../components/Icons/SearchIcon.jsx";
+import {Link} from "react-router-dom";
 
 export default function NotFoundPage() {
     return (
@@ -7,9 +8,9 @@ export default function NotFoundPage() {
                 <SearchIcon/>
                 <h2 className="text-2xl font-bold mb-4">Страница не найдена</h2>
                 <p className="text-gray-600 mb-4">Запрошенная страница не существует.</p>
-                <a href="/home" className="text-black underline hover:text-gray-500">
+                <Link to="/home" className="text-black underline hover:text-gray-500">
                     Вернуться на главную
-                </a>
+                </Link>
 
             </div>
         </div>
