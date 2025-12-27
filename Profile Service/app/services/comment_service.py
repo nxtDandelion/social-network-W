@@ -114,6 +114,7 @@ class CommentService:
             )
 
         comments = await self.crud.get_post_comments(post_id, skip, limit)
+        logging.info(f"Found {len(comments)} comments for post {post_id}")
         return [
             schemas.CommentResponse.model_validate(comment)
             for comment in comments
