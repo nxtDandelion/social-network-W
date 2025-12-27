@@ -11,7 +11,7 @@ import NotFoundPage from "../../pages/NotFoundPage.jsx";
 import ShowSubscriptionsButton from "./ShowSubscriptionsButton.jsx";
 import {getFollowing} from "../../API/ProfileAPI/getFollowing.js";
 import NotificationCard from "../Other/NotificationCard.jsx";
-import { getCurrentPost } from "../../API/PostAPI/GetCurrentPost.js";
+import { getCurrentPost } from "../../API/PostAPI/getCurrentPost.js";
 import {FeedContext} from "../../Contexts/FeedContext.jsx";
 
 export default function ProfileFeed({ showEdit, onCloseModal}) {
@@ -24,7 +24,6 @@ export default function ProfileFeed({ showEdit, onCloseModal}) {
     const [userId, setUserId] = useState("");
     const [userProfileName, setUserProfileName] = useState("");
     const [userLogin, setUserLogin] = useState("");
-    const [userTag, setUserTag] = useState("");
     const [userMail, setUserMail] = useState("");
     const [userAvatar, setUserAvatar] = useState("");
     const [notFound, setNotFound] = useState(false);
@@ -150,7 +149,6 @@ export default function ProfileFeed({ showEdit, onCloseModal}) {
             setUserData(userInfo.data);
             setUserProfileName(userInfo.data.username);
             setUserLogin(userInfo.data.login);
-            setUserTag(userInfo.data.username);
             setUserMail(userInfo.data.email);
             setSubscribes(userInfo.data.subscribes);
             setSubscribers(userInfo.data.subscribers);

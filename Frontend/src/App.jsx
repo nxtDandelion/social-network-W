@@ -1,14 +1,13 @@
 import MainPage from "./pages/MainPage.jsx";
 import Sidebar from "./components/SideBarComponents/Sidebar.jsx";
 import {BrowserRouter, Navigate, Route, Routes} from "react-router-dom";
-import {useContext, useEffect, useState} from "react";
+import {useContext, useEffect} from "react";
 import FavorsPage from "./pages/FavorsPage.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
 import NotFoundPage from "./pages/NotFoundPage.jsx";
 import RegistrationPage from "./pages/RegistrationPage.jsx";
 import {AuthProvider,AuthContext} from "./Contexts/AuthContext.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
-import DevMenu from "./DevMenu.jsx";
 import OldTokenPage from "./pages/OldTokenPage.jsx";
 import {FeedProvider} from "./Contexts/FeedContext.jsx";
 import {CommentProvider} from "./Contexts/CommentContext.jsx";
@@ -58,7 +57,6 @@ function App() {
                     <BrowserRouter>
                         <TokenValidator>
                             <div className="relative flex justify-center w-[62rem] min-h-screen">
-                                <DevMenu/>
                                 <div className="absolute top-0 left-[-94px]"><Sidebar/></div>
 
                                     <Routes>

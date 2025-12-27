@@ -5,10 +5,10 @@ import { AuthContext } from "../../Contexts/AuthContext.jsx";
 import { FeedContext } from "../../Contexts/FeedContext.jsx";
 import NotificationCard from "../Other/NotificationCard.jsx";
 import { getFavourPosts } from "../../API/PostAPI/getFavourPost.js";
-import { searchPosts } from "../../API/SearchAPI/searchPosts.js";
+import {hashtagSearchPosts, searchPosts} from "../../API/SearchAPI/searchPosts.js";
 import {normalizePostDate} from "../../utils/dateFormater.jsx";
 
-export default function Feed({ filter, searchResults, searchLoading, searchError, onCloseSearch }) {
+export default function Feed({ filter, searchResults, searchLoading, searchError, onCloseSearch,onSetSearchQuery }) {
     const [postsList, setPostsList] = useState([]);
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -17,7 +17,7 @@ export default function Feed({ filter, searchResults, searchLoading, searchError
     const [skip, setSkip] = useState(0);
     const { contextUserName } = useContext(AuthContext);
     const { postDeleted, postCreated, postUpdated, newPostData,
-        clearPostDeleted, clearPostUpdated, clearPostCreated, clearNewPostData } = useContext(FeedContext);
+        clearPostDeleted, clearPostUpdated, clearPostCreated, clearNewPostData,likeUpdated} = useContext(FeedContext);
     const [notice, setNotice] = useState(null);
 
     const [isSearchMode, setIsSearchMode] = useState(false);
@@ -37,6 +37,57 @@ export default function Feed({ filter, searchResults, searchLoading, searchError
     const closeNotification = () => {
         setNotice(null);
     }
+
+
+
+    const handleHashtagClick = useCallback(async (hashtag) => {
+        console.log('[Feed] Клик по хэштегу:', hashtag);
+
+
+        if (onCloseSearch) {
+            onCloseSearch();
+        }
+        if (onSetSearchQuery) {
+            onSetSearchQuery(`#${hashtag}`); // Добавляем # перед хэштегом
+        }
+
+
+        setLoading(true);
+        setIsSearchMode(true);
+        setCurrentSearchQuery(hashtag);
+
+
+        try {
+
+            const results = await hashtagSearchPosts(hashtag, 1, 15);
+
+            if (results.success) {
+                setPostsList(results.data || []);
+                setSearchPagination({
+                    page: results.page || 1,
+                    size: results.size || 15,
+                    totalElements: results.totalElements || 0,
+                    totalPages: results.totalPages || 0,
+                    hasMore: results.hasMore || false
+                });
+
+                if (results.data?.length === 0) {
+                    setNotice({
+                        type: "info",
+                        message: `По хэштегу #${hashtag} ничего не найдено`,
+                        duration: 3000
+                    });
+                }
+            } else {
+                setError("Не удалось выполнить поиск");
+            }
+        } catch (err) {
+            console.error('[Feed] Ошибка поиска:', err);
+            setError("Ошибка при поиске");
+        } finally {
+            setLoading(false);
+        }
+    }, [onCloseSearch,onSetSearchQuery]);
 
     useEffect(() => {
         if (searchResults && searchResults.query) {
@@ -105,11 +156,8 @@ export default function Feed({ filter, searchResults, searchLoading, searchError
                 ? await getFavourPosts(contextUserName, currentSkip, limit)
                 : await getPosts(currentSkip, limit));
 
-            console.log(`[Feed] API response:`, posts);
-
             if (posts.success) {
                 const newPosts = posts.data || [];
-                console.log(`[Feed] Received ${newPosts.length} posts`);
 
                 if (isInitial) {
                     setPostsList(newPosts);
@@ -120,14 +168,12 @@ export default function Feed({ filter, searchResults, searchLoading, searchError
                         const uniqueNewPosts = newPosts.filter(newPost =>
                             !prev.some(existingPost => existingPost.id === newPost.id)
                         );
-                        console.log(`[Feed] После фильтрации дубликатов: ${uniqueNewPosts.length} новых постов`);
                         return [...prev, ...uniqueNewPosts];
                     });
                     setHasMore(newPosts.length === limit);
                     setSkip(prev => prev + newPosts.length);
                 }
             } else {
-                console.error(`[Feed] API вернул ошибку:`, posts);
                 setError("Не удалось загрузить ленту");
                 setHasMore(false);
             }
@@ -156,9 +202,7 @@ export default function Feed({ filter, searchResults, searchLoading, searchError
         await fetchPosts(0, true);
     }, [filter, fetchPosts, isSearchMode]);
 
-    // Функция для загрузки следующей порции обычных постов
     const loadMoreRegularPosts = useCallback(async () => {
-        console.log(`[Feed] loadMoreRegularPosts: skip=${skip}, hasMore=${hasMore}`);
         if (loadingMore || !hasMore || isLoadingRef.current) {
             return;
         }
@@ -168,8 +212,6 @@ export default function Feed({ filter, searchResults, searchLoading, searchError
     }, [skip, hasMore, loadingMore, fetchPosts]);
 
     const loadMoreSearchResults = useCallback(async () => {
-        console.log(`[Feed] loadMoreSearchResults: query="${currentSearchQuery}", page=${searchPagination.page}, hasMore=${searchPagination.hasMore}`);
-
         if (!currentSearchQuery || !searchPagination.hasMore || loadingMore || isLoadingRef.current) {
             return;
         }
@@ -179,13 +221,10 @@ export default function Feed({ filter, searchResults, searchLoading, searchError
 
         try {
             const nextPage = searchPagination.page + 1;
-            console.log(`[Feed] Загружаем страницу ${nextPage} поиска`);
-
             const results = await searchPosts(currentSearchQuery, nextPage, 15);
 
             if (results.success) {
                 const newPosts = results.data || [];
-                console.log(`[Feed] Получено ${newPosts.length} постов поиска`);
 
                 setPostsList(prev => {
                     const uniqueNewPosts = newPosts.filter(newPost =>
@@ -218,7 +257,6 @@ export default function Feed({ filter, searchResults, searchLoading, searchError
     }, [currentSearchQuery, searchPagination, loadingMore]);
 
     const loadMorePosts = useCallback(async () => {
-        console.log(`[Feed] loadMorePosts: isSearchMode=${isSearchMode}`);
         if (isSearchMode) {
             await loadMoreSearchResults();
         } else {
@@ -227,7 +265,6 @@ export default function Feed({ filter, searchResults, searchLoading, searchError
     }, [isSearchMode, loadMoreSearchResults, loadMoreRegularPosts]);
 
     useEffect(() => {
-        console.log(`[Feed] Изменение filter: ${filter}, isSearchMode=${isSearchMode}`);
         if (!isSearchMode) {
             refreshFeed();
         }
@@ -273,6 +310,12 @@ export default function Feed({ filter, searchResults, searchLoading, searchError
             }, 100);
         }
     }, [postDeleted, clearPostDeleted]);
+
+    useEffect(() => {
+        if (likeUpdated){
+            refreshFeed();
+        }
+    },[likeUpdated])
 
     useEffect(() => {
         if (postUpdated) {
@@ -387,6 +430,7 @@ export default function Feed({ filter, searchResults, searchLoading, searchError
                             edited={post.edited}
                             postDate={normalizePostDate(post.create_date)}
                             postId={post.id}
+                            onHashtagClick={handleHashtagClick}
                         />
                     ))}
 
@@ -400,11 +444,6 @@ export default function Feed({ filter, searchResults, searchLoading, searchError
                                 {isSearchMode ? "Загрузка результатов..." : "Загрузка дополнительных постов..."}
                             </div>
                         )}
-                        {/*{!hasMore && postsList.length > 0 && (*/}
-                        {/*    <div className="text-gray-500 py-4">*/}
-                        {/*        {isSearchMode ? "Все результаты загружены" : "Вы достигли конца ленты"}*/}
-                        {/*    </div>*/}
-                        {/*)}*/}
                     </div>
                 </>
             )}

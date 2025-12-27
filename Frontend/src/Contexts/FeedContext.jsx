@@ -7,6 +7,7 @@ export const FeedProvider =({children}) => {
     const [postUpdated,setPostUpdated] = useState(null);
     const [postDeleted,setPostDeleted] = useState(null);
     const [newPostData,setNewPostData] = useState(null);
+    const [likeUpdated,setLikeUpdated] = useState({})
 
     const refreshFeed = useCallback((post) => {
         setNewPostData(post);
@@ -38,13 +39,14 @@ export const FeedProvider =({children}) => {
         postDeleted, setPostDeleted,
         newPostData, setNewPostData,
         refreshFeed,
-        // Добавляем функции очистки
+        likeUpdated,setLikeUpdated,
         clearPostDeleted,
         clearPostUpdated,
         clearPostCreated,
         clearNewPostData
     }),[postCreated, postUpdated, postDeleted, newPostData, refreshFeed,
-        clearPostDeleted, clearPostUpdated, clearPostCreated, clearNewPostData]);
+        clearPostDeleted, clearPostUpdated, clearPostCreated, clearNewPostData,
+        likeUpdated]);
 
     return (
         <FeedContext.Provider value={contextValue}>
