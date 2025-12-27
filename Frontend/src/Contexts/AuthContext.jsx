@@ -27,6 +27,12 @@ export const AuthProvider =({children}) =>{
                 setContextUserId(storedId);
             }
         }
+        else {
+            localStorage.removeItem("myUsername");
+            localStorage.removeItem("userId");
+            localStorage.removeItem("access_token");
+            localStorage.removeItem("refresh_token");
+        }
     },[auth]);
 
 
@@ -38,6 +44,7 @@ export const AuthProvider =({children}) =>{
         localStorage.removeItem("userId");
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
+        localStorage.removeItem("myLogin");
     };
 
     const contextValue = useMemo(() => ({

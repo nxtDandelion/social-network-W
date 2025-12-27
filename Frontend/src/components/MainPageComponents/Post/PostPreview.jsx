@@ -6,8 +6,9 @@ import {useContext, useEffect, useState} from "react";
 import {AuthContext} from "../../../Contexts/AuthContext.jsx";
 import {postLike} from "../../../API/PostAPI/postLike.js";
 import {deleteLike} from "../../../API/PostAPI/deleteLike.js";
+import {FeedContext} from "../../../Contexts/FeedContext.jsx";
 
-export default function PostPreview({postH,postW,postDate,likers,postText,userName,userTag,
+export default function PostPreview({postDate,likers,postText,userName,userTag,
                                  userAvatar,userId,edited,postId,onModalFunc,commentsList}) {
 
     const {auth,setShowLoginMes,refreshToken,contextUserId} = useContext(AuthContext);
@@ -16,6 +17,7 @@ export default function PostPreview({postH,postW,postDate,likers,postText,userNa
     const [likersList,setLikersList] = useState([]);
     const [isLoading,setIsLoading] = useState(true);
     const [isAnimating, setIsAnimating] = useState(false);
+    const {setLikeUpdated} = useContext(FeedContext);
 
 
 
@@ -23,6 +25,7 @@ export default function PostPreview({postH,postW,postDate,likers,postText,userNa
         const commentsCount = Object.keys(commentsList).length;
         setCommentsAmount(commentsCount);
     },[commentsList]);
+
 
 
     useEffect(() => {
@@ -62,15 +65,16 @@ export default function PostPreview({postH,postW,postDate,likers,postText,userNa
             if (response.success) {
                 setIsLiked(!wasLiked);
 
+
                 if (wasLiked) {
                     setLikersList(prev => prev.filter(id => id !==contextUserId));
                 } else {
                     setLikersList(prev => [...prev, contextUserId]);
                 }
+                setLikeUpdated({id:postId,list:likersList});
                 setTimeout(() => {
                     setIsAnimating(false);
                 }, 300);
-
             } else if (response.statusCode === 401) {
                 console.error(response.error);
                 refreshToken();
@@ -127,6 +131,7 @@ export default function PostPreview({postH,postW,postDate,likers,postText,userNa
                         postId={postId}
                         initText={postText}
                         edited={edited}
+                        userAvatar={userAvatar}
                     />
                     <div className={`${edited ? "inline-block" : "hidden"} text-white`}>
                         Отредактирован
