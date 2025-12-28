@@ -16,12 +16,17 @@ public class ProfileService {
 
     private final ProfileRepository profileRepository;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final CacheService cacheService; // Добавляем CacheService
 
     private static final String PROFILE_CACHE_PREFIX = "profile:";
 
     public ProfileDocument create(ProfileDocument profile) {
         ProfileDocument saved = profileRepository.save(profile);
         log.info("Profile created with UUID: {}", saved.getUuid());
+
+        // Инвалидируем поисковые кэши при создании нового профиля
+        cacheService.invalidateUserCache(saved.getUuid());
+
         return saved;
     }
 
@@ -33,6 +38,10 @@ public class ProfileService {
         redisTemplate.delete(PROFILE_CACHE_PREFIX + profile.getUuid());
         ProfileDocument updated = profileRepository.save(profile);
         log.info("Profile updated with UUID: {}", profile.getUuid());
+
+        // Инвалидируем поисковые кэши при обновлении профиля
+        cacheService.invalidateUserCache(profile.getUuid());
+
         return updated;
     }
 
@@ -40,6 +49,9 @@ public class ProfileService {
         profileRepository.deleteById(uuid);
         redisTemplate.delete(PROFILE_CACHE_PREFIX + uuid);
         log.info("Profile deleted with UUID: {}", uuid);
+
+        // Инвалидируем поисковые кэши при удалении профиля
+        cacheService.invalidateUserCache(uuid);
     }
 
     public void updatePhoto(String uuid, String photo) {
@@ -50,6 +62,9 @@ public class ProfileService {
             profileRepository.save(profile);
             redisTemplate.delete(PROFILE_CACHE_PREFIX + uuid);
             log.info("Profile photo updated for UUID: {}", uuid);
+
+            // Инвалидируем поисковые кэши при изменении фото профиля
+            cacheService.invalidateUserCache(uuid);
         }
     }
 }

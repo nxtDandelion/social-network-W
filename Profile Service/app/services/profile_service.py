@@ -88,7 +88,16 @@ class ProfileService:
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Email already exists"
                 )
-
+        if profile_update.login:
+            existing_profile = await self.crud.get_profile_by_login(
+                profile_update.login
+            )
+            if existing_profile and existing_profile.uuid != profile_uuid:
+                logging.warning(f"Login already exists: {profile_update.login}")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Login already exists"
+                )
         db_profile = await self.crud.update_profile(
             profile_username,
             profile_update

@@ -18,12 +18,17 @@ public class PostService {
 
     private final PostRepository postRepository;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final CacheService cacheService; // Добавляем CacheService
 
     private static final String POST_CACHE_PREFIX = "post:";
 
     public PostDocument create(PostDocument post) {
         PostDocument saved = postRepository.save(post);
         log.info("Post created with ID: {}", saved.getId());
+
+        // Инвалидируем поисковые кэши при создании нового поста
+        cacheService.invalidatePostCache(saved.getId());
+
         return saved;
     }
 
@@ -35,6 +40,10 @@ public class PostService {
         redisTemplate.delete(POST_CACHE_PREFIX + post.getId());
         PostDocument updated = postRepository.save(post);
         log.info("Post updated with ID: {}", post.getId());
+
+        // Инвалидируем поисковые кэши при обновлении поста
+        cacheService.invalidatePostCache(post.getId());
+
         return updated;
     }
 
@@ -42,6 +51,9 @@ public class PostService {
         postRepository.deleteById(String.valueOf(postId));
         redisTemplate.delete(POST_CACHE_PREFIX + postId);
         log.info("Post deleted with ID: {}", postId);
+
+        // Инвалидируем поисковые кэши при удалении поста
+        cacheService.invalidatePostCache(postId);
     }
 
     public void updateLikers(Integer postId, List<String> likers) {
@@ -53,8 +65,9 @@ public class PostService {
             postRepository.save(post);
             redisTemplate.delete(POST_CACHE_PREFIX + postId);
             log.info("Post likers updated for ID: {}", postId);
-        } else {
-            log.warn("Post with ID {} not found for updating likers", postId);
+
+            // Инвалидируем поисковые кэши при изменении лайков
+            cacheService.invalidatePostCache(postId);
         }
     }
 
@@ -77,11 +90,10 @@ public class PostService {
                 postRepository.save(post);
                 redisTemplate.delete(POST_CACHE_PREFIX + postId);
                 log.info("Added liker {} to post {}", profileId, postId);
-            } else {
-                log.debug("User {} already liked post {}", profileId, postId);
+
+                // Инвалидируем поисковые кэши при добавлении лайка
+                cacheService.invalidatePostCache(postId);
             }
-        } else {
-            log.warn("Post with ID {} not found for adding liker", postId);
         }
     }
 
@@ -103,11 +115,10 @@ public class PostService {
                 postRepository.save(post);
                 redisTemplate.delete(POST_CACHE_PREFIX + postId);
                 log.info("Removed liker {} from post {}", profileId, postId);
-            } else {
-                log.debug("User {} didn't like post {}", profileId, postId);
+
+                // Инвалидируем поисковые кэши при удалении лайка
+                cacheService.invalidatePostCache(postId);
             }
-        } else {
-            log.warn("Post with ID {} not found for removing liker", postId);
         }
     }
 }

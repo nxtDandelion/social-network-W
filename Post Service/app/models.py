@@ -55,7 +55,7 @@ class Post(Base):
     id = Column(Integer, primary_key=True,
                 index=True,
                 autoincrement=True)
-    text = Column(VARCHAR(100))
+    text = Column(VARCHAR(1000))
     profile_id = Column(
         VARCHAR(100),
         ForeignKey("profile.uuid"),
