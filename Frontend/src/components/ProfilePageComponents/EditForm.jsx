@@ -98,10 +98,8 @@ export default function EditForm({curUserLogin, curUserName, curUserMail,
             );
 
             if (response.success) {
-                console.log("Профиль обновлен:", response.data);
+                localStorage.setItem("myUsername", response.data.username);
                 showNotice();
-
-
                 refreshProfile(response.data.username);
                 navigate(`/profile/${response.data.username}`);
                 closeModalPage();
@@ -109,9 +107,16 @@ export default function EditForm({curUserLogin, curUserName, curUserMail,
             } else {
                 setError(response.error || "Ошибка при обновлении профиля");
                 errorLog(response);
+                if (response.statusCode===400){
+                    setError(response.message);
+                }
+
             }
         } catch (error) {
             console.error("Ошибка при обновлении:", error);
+            // if (response.status===400){
+            //     setError(error.message);
+            // }
             setError("Произошла ошибка при обновлении профиля");
         } finally {
             setIsLoading(false);

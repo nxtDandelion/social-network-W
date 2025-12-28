@@ -32,18 +32,21 @@ export const errorHandler = (error,curResponse) => {
                     case "USERNAME_EXISTS":
                         return {
                             custom: true,
+                            statusCode: status,
                             success: false,
                             message: "Такое имя пользователя уже существует"
                         }
                     case "LOGIN_EXISTS":
                         return {
                             custom: true,
+                            statusCode: status,
                             success: false,
                             message: "Такой логин уже существует"
                         }
                     case "EMAIL_EXISTS":
                         return {
                             custom: true,
+                            statusCode: status,
                             success: false,
                             message: "Такой email уже существует"
                         }
@@ -53,6 +56,28 @@ export const errorHandler = (error,curResponse) => {
                             statusCode: status,
                             error: `${error.response.data}`,
                             details: data
+                        }
+                }
+            }
+            else{
+                switch (error.response.data.detail){
+                    case "Username already exists":
+                        return {
+                            success: false,
+                            statusCode: status,
+                            message: "Такое имя пользователя уже существует"
+                        }
+                    case "Login already exists":
+                        return {
+                            success: false,
+                            statusCode: status,
+                            message: "Такой логин уже существует"
+                        }
+                    case "Email already exists":
+                        return {
+                            success: false,
+                            statusCode: status,
+                            message: "Такой email уже существует"
                         }
                 }
             }
@@ -69,6 +94,7 @@ export const errorHandler = (error,curResponse) => {
     else {
         return {
             success: false,
+
             error: "Сетевая ошибка при получении данных"
         };
     }

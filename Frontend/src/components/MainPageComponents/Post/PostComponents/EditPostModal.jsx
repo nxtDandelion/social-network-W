@@ -82,7 +82,7 @@ export default function EditPostModal({sendForm,closeModal,initText,edited,myAva
                             value={postText}
                             onInput={handleInput}
                             onPaste={handlePaste}
-                            placeholder="Диктуйте миру ваши мысли... Смайлики запрещены"
+                            placeholder="Диктуйте миру ваши мысли..."
                             style={{wordBreak: "break-word"}}
                         />
                     </div>
