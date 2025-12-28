@@ -5,6 +5,7 @@ import com.socialw.search.model.elastic.PostDocument;
 import com.socialw.search.model.elastic.ProfileDocument;
 import com.socialw.search.repository.elastic.PostRepository;
 import com.socialw.search.repository.elastic.ProfileRepository;
+import com.socialw.search.service.CacheService;
 import com.socialw.search.service.ElasticsearchHealthService;
 import com.socialw.search.service.RedisHealthService;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +29,207 @@ public class SearchController {
     private final RedisHealthService redisHealthService;
     private final PostRepository postRepository;
     private final ProfileRepository profileRepository;
+    private final CacheService cacheService;
 
+    @GetMapping("/")
+    public ResponseEntity<Map<String, Object>> searchPosts(
+            @RequestParam String query,
+            @RequestParam(defaultValue = "false") boolean exact,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        try {
+            log.info("Searching posts with query: '{}', exact: {}, page: {}, size: {}",
+                    query, exact, page, size);
+
+            // 1. Пытаемся получить из кэша
+            Optional<Map<String, Object>> cachedResult =
+                    cacheService.getSearchResult(query, exact, page, size);
+
+            if (cachedResult.isPresent()) {
+                Map<String, Object> cachedResponse = cachedResult.get();
+                @SuppressWarnings("unchecked")
+                List<PostWithProfileResponse> results = (List<PostWithProfileResponse>) cachedResponse.get("results");
+
+                log.info("Returning cached result for query: '{}' with {} results",
+                        query, results != null ? results.size() : 0);
+
+                // Проверяем есть ли реальные результаты в кэше
+                if (results == null || results.isEmpty()) {
+                    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(cachedResponse);
+                }
+                return ResponseEntity.ok(cachedResponse);
+            }
+
+            // 2. Если нет в кэше, ищем в Elasticsearch
+            Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createDate"));
+            Page<PostDocument> postResults;
+
+            if (exact) {
+                postResults = postRepository.searchByText(query, pageable);
+            } else {
+                String wildcardQuery = "*" + query + "*";
+                postResults = postRepository.searchByPartialText(wildcardQuery, pageable);
+            }
+
+            List<PostWithProfileResponse> results = postResults.getContent().stream()
+                    .map(this::convertToPostWithProfile)
+                    .collect(Collectors.toList());
+
+            Map<String, Object> response = createSearchResponse(query, exact, postResults, results);
+
+            // 3. Сохраняем в кэш
+            cacheService.saveSearchResult(query, exact, page, size, response);
+            log.info("Cached search result for query: '{}'", query);
+
+            if (results.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            }
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("Error searching posts with query: {}", query, e);
+            return createErrorResponse("Search failed", e);
+        }
+    }
+
+    @GetMapping("/hashtag")
+    public ResponseEntity<Map<String, Object>> searchByHashtag(
+            @RequestParam String query,
+            @RequestParam(defaultValue = "false") boolean exact,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        try {
+            String cleanedQuery = query.startsWith("#") ? query.substring(1) : query;
+            log.info("Searching hashtag: '#{}', exact: {}, page: {}, size: {}",
+                    cleanedQuery, exact, page, size);
+
+            // 1. Пытаемся получить из кэша
+            Optional<Map<String, Object>> cachedResult =
+                    cacheService.getHashtagResult(query, exact, page, size);
+
+            if (cachedResult.isPresent()) {
+                Map<String, Object> cachedResponse = cachedResult.get();
+                @SuppressWarnings("unchecked")
+                List<PostWithProfileResponse> results = (List<PostWithProfileResponse>) cachedResponse.get("results");
+
+                log.info("Returning cached result for hashtag: '#{}' with {} results",
+                        cleanedQuery, results != null ? results.size() : 0);
+
+                // Проверяем есть ли реальные результаты в кэше
+                if (results == null || results.isEmpty()) {
+                    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(cachedResponse);
+                }
+                return ResponseEntity.ok(cachedResponse);
+            }
+
+            // 2. Если нет в кэше, ищем в Elasticsearch
+            Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createDate"));
+
+            Page<PostDocument> textResults;
+            String searchQuery = exact ? cleanedQuery : "*" + cleanedQuery + "*";
+            textResults = exact ?
+                    postRepository.searchByText(cleanedQuery, pageable) :
+                    postRepository.searchByPartialText(searchQuery, pageable);
+
+            List<PostDocument> filteredResults = textResults.getContent().stream()
+                    .filter(post -> post.getText() != null && containsHashtag(post.getText(), cleanedQuery))
+                    .collect(Collectors.toList());
+
+            Page<PostDocument> finalResults = createPage(filteredResults, pageable);
+
+            List<PostWithProfileResponse> results = finalResults.getContent().stream()
+                    .map(this::convertToPostWithProfile)
+                    .collect(Collectors.toList());
+
+            Map<String, Object> response = createHashtagResponse(
+                    query, cleanedQuery, exact, finalResults, results, textResults.getTotalElements());
+
+            // 3. Сохраняем в кэш
+            cacheService.saveHashtagResult(query, exact, page, size, response);
+            log.info("Cached hashtag result for query: '#{}'", cleanedQuery);
+
+            if (results.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            }
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("Error searching hashtag with query: {}", query, e);
+            return createErrorResponse("Hashtag search failed", e);
+        }
+    }
+
+    @GetMapping("/cache/clear/search")
+    public ResponseEntity<Map<String, Object>> clearSearchCache() {
+        try {
+            cacheService.clearAllSearchCache();
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Search cache cleared successfully");
+            response.put("timestamp", LocalDateTime.now());
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Failed to clear search cache", e);
+            return createErrorResponse("Failed to clear search cache", e);
+        }
+    }
+
+    @GetMapping("/cache/clear/hashtag")
+    public ResponseEntity<Map<String, Object>> clearHashtagCache() {
+        try {
+            cacheService.clearAllHashtagCache();
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Hashtag cache cleared successfully");
+            response.put("timestamp", LocalDateTime.now());
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Failed to clear hashtag cache", e);
+            return createErrorResponse("Failed to clear hashtag cache", e);
+        }
+    }
+
+    @GetMapping("/cache/clear/all")
+    public ResponseEntity<Map<String, Object>> clearAllCache() {
+        try {
+            cacheService.clearAllSearchCache();
+            cacheService.clearAllHashtagCache();
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "All search cache cleared successfully");
+            response.put("timestamp", LocalDateTime.now());
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Failed to clear all cache", e);
+            return createErrorResponse("Failed to clear all cache", e);
+        }
+    }
+
+    @GetMapping("/cache/stats")
+    public ResponseEntity<Map<String, Object>> getCacheStats() {
+        try {
+            Map<String, Object> stats = new HashMap<>();
+
+            // Пример простой статистики
+            Long searchKeysCount = redisTemplate.keys("search:*") != null ?
+                    (long) redisTemplate.keys("search:*").size() : 0L;
+            Long hashtagKeysCount = redisTemplate.keys("hashtag:*") != null ?
+                    (long) redisTemplate.keys("hashtag:*").size() : 0L;
+
+            stats.put("search_cache_keys", searchKeysCount);
+            stats.put("hashtag_cache_keys", hashtagKeysCount);
+            stats.put("total_cache_keys", searchKeysCount + hashtagKeysCount);
+            stats.put("timestamp", LocalDateTime.now());
+
+            return ResponseEntity.ok(stats);
+        } catch (Exception e) {
+            log.error("Failed to get cache stats", e);
+            return createErrorResponse("Failed to get cache stats", e);
+        }
+    }
+
+    // Остальные методы остаются без изменений
     @GetMapping("/health")
     public ResponseEntity<Map<String, Object>> healthCheck() {
         Map<String, Object> healthResponse = new HashMap<>();
@@ -59,93 +260,6 @@ public class SearchController {
         return ResponseEntity.ok(healthInfo);
     }
 
-    @GetMapping("/")
-    public ResponseEntity<Map<String, Object>> searchPosts(
-            @RequestParam String query,
-            @RequestParam(defaultValue = "false") boolean exact,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-
-        try {
-            log.info("Searching posts with query: '{}', exact: {}, page: {}, size: {}",
-                    query, exact, page, size);
-
-            Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createDate"));
-            Page<PostDocument> postResults;
-
-            if (exact) {
-                postResults = postRepository.searchByText(query, pageable);
-            } else {
-                String wildcardQuery = "*" + query + "*";
-                postResults = postRepository.searchByPartialText(wildcardQuery, pageable);
-            }
-
-            List<PostWithProfileResponse> results = postResults.getContent().stream()
-                    .map(this::convertToPostWithProfile)
-                    .collect(Collectors.toList());
-
-            Map<String, Object> response = createSearchResponse(query, exact, postResults, results);
-
-            if (results.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
-            }
-
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-            log.error("Error searching posts with query: {}", query, e);
-            return createErrorResponse("Search failed", e);
-        }
-    }
-
-    @GetMapping("/hashtag")
-    public ResponseEntity<Map<String, Object>> searchByHashtag(
-            @RequestParam String query,
-            @RequestParam(defaultValue = "false") boolean exact,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-
-        try {
-            String cleanedQuery = query.startsWith("#") ? query.substring(1) : query;
-            log.info("Searching hashtag: '#{}', exact: {}, page: {}, size: {}",
-                    cleanedQuery, exact, page, size);
-
-            Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createDate"));
-
-            // Ищем посты содержащие текст хештега
-            Page<PostDocument> textResults;
-            String searchQuery = exact ? cleanedQuery : "*" + cleanedQuery + "*";
-            textResults = exact ?
-                    postRepository.searchByText(cleanedQuery, pageable) :
-                    postRepository.searchByPartialText(searchQuery, pageable);
-
-            // Фильтруем только посты с настоящим хештегом
-            List<PostDocument> filteredResults = textResults.getContent().stream()
-                    .filter(post -> post.getText() != null && containsHashtag(post.getText(), cleanedQuery))
-                    .collect(Collectors.toList());
-
-            // Создаем пагинированный ответ
-            Page<PostDocument> finalResults = createPage(filteredResults, pageable);
-
-            List<PostWithProfileResponse> results = finalResults.getContent().stream()
-                    .map(this::convertToPostWithProfile)
-                    .collect(Collectors.toList());
-
-            Map<String, Object> response = createHashtagResponse(
-                    query, cleanedQuery, exact, finalResults, results, textResults.getTotalElements());
-
-            if (results.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
-            }
-
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-            log.error("Error searching hashtag with query: {}", query, e);
-            return createErrorResponse("Hashtag search failed", e);
-        }
-    }
-
     @GetMapping("/stats")
     public ResponseEntity<Map<String, Object>> getStats() {
         Map<String, Object> stats = new HashMap<>();
@@ -155,7 +269,7 @@ public class SearchController {
         return ResponseEntity.ok(stats);
     }
 
-
+    // Вспомогательные методы (остаются без изменений)
     private Map<String, Object> createSearchResponse(String query, boolean exact,
                                                      Page<PostDocument> postResults,
                                                      List<PostWithProfileResponse> results) {
@@ -168,6 +282,7 @@ public class SearchController {
         response.put("totalPages", postResults.getTotalPages());
         response.put("totalElements", postResults.getTotalElements());
         response.put("timestamp", LocalDateTime.now());
+        response.put("cached", false); // Это свежий результат, не из кэша
         return response;
     }
 
@@ -186,6 +301,7 @@ public class SearchController {
         response.put("totalElements", finalResults.getTotalElements());
         response.put("initialResultsCount", initialResultsCount);
         response.put("timestamp", LocalDateTime.now());
+        response.put("cached", false); // Это свежий результат, не из кэша
         return response;
     }
 
@@ -224,7 +340,6 @@ public class SearchController {
             return false;
         }
 
-        // Проверяем что это отдельное слово
         if (hashtagIndex > 0) {
             char before = text.charAt(hashtagIndex - 1);
             if (Character.isLetterOrDigit(before)) {
@@ -263,4 +378,7 @@ public class SearchController {
 
         return response;
     }
+
+    // Добавляем RedisTemplate для статистики кэша
+    private final org.springframework.data.redis.core.RedisTemplate<String, String> redisTemplate;
 }
