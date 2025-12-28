@@ -26,7 +26,6 @@ export const updatePost = async (postId,text) => {
                 }
             }
         );
-        console.log("Пост обновлен успешно:", response.data);
         return { success: true, data: response.data };
     } catch (error) {
         const curResponse = "Обновление поста:"

@@ -17,7 +17,6 @@ export const getCurrentPost = async (postId) =>{
                 'Content-Type': 'application/json'
             }
         });
-        console.log("Пост GET успешен");
         return {success:true, data:response.data};
 
     }catch (error) {

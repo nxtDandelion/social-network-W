@@ -8,9 +8,7 @@ import {updatePost} from "../../../../API/PostAPI/updatePost.js";
 import EditPostModal from "./EditPostModal.jsx";
 import PopUpConfirm from "../../../PopupComponents/PopUpConfirm.jsx";
 
-
 export default function OtherFuncMenu({component,userId,postId,initText,edited,updateThisPost,userAvatar}) {
-
     const [visible, setVisible] = useState(false);
     const [showEdit,setShowEdit] = useState(false);
     const [note, setNote] = useState(null);
@@ -21,7 +19,6 @@ export default function OtherFuncMenu({component,userId,postId,initText,edited,u
         const response = await updatePost(postId,text)
         if (response.success){
             setPostUpdated({id:postId,text:text});
-
             setNote({
                 type: "success",
                 message: "Пост отредактирован",
@@ -63,14 +60,14 @@ export default function OtherFuncMenu({component,userId,postId,initText,edited,u
                     onMouseEnter={() => {setVisible(true)}}
                     onMouseLeave={() => {setVisible(false)}}
                 >
-                    <MenuCard userId={userId}
-                              postId={postId}
-                              showNote = {setNote}
-                              openEditMenu={editPost}
+                    <MenuCard
+                        userId={userId}
+                        postId={postId}
+                        showNote={setNote}
+                        openEditMenu={editPost}
                     />
-                </div>)}
-
-
+                </div>
+            )}
 
             {note &&
                 <NotificationCard
@@ -79,8 +76,7 @@ export default function OtherFuncMenu({component,userId,postId,initText,edited,u
                     duration={note.duration}
                     onClose={closeNotification}
                     isVisible="true"
-                >
-                </NotificationCard>
+                />
             }
 
             {showEdit &&
@@ -97,14 +93,11 @@ export default function OtherFuncMenu({component,userId,postId,initText,edited,u
 }
 
 function MenuCard({userId,postId,showNote,openEditMenu}) {
-
     const myId = localStorage.getItem("userId");
     const isMyPost = checkAccess(myId,userId);
     const {setPostDeleted} = useContext(FeedContext);
     const {refreshToken,auth} = useContext(AuthContext);
     const [confirmAlert,setConfirmAlert] = useState(false);
-
-
 
     const reportPost = async () =>{
         if (auth){
@@ -116,18 +109,10 @@ function MenuCard({userId,postId,showNote,openEditMenu}) {
         }
         else refreshToken();
     }
+
     const updateMyPost = () =>{
         if (auth) {
-            if (isMyPost) {
-                openEditMenu();
-
-            } else {
-                showNote({
-                    type: "error",
-                    message: "Вы не можете редактировать этот пост",
-                    duration: 2000
-                });
-            }
+            openEditMenu();
         }
         else refreshToken();
     }
@@ -136,14 +121,13 @@ function MenuCard({userId,postId,showNote,openEditMenu}) {
         if (auth){
             const response = await deletePost(myId,postId);
             if (response.success) {
-                console.log("Пост удалЕн",postId);
+                console.log("Пост удален",postId);
                 setPostDeleted(postId);
                 showNote({
                     type: "success",
                     message: "Пост удален успешно",
                     duration: 2000
                 });
-
             }
             else if (response.statusCode===401){
                 refreshToken();
@@ -154,20 +138,12 @@ function MenuCard({userId,postId,showNote,openEditMenu}) {
         }
         else refreshToken();
     }
-    const deleteMyPost = () =>{
-       if (auth) {
-           if (isMyPost) {
-               setConfirmAlert(true);
 
-           } else {
-               showNote({
-                   type: "error",
-                   message: "Вы не можете удалить этот пост",
-                   duration: 2000
-               });
-           }
-       }
-       else refreshToken();
+    const deleteMyPost = () =>{
+        if (auth) {
+            setConfirmAlert(true);
+        }
+        else refreshToken();
     }
 
     function close(){
@@ -180,15 +156,18 @@ function MenuCard({userId,postId,showNote,openEditMenu}) {
                 <button onClick={reportPost} className="w-full text-left px-4 py-2 hover:bg-gray-100">
                     Пожаловаться
                 </button>
-                <button onClick={updateMyPost} className="w-full text-left px-4 py-2 hover:bg-gray-100">
-                    Редактировать
-                </button>
-                <button onClick={deleteMyPost} className="w-full text-left px-4 py-2 hover:bg-gray-100">
-                    Удалить
-                </button>
+                {isMyPost && (
+                    <button onClick={updateMyPost} className="w-full text-left px-4 py-2 hover:bg-gray-100">
+                        Редактировать
+                    </button>
+                )}
+                {isMyPost && (
+                    <button onClick={deleteMyPost} className="w-full text-left px-4 py-2 hover:bg-gray-100">
+                        Удалить
+                    </button>
+                )}
             </div>
             {confirmAlert && <PopUpConfirm confirm={deleteP} close={close}/>}
-
         </div>
     )
 }

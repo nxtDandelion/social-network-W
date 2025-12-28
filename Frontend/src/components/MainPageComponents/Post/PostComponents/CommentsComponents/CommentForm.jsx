@@ -6,7 +6,7 @@ import {createComment} from "../../../../../API/PostAPI/createComment.js";
 import {CommentContext} from "../../../../../Contexts/CommentContext.jsx";
 
 export default function CommentForm({postId}) {
-    const {refreshToken,contextUserId} = useContext(AuthContext);
+    const {refreshToken,contextUserId,auth,setShowLoginMes} = useContext(AuthContext);
     const {setCommentCreated,commentCreated} = useContext(CommentContext);
     const [commentText, setCommentText] = useState("");
     const [isPostSend, setIsPostSend] = useState(false);
@@ -23,6 +23,10 @@ export default function CommentForm({postId}) {
     const submitHandler = async (e) => {
         e.preventDefault();
         if (!commentText.trim()) return;
+
+        if (!auth){
+            setShowLoginMes(true);
+        }
 
         setIsPostSend(true);
 

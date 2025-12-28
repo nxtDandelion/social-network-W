@@ -12,7 +12,6 @@ export const responseCommentsList = async (postId) =>{
                 'Content-Type': 'application/json'
             }
         });
-        console.log("Запрос на вход успешен");
         return {success:true,data:response.data};
     }
     catch (error) {

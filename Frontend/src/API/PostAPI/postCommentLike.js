@@ -14,7 +14,6 @@ export const postCommentLike = async (commentId,profileId) =>{
                 'Content-Type': 'application/json'
             }
         });
-        console.log("Запрос на отпраку комментария успешен");
         return {success:true,data:response.data};
     }
     catch (error) {

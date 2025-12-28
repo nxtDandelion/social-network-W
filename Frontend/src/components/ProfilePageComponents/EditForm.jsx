@@ -39,8 +39,7 @@ export default function EditForm({curUserLogin, curUserName, curUserMail,
             newUserName !== curUserName ||
             newUserLogin !== curUserLogin ||
             newUserMail !== curUserMail ||
-            newUserAvatar !== curUserAvatar||
-            newUserPassword !== "";
+            newUserAvatar !== curUserAvatar
 
         setIsActive(hasChanges);
     }, [newUserLogin, newUserName, newUserMail, newUserAvatar,newUserPassword]);
