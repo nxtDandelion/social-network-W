@@ -56,6 +56,25 @@ export const errorHandler = (error,curResponse) => {
                         }
                 }
             }
+            else{
+                switch (error.response.data.detail){
+                    case "Username already exists":
+                        return {
+                            success: false,
+                            message: "Такое имя пользователя уже существует"
+                        }
+                    case "Login already exists":
+                        return {
+                            success: false,
+                            message: "Такой логин уже существует"
+                        }
+                    case "Email already exists":
+                        return {
+                            success: false,
+                            message: "Такой email уже существует"
+                        }
+                }
+            }
         }
         else {
             return {

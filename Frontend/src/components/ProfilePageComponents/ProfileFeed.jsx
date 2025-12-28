@@ -83,7 +83,6 @@ export default function ProfileFeed({ showEdit, onCloseModal}) {
             newPostsData.length === postsData.length) {
             return;
         }
-
         setPostsList(newPostsList);
         setPostsData(newPostsData);
 

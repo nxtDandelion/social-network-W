@@ -111,6 +111,9 @@ export default function EditForm({curUserLogin, curUserName, curUserMail,
                 errorLog(response);
             }
         } catch (error) {
+            if (error.code===400){
+                setError();
+            }
             console.error("Ошибка при обновлении:", error);
             setError("Произошла ошибка при обновлении профиля");
         } finally {

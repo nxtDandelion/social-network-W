@@ -17,7 +17,6 @@ export default function CreatePostBtn({}) {
     const [shouldRedirect, setShouldRedirect] = useState(false);
     const myAvatar = localStorage.getItem("UserPhoto");
 
-    const isOnFavouritesPage = location.pathname === '/favourites';
     const isNotOnHomePage = location.pathname !== '/home';
 
     function handleClose() {
