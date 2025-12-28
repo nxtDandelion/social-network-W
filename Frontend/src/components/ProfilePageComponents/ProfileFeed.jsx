@@ -71,7 +71,6 @@ export default function ProfileFeed({ showEdit, onCloseModal}) {
             setLoadingPosts(false);
         }
     };
-
     useEffect(() => {
         const postID = postDeleted;
         if (!postID) return;
@@ -161,7 +160,7 @@ export default function ProfileFeed({ showEdit, onCloseModal}) {
                 localStorage.setItem("UserPhoto", userInfo.data.photo);
                 localStorage.setItem("userId", userInfo.data.uuid);
                 setContextUserId(userInfo.data.uuid);
-                localStorage.setItem("myUserName", userInfo.data.username);
+                localStorage.setItem("myUsername", userInfo.data.username);
             }
         } else if (userInfo.statusCode === 401) {
             refreshToken();
@@ -201,6 +200,7 @@ export default function ProfileFeed({ showEdit, onCloseModal}) {
             return response.error;
         }
     };
+
 
     const updateSubscriptionsList = async () => {
         const response = await getFollowing(userProfileName);

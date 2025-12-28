@@ -72,8 +72,6 @@ export default function LoginPage() {
                 setContextUserId(response.data.id)
                 setAuth(true);
                 navigate(`/home`);
-
-
             }
             else{
                 errorLog(response);

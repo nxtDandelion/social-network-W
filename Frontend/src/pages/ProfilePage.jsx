@@ -1,18 +1,18 @@
 import Header from "../components/MainPageComponents/Header.jsx";
 import ProfileFeed from "../components/ProfilePageComponents/ProfileFeed.jsx";
 import {SearchIcon} from "../components/Icons/SearchIcon.jsx";
-import {useEffect, useState} from "react";
-import {useParams} from "react-router-dom";
+import {useContext, useEffect, useState} from "react";
+import {useNavigate, useParams} from "react-router-dom";
+import {AuthContext} from "../Contexts/AuthContext.jsx";
 
 export default function ProfilePage() {
     const [showEdit, setShowEdit] = useState(false);
     const [guestStatus,setGuestStatus] = useState(false);
     const {username} = useParams();
+    const {setAuth,setShowLoginMes} = useContext(AuthContext);
     const myUsername = localStorage.getItem("myUsername");
 
     useEffect(()=>{
-        console.log("Username",username);
-        console.log("myUsername",myUsername);
        if(myUsername!==username){
            setGuestStatus(true);
        }
@@ -25,7 +25,17 @@ export default function ProfilePage() {
         setShowEdit(true);
     };
 
-    // Функция для закрытия модального окна
+    const exitProf = () => {
+        localStorage.removeItem("myUsername");
+        localStorage.removeItem("userId");
+        localStorage.removeItem("myLogin");
+        localStorage.removeItem("UserPhoto");
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("auth");
+        setAuth(false);
+        setShowLoginMes(false);
+    }
+
     const closeModalPage = () => {
         setShowEdit(false);
     };
@@ -36,12 +46,21 @@ export default function ProfilePage() {
         <div className="flex flex-col max-w-[50rem] relative">
             <Header used="profilePage">
                 <SearchIcon />
+               <div className="flex gap-8">
+                <button
+                    className={`${guestStatus ? "hidden" : "flex"} text-white underline hover:opacity-60`}
+                    onClick={exitProf}
+                >
+                    Выйти
+                </button>
                 <button
                     className={`${guestStatus ? "hidden" : "flex"} text-white underline hover:opacity-60`}
                     onClick={editProf}
                 >
                     Редактировать
                 </button>
+               </div>
+
             </Header>
             <ProfileFeed
                 showEdit={showEdit}
