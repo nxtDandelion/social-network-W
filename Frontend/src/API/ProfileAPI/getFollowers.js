@@ -15,8 +15,7 @@ export const getFollowers =async (username) => {
             }
         });
 
-        console.log("Подписчики успешно полученны:", response.data);
-        return { success: true, data: response.data };// Возвращаем созданный пост
+        return { success: true, data: response.data };
 
     } catch (error) {
         const curResponse = `Получение списка подписчиков ${username}:`

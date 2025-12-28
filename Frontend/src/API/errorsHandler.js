@@ -61,7 +61,7 @@ export const errorHandler = (error,curResponse) => {
             return {
                 success: false,
                 statusCode: status,
-                error: `${curResponse} Код ошибки не обработан`,
+                error: `${curResponse} Неизвестная ошибка сервера`,
                 details: data
             }
         }

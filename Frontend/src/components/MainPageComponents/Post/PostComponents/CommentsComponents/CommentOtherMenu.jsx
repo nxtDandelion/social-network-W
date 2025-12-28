@@ -157,17 +157,17 @@ function MenuCard({curUserId, commentId, postId, showNote, openEditMenu}) {
                 <button onClick={reportComment} className="w-full text-left px-4 py-2 hover:bg-gray-100">
                     Пожаловаться
                 </button>
-                <button onClick={updateMyComment} className="w-full text-left px-4 py-2 hover:bg-gray-100">
-                    Редактировать
-                </button>
-                <button onClick={deleteMyComment} className="w-full text-left px-4 py-2 hover:bg-gray-100">
-                    Удалить
-                </button>
+                {isMyComment && (
+                    <button onClick={updateMyComment} className="w-full text-left px-4 py-2 hover:bg-gray-100">
+                        Редактировать
+                    </button>
+                )}
+                {isMyComment && (
+                    <button onClick={deleteMyComment} className="w-full text-left px-4 py-2 hover:bg-gray-100">
+                        Удалить
+                    </button>
+                )}
             </div>
         </div>
     );
-}
-
-function checkAccess(userId, postUserId) {
-    return userId === postUserId;
 }

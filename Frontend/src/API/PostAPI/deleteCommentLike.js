@@ -22,7 +22,6 @@ export const deleteCommentLike = async (commentId,profileId) => {
                 }
             }
         );
-        console.log("Комментарий удален успешно:", response.data);
         return { success: true, data: response.data };
     } catch (error) {
         const curResponse = "Удаление лайка на комментарий:"

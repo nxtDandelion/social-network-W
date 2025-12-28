@@ -14,8 +14,6 @@ export default function ({status,subscribes,profileUsername,updateSubscribersLis
 
     useEffect(()=>{
         checkSubscribe();
-        console.log(subscribes,"Список подписчиков");
-        console.log(subStatus);
     },[])
 
     useEffect(()=>{
@@ -29,7 +27,6 @@ export default function ({status,subscribes,profileUsername,updateSubscribersLis
     const checkSubscribe = () =>{
 
         const hasMyName = Object.keys(subscribes).includes(myUsername);
-        console.log(subscribes);
         if (hasMyName){
             setSubStatus(true);
         }

@@ -16,12 +16,14 @@ const AvatarUpload = ({ onAvatarChange }) => {
 
     const fileInputRef = useRef(null);
 
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+
     const handleFileSelect = (event) => {
         const file = event.target.files[0];
         if (!file) return;
 
-        if (!file.type.startsWith('image/')) {
-            alert('Выберите изображение!');
+        if (!allowedTypes.includes(file.type)) {
+            alert('Разрешены только файлы JPG, PNG или WebP!');
             return;
         }
 
@@ -209,7 +211,7 @@ const AvatarUpload = ({ onAvatarChange }) => {
                 type="file"
                 ref={fileInputRef}
                 onChange={handleFileSelect}
-                accept="image/*"
+                accept=".jpg,.jpeg,.png,.webp"
                 className="hidden"
             />
 

@@ -8,10 +8,8 @@ import {useContext, useEffect, useState} from "react";
 import {AuthContext} from "../Contexts/AuthContext.jsx";
 import FormMes from "../components/FormComponents/FormMes.jsx";
 import {lenghtCheck, loginValid, passwordValid} from "../API/AuthAPI/validation.js";
-import {API_BASE_URL} from "../config.js";
 import {responseLog} from "../API/AuthAPI/auth.js";
 import {errorLog} from "../API/errorsHandler.js";
-import {getUserProfile} from "../API/ProfileAPI/getUserProfile.js";
 
 export default function LoginPage() {
     const navigate = useNavigate();

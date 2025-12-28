@@ -9,7 +9,7 @@ import {deleteLike} from "../../../API/PostAPI/deleteLike.js";
 import {FeedContext} from "../../../Contexts/FeedContext.jsx";
 
 export default function PostPreview({postDate,likers,postText,userName,userTag,
-                                 userAvatar,userId,edited,postId,onModalFunc,commentsList}) {
+                                        userAvatar,userId,edited,postId,onModalFunc,commentsList}) {
 
     const {auth,setShowLoginMes,refreshToken,contextUserId} = useContext(AuthContext);
     const [commentsAmount,setCommentsAmount] = useState(Object.keys(commentsList).length);
@@ -95,14 +95,14 @@ export default function PostPreview({postDate,likers,postText,userName,userTag,
     if (isLoading) {
         return (
             <div className="flex flex-col w-[42rem] min-h-96 animate-pulse">
-                <div className="flex justify-between w-2xl max-h-20 pr-4 pl-4 pt-2 bg-gray-300 rounded-t-3xl">
+                <div className="flex justify-between w-full max-h-20 pr-4 pl-4 pt-2 bg-gray-300 rounded-t-3xl">
                     <div className="w-32 h-8 bg-gray-400 rounded"></div>
                     <div className="w-8 h-8 bg-gray-400 rounded"></div>
                 </div>
-                <div className="flex w-2xl min-h-80 bg-gray-200 border-r-2 border-l-2 border-gray-300">
+                <div className="flex w-full min-h-80 bg-gray-200 border-r-2 border-l-2 border-gray-300">
                     <div className="w-full h-40 bg-gray-300 m-4 rounded"></div>
                 </div>
-                <div className="flex w-2xl h-14 bg-gray-300">
+                <div className="flex w-full h-14 bg-gray-300">
                     <div className="flex w-2/4">
                         <div className="flex w-1/2 items-center ml-3">
                             <div className="w-6 h-6 bg-gray-400 rounded"></div>
@@ -115,8 +115,8 @@ export default function PostPreview({postDate,likers,postText,userName,userTag,
     }
 
     return (
-        <div className="flex flex-col w-[42rem]  min-h-96">
-            <div className="flex justify-between w-2xl  max-h-20 pr-4 pl-4 pt-2 bg-black rounded-t-3xl">
+        <div className="flex flex-col w-[42rem] min-h-96">
+            <div className="flex justify-between w-full max-h-20 pr-4 pl-4 pt-2 bg-black rounded-t-3xl">
                 <ProfileInfo
                     component="post"
                     userName={userName}
@@ -138,10 +138,14 @@ export default function PostPreview({postDate,likers,postText,userName,userTag,
                     </div>
                 </div>
             </div>
-            <div className="flex w-2xl min-h-80 bg-white border-r-2 border-l-2 border-black">
-                <p className="text-lg p-4"> {postText}</p>
+            <div className="flex w-full min-h-80 bg-white border-r-2 border-l-2 border-black p-4">
+                <div className="w-full">
+                    <p className="text-lg whitespace-pre-wrap break-words overflow-wrap-anywhere w-full">
+                        {postText}
+                    </p>
+                </div>
             </div>
-            <div className="flex w-2xl h-14 bg-black">
+            <div className="flex w-full h-14 bg-black">
                 <div className="flex w-2/4">
                     <button
                         onClick={likeHandleClick}

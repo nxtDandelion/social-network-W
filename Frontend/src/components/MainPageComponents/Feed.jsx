@@ -137,7 +137,6 @@ export default function Feed({ filter, searchResults, searchLoading, searchError
     }, [searchResults, searchError, searchLoading]);
 
     const fetchPosts = useCallback(async (currentSkip, isInitial = false) => {
-        console.log(`[Feed] fetchPosts: skip=${currentSkip}, initial=${isInitial}, filter=${filter}`);
 
         if (isSearchMode) {
             console.log('[Feed] Пропускаем fetchPosts в режиме поиска');
@@ -192,7 +191,6 @@ export default function Feed({ filter, searchResults, searchLoading, searchError
     }, [filter, contextUserName, limit, isSearchMode]);
 
     const refreshFeed = useCallback(async () => {
-        console.log(`[Feed] refreshFeed called, filter=${filter}`);
         if (isSearchMode) return;
 
         setLoading(true);
