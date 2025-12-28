@@ -22,8 +22,8 @@ export const unFollowProfile = async (username,profileName) => {
                 }
             }
         );
-        console.log("Отписан успешно:", response.data);
-        return { success: true, data: response.data };// Возвращаем созданный пост
+
+        return { success: true, data: response.data };
     } catch (error) {
         const curResponse = "Отписка:"
         return  errorHandler(error,curResponse);

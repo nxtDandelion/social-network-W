@@ -29,8 +29,7 @@ export const newPost = async (postText) => {
                 }
             }
         );
-        console.log("Пост создан успешно:", response.data);
-        return { success: true, data: response.data };// Возвращаем созданный пост
+        return { success: true, data: response.data };
     } catch (error) {
         const curResponse = "Создание поста:"
         return  errorHandler(error,curResponse);

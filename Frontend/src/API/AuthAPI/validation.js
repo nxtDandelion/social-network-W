@@ -1,6 +1,6 @@
 export const loginValid = (value) => {
     if (!value || value.length === 0) {
-        return {isValid:false,message: "Все поля должны быть заполнены"};
+        return {isValid:false,message: "Поле логина должны быть заполнены"};
     }
     if (value.length < 3) {
         return {isValid:false,message: "Логин: минимум 3 символа"};
@@ -17,7 +17,7 @@ export const loginValid = (value) => {
 
 export const userNameValid = (value) => {
     if (!value || value.length === 0) {
-        return {isValid:false,message: "Все поля должны быть заполнены"};
+        return {isValid:false,message: "Поле имени должно быть заполнены"};
     }
     if (value.length < 3) {
         return {isValid:false,message: "Имя пользователя: минимум 3 символа"};
@@ -34,7 +34,7 @@ export const userNameValid = (value) => {
 
 export const passwordValid = (value) => {
     if (!value || value.length === 0) {
-        return {isValid: false, message: "Все поля должны быть заполнены"};
+        return {isValid: false, message: "Поле пароля должны быть заполнены"};
     }
     if (value.length < 8) {
         return {isValid: false, message: "Пароль: минимум 8 символов"};

@@ -19,7 +19,6 @@ export const deleteComment = async (profileId,postId,commentId) => {
                 }
             }
         );
-        console.log("Комментарий удален успешно:", response.data);
         return { success: true, data: response.data };// Возвращаем созданный пост
     } catch (error) {
         const curResponse = "Удаление комментария:"

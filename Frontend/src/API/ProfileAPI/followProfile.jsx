@@ -25,8 +25,7 @@ export const followProfile = async (username,profileName) => {
                 }
             }
         );
-        console.log("Подписан успешно:", response.data);
-        return { success: true, data: response.data };// Возвращаем созданный пост
+        return { success: true, data: response.data };
     } catch (error) {
         console.log("я пойман");
         const curResponse = "Подписка:"

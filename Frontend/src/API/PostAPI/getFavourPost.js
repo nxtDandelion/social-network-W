@@ -16,7 +16,6 @@ export const getFavourPosts = async (username, skip = 0, limit = 15) => {
                 skip: skip
             }
         });
-        console.log(`[API] Лента подписок: получено ${response.data?.length || 0} постов`);
         return {success: true, data: response.data};
     } catch (error) {
         console.error("[API] Ошибка при загрузке ленты подписок:", error);

@@ -19,7 +19,6 @@ export const deleteLike = async (postId) => {
 
             }
         );
-        console.log("Лайк удален успешно:", response.data);
         return { success: true, data: response.data };// Возвращаем созданный пост
     } catch (error) {
         const curResponse = "Удаление лайка:"

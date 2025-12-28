@@ -47,6 +47,12 @@ class ProfileCRUD:
         )
         return result.scalar_one_or_none()
 
+    async def get_profile_by_login(self, login: str) -> models.Profile:
+        result = await self.db.execute(
+            select(models.Profile).where(models.Profile.login == login)
+        )
+        return result.scalar_one_or_none()
+
     async def update_profile(
         self,
         username: str,
