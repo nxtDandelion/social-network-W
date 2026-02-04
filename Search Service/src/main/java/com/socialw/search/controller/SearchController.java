@@ -3,12 +3,9 @@ package com.socialw.search.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.socialw.search.dto.PostWithProfileResponse;
 import com.socialw.search.model.elastic.PostDocument;
-import com.socialw.search.model.elastic.ProfileDocument;
 import com.socialw.search.repository.elastic.PostRepository;
 import com.socialw.search.repository.elastic.ProfileRepository;
 import com.socialw.search.service.CacheService;
-import com.socialw.search.service.ElasticsearchHealthService;
-import com.socialw.search.service.RedisHealthService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.*;
@@ -27,8 +24,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class SearchController {
 
-    private final ElasticsearchHealthService elasticsearchHealthService;
-    private final RedisHealthService redisHealthService;
     private final PostRepository postRepository;
     private final ProfileRepository profileRepository;
     private final CacheService cacheService;
@@ -112,7 +107,7 @@ public class SearchController {
                     cleanedQuery, exact, page, size);
 
             Optional<Map<String, Object>> cachedResult =
-                    cacheService.getHashtagResult(query, exact, page, size);
+                    cacheService.getHashtagResult(cleanedQuery, exact, page, size);
 
             if (cachedResult.isPresent()) {
                 Map<String, Object> cachedResponse = cachedResult.get();
@@ -131,10 +126,12 @@ public class SearchController {
             Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createDate"));
 
             Page<PostDocument> textResults;
-            String searchQuery = exact ? cleanedQuery : "*" + cleanedQuery + "*";
-            textResults = exact ?
-                    postRepository.searchByText(cleanedQuery, pageable) :
-                    postRepository.searchByPartialText(searchQuery, pageable);
+            if (exact) {
+                textResults = postRepository.searchByText(cleanedQuery, pageable);
+            } else {
+                String wildcardQuery = "*" + cleanedQuery + "*";
+                textResults = postRepository.searchByPartialText(wildcardQuery, pageable);
+            }
 
             List<PostDocument> filteredResults = textResults.getContent().stream()
                     .filter(post -> post.getText() != null && containsHashtag(post.getText(), cleanedQuery))
@@ -154,7 +151,8 @@ public class SearchController {
                     .map(PostWithProfileResponse::getId)
                     .collect(Collectors.toList());
 
-            cacheService.saveHashtagResult(query, exact, page, size, response, postIds);
+            // Важное исправление: используем cleanedQuery для кэша
+            cacheService.saveHashtagResult(cleanedQuery, exact, page, size, response, postIds);
             log.info("Cached hashtag result for query: '#{}' with {} posts", cleanedQuery, postIds.size());
 
             if (results.isEmpty()) {
@@ -168,8 +166,6 @@ public class SearchController {
             return createErrorResponse("Hashtag search failed", e);
         }
     }
-
-    // ... остальные методы (health, stats, debug) остаются без изменений ...
 
     private Map<String, Object> createSearchResponse(String query, boolean exact,
                                                      Page<PostDocument> postResults,
@@ -210,6 +206,7 @@ public class SearchController {
         Map<String, Object> error = new HashMap<>();
         error.put("error", errorMessage);
         error.put("message", e.getMessage());
+        error.put("timestamp", LocalDateTime.now());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
     }
 
