@@ -15,9 +15,11 @@ async def lifespan(app: FastAPI):
         await conn.run_sync(Base.metadata.create_all)
     print("Database tables created successfully")
     await connect_rabbitmq()
+
     async def user_events_callback(event_type: str, event_data: dict):
         async for db in get_db():
             await handle_user_events(event_type, event_data, db)
+
     async def post_events_callback(event_type: str, event_data: dict):
         async for db in get_db():
             await handle_post_events(event_type, event_data, db)
