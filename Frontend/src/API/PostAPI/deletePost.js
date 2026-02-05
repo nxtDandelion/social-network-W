@@ -4,8 +4,7 @@ import axios from "axios";
 
 export const deletePost = async (profileId,postId) => {
     const token = localStorage.getItem("access_token");
-    console.log(profileId,"profileId");
-    console.log(postId,"postId");
+
     if (!token) {
         console.error("Токен не найден");
         return false;
@@ -23,7 +22,7 @@ export const deletePost = async (profileId,postId) => {
                 }
             }
         );
-        console.log("Пост удален успешно:", response.data);
+
         return { success: true, data: response.data };// Возвращаем созданный пост
     } catch (error) {
         const curResponse = "Удаление поста:"

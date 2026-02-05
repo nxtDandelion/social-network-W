@@ -1,15 +1,15 @@
 package com.socialw.search.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.socialw.search.dto.PostWithProfileResponse;
 import com.socialw.search.model.elastic.PostDocument;
-import com.socialw.search.model.elastic.ProfileDocument;
 import com.socialw.search.repository.elastic.PostRepository;
 import com.socialw.search.repository.elastic.ProfileRepository;
-import com.socialw.search.service.ElasticsearchHealthService;
-import com.socialw.search.service.RedisHealthService;
+import com.socialw.search.service.CacheService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.*;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,40 +24,11 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class SearchController {
 
-    private final ElasticsearchHealthService elasticsearchHealthService;
-    private final RedisHealthService redisHealthService;
     private final PostRepository postRepository;
     private final ProfileRepository profileRepository;
-
-    @GetMapping("/health")
-    public ResponseEntity<Map<String, Object>> healthCheck() {
-        Map<String, Object> healthResponse = new HashMap<>();
-        healthResponse.put("status", "healthy");
-        healthResponse.put("timestamp", LocalDateTime.now());
-        return ResponseEntity.ok(healthResponse);
-    }
-
-    @GetMapping("/elastic_health")
-    public ResponseEntity<Map<String, Object>> elasticsearchHealth() {
-        Map<String, Object> healthInfo = elasticsearchHealthService.checkHealth();
-
-        if ("error".equals(healthInfo.get("status"))) {
-            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(healthInfo);
-        }
-
-        return ResponseEntity.ok(healthInfo);
-    }
-
-    @GetMapping("/redis_health")
-    public ResponseEntity<Map<String, Object>> redisHealth() {
-        Map<String, Object> healthInfo = redisHealthService.checkHealth();
-
-        if ("error".equals(healthInfo.get("status"))) {
-            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(healthInfo);
-        }
-
-        return ResponseEntity.ok(healthInfo);
-    }
+    private final CacheService cacheService;
+    private final RedisTemplate<String, String> redisTemplate;
+    private final ObjectMapper objectMapper;
 
     @GetMapping("/")
     public ResponseEntity<Map<String, Object>> searchPosts(
@@ -69,6 +40,23 @@ public class SearchController {
         try {
             log.info("Searching posts with query: '{}', exact: {}, page: {}, size: {}",
                     query, exact, page, size);
+
+            Optional<Map<String, Object>> cachedResult =
+                    cacheService.getSearchResult(query, exact, page, size);
+
+            if (cachedResult.isPresent()) {
+                Map<String, Object> cachedResponse = cachedResult.get();
+                @SuppressWarnings("unchecked")
+                List<PostWithProfileResponse> results = (List<PostWithProfileResponse>) cachedResponse.get("results");
+
+                log.info("Returning cached result for query: '{}' with {} results",
+                        query, results != null ? results.size() : 0);
+
+                if (results == null || results.isEmpty()) {
+                    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(cachedResponse);
+                }
+                return ResponseEntity.ok(cachedResponse);
+            }
 
             Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createDate"));
             Page<PostDocument> postResults;
@@ -85,6 +73,14 @@ public class SearchController {
                     .collect(Collectors.toList());
 
             Map<String, Object> response = createSearchResponse(query, exact, postResults, results);
+
+            // Извлекаем ID постов для сохранения связи
+            List<Integer> postIds = results.stream()
+                    .map(PostWithProfileResponse::getId)
+                    .collect(Collectors.toList());
+
+            cacheService.saveSearchResult(query, exact, page, size, response, postIds);
+            log.info("Cached search result for query: '{}' with {} posts", query, postIds.size());
 
             if (results.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
@@ -110,21 +106,37 @@ public class SearchController {
             log.info("Searching hashtag: '#{}', exact: {}, page: {}, size: {}",
                     cleanedQuery, exact, page, size);
 
+            Optional<Map<String, Object>> cachedResult =
+                    cacheService.getHashtagResult(cleanedQuery, exact, page, size);
+
+            if (cachedResult.isPresent()) {
+                Map<String, Object> cachedResponse = cachedResult.get();
+                @SuppressWarnings("unchecked")
+                List<PostWithProfileResponse> results = (List<PostWithProfileResponse>) cachedResponse.get("results");
+
+                log.info("Returning cached result for hashtag: '#{}' with {} results",
+                        cleanedQuery, results != null ? results.size() : 0);
+
+                if (results == null || results.isEmpty()) {
+                    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(cachedResponse);
+                }
+                return ResponseEntity.ok(cachedResponse);
+            }
+
             Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createDate"));
 
-            // Ищем посты содержащие текст хештега
             Page<PostDocument> textResults;
-            String searchQuery = exact ? cleanedQuery : "*" + cleanedQuery + "*";
-            textResults = exact ?
-                    postRepository.searchByText(cleanedQuery, pageable) :
-                    postRepository.searchByPartialText(searchQuery, pageable);
+            if (exact) {
+                textResults = postRepository.searchByText(cleanedQuery, pageable);
+            } else {
+                String wildcardQuery = "*" + cleanedQuery + "*";
+                textResults = postRepository.searchByPartialText(wildcardQuery, pageable);
+            }
 
-            // Фильтруем только посты с настоящим хештегом
             List<PostDocument> filteredResults = textResults.getContent().stream()
                     .filter(post -> post.getText() != null && containsHashtag(post.getText(), cleanedQuery))
                     .collect(Collectors.toList());
 
-            // Создаем пагинированный ответ
             Page<PostDocument> finalResults = createPage(filteredResults, pageable);
 
             List<PostWithProfileResponse> results = finalResults.getContent().stream()
@@ -133,6 +145,15 @@ public class SearchController {
 
             Map<String, Object> response = createHashtagResponse(
                     query, cleanedQuery, exact, finalResults, results, textResults.getTotalElements());
+
+            // Извлекаем ID постов для сохранения связи
+            List<Integer> postIds = results.stream()
+                    .map(PostWithProfileResponse::getId)
+                    .collect(Collectors.toList());
+
+            // Важное исправление: используем cleanedQuery для кэша
+            cacheService.saveHashtagResult(cleanedQuery, exact, page, size, response, postIds);
+            log.info("Cached hashtag result for query: '#{}' with {} posts", cleanedQuery, postIds.size());
 
             if (results.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
@@ -146,16 +167,6 @@ public class SearchController {
         }
     }
 
-    @GetMapping("/stats")
-    public ResponseEntity<Map<String, Object>> getStats() {
-        Map<String, Object> stats = new HashMap<>();
-        stats.put("totalPosts", postRepository.count());
-        stats.put("totalProfiles", profileRepository.count());
-        stats.put("timestamp", LocalDateTime.now());
-        return ResponseEntity.ok(stats);
-    }
-
-
     private Map<String, Object> createSearchResponse(String query, boolean exact,
                                                      Page<PostDocument> postResults,
                                                      List<PostWithProfileResponse> results) {
@@ -168,6 +179,7 @@ public class SearchController {
         response.put("totalPages", postResults.getTotalPages());
         response.put("totalElements", postResults.getTotalElements());
         response.put("timestamp", LocalDateTime.now());
+        response.put("cached", false);
         return response;
     }
 
@@ -186,6 +198,7 @@ public class SearchController {
         response.put("totalElements", finalResults.getTotalElements());
         response.put("initialResultsCount", initialResultsCount);
         response.put("timestamp", LocalDateTime.now());
+        response.put("cached", false);
         return response;
     }
 
@@ -193,6 +206,7 @@ public class SearchController {
         Map<String, Object> error = new HashMap<>();
         error.put("error", errorMessage);
         error.put("message", e.getMessage());
+        error.put("timestamp", LocalDateTime.now());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
     }
 
@@ -224,7 +238,6 @@ public class SearchController {
             return false;
         }
 
-        // Проверяем что это отдельное слово
         if (hashtagIndex > 0) {
             char before = text.charAt(hashtagIndex - 1);
             if (Character.isLetterOrDigit(before)) {

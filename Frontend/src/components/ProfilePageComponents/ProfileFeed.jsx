@@ -11,56 +11,158 @@ import NotFoundPage from "../../pages/NotFoundPage.jsx";
 import ShowSubscriptionsButton from "./ShowSubscriptionsButton.jsx";
 import {getFollowing} from "../../API/ProfileAPI/getFollowing.js";
 import NotificationCard from "../Other/NotificationCard.jsx";
+import { getCurrentPost } from "../../API/PostAPI/getCurrentPost.js";
+import {FeedContext} from "../../Contexts/FeedContext.jsx";
 
 export default function ProfileFeed({ showEdit, onCloseModal}) {
     const [loading, setLoading] = useState(true);
     const [userData, setUserData] = useState([]);
     const [postsList, setPostsList] = useState([]);
+    const [postsData, setPostsData] = useState([]);
     const [subscribers, setSubscribers] = useState({});
     const [subscribes, setSubscribes] = useState({});
     const [userId, setUserId] = useState("");
     const [userProfileName, setUserProfileName] = useState("");
     const [userLogin, setUserLogin] = useState("");
-    const [userTag, setUserTag] = useState("");
     const [userMail, setUserMail] = useState("");
     const [userAvatar, setUserAvatar] = useState("");
     const [notFound, setNotFound] = useState(false);
-    const {refreshToken, guestStatus, setGuestStatus,setContextUserId} = useContext(AuthContext);
+    const {refreshToken, guestStatus, setGuestStatus,setContextUserId,refreshContext} = useContext(AuthContext);
+    const {postDeleted,postCreated,postUpdated,newPostData} = useContext(FeedContext);
     const {username} = useParams();
     const [notice,setNotice] = useState(null);
+    const [loadingPosts, setLoadingPosts] = useState(false);
+    const [postsError, setPostsError] = useState(null);
 
     useEffect(() => {
-        console.log("postsList обновился:", postsList);
+        if (postsList && postsList.length > 0) {
+            loadPostsData(postsList);
+        } else {
+            setPostsData([]);
+        }
     }, [postsList]);
+
+    const loadPostsData = async (postIds) => {
+        setLoadingPosts(true);
+        setPostsError(null);
+
+        try {
+            const postsPromises = postIds.map(postId => getCurrentPost(postId));
+            const postsResults = await Promise.all(postsPromises);
+
+            const successfulPosts = postsResults
+                .filter(result => result && result.success)
+                .map(result => result.data);
+
+            const sortedPosts = successfulPosts.sort((a, b) => {
+                return new Date(b.create_date) - new Date(a.create_date);
+            });
+
+            setPostsData(sortedPosts);
+
+            const failedPosts = postsResults.filter(result => !result || !result.success);
+            if (failedPosts.length > 0) {
+                console.warn(`Не удалось загрузить ${failedPosts.length} постов`);
+            }
+        } catch (error) {
+            console.error("Ошибка при загрузке постов:", error);
+            setPostsError("Ошибка при загрузке постов");
+        } finally {
+            setLoadingPosts(false);
+        }
+    };
+    useEffect(() => {
+        const postID = postDeleted;
+        if (!postID) return;
+
+        const newPostsList = postsList.filter(id => id !== postID);
+        const newPostsData = postsData.filter(post => post.id !== postID);
+
+        if (newPostsList.length === postsList.length &&
+            newPostsData.length === postsData.length) {
+            return;
+        }
+        setPostsList(newPostsList);
+        setPostsData(newPostsData);
+
+        setNotice({
+            type: "success",
+            message: "Пост удален успешно",
+            duration: 2000
+        });
+    }, [postDeleted]);
+
+    useEffect(() => {
+        if (newPostData) {
+            const postExist = postsData.some(post => post.id === newPostData.id);
+            if (!postExist) {
+                setPostsData(prevState => {
+                    const newData = [newPostData, ...prevState];
+                    return newData.sort((a, b) => {
+                        return new Date(b.create_date) - new Date(a.create_date);
+                    });
+                });
+                setPostsList(prev => [...prev, newPostData.id]);
+            }
+        }
+    }, [postCreated, newPostData]);
+
+    useEffect(() => {
+        if (postUpdated && postUpdated.id) {
+            setPostsData(prev => {
+                const postExist = prev.some(post => post.id === postUpdated.id);
+                if (!postExist) {
+                    return prev;
+                }
+
+                const updatedData = prev.map(post =>
+                    post.id === postUpdated.id
+                        ? {...post, edited: true, text: postUpdated.text }
+                        : post
+                );
+
+                return updatedData.sort((a, b) => {
+                    return new Date(b.create_date) - new Date(a.create_date);
+                });
+            });
+        }
+    }, [postUpdated]);
 
     const getProfileInfo = async (profileUserName, isGuest) => {
         setLoading(true);
+        setPostsError(null);
 
-        console.log(profileUserName, "Грузим этот профиль");
         const userInfo = await getUserProfile(profileUserName);
-        console.log(userInfo);
 
         if (userInfo.success) {
             setUserData(userInfo.data);
             setUserProfileName(userInfo.data.username);
-            setUserLogin(userInfo.data.login)
-            setUserTag(userInfo.data.username);
+            setUserLogin(userInfo.data.login);
             setUserMail(userInfo.data.email);
             setSubscribes(userInfo.data.subscribes);
             setSubscribers(userInfo.data.subscribers);
-            setPostsList(userInfo.data.user_posts);
+
+            let postIds = [];
+            if (userInfo.data.user_posts) {
+                if (Array.isArray(userInfo.data.user_posts)) {
+                    postIds = userInfo.data.user_posts;
+                } else if (typeof userInfo.data.user_posts === 'object') {
+                    postIds = Object.values(userInfo.data.user_posts).map(post => post.post_id || post.id);
+                }
+            }
+
+            setPostsList(postIds);
+
             setUserAvatar(userInfo.data.photo);
             setUserId(userInfo.data.uuid);
 
             if (!isGuest) {
-                console.log("Я обновляю свой ID - я не на гостевой странице");
+                localStorage.setItem("UserPhoto", userInfo.data.photo);
                 localStorage.setItem("userId", userInfo.data.uuid);
                 setContextUserId(userInfo.data.uuid);
-                localStorage.setItem("myUserName",userInfo.data.username);
-                // localStorage.setItem("myLogin",userInfo.data.login);
+                localStorage.setItem("myUsername", userInfo.data.username);
             }
         } else if (userInfo.statusCode === 401) {
-            console.error(userInfo.error);
             refreshToken();
         } else if (userInfo.statusCode === 404) {
             setNotFound(true);
@@ -73,29 +175,24 @@ export default function ProfileFeed({ showEdit, onCloseModal}) {
     useEffect(() => {
         if (username) {
             const curUsername = localStorage.getItem("myUsername");
-            console.log("Текущий пользователь:", curUsername, "Запрашиваемый:", username);
-
             const isGuest = curUsername !== username;
             setGuestStatus(isGuest);
-
             getProfileInfo(username, isGuest);
         }
     }, [username]);
 
-    const refreshProfile = () => {
-        getProfileInfo(username, false);
+    const refreshProfile = (newUserName) => {
+        getProfileInfo(newUserName, false);
+        refreshContext();
     }
 
     const updateSubscribersList = async () => {
-        console.log("вызван");
         if (!userProfileName) {
-            console.error("userProfileName не установен");
             return;
         }
 
         const response = await getFollowers(userProfileName);
         if (response.success) {
-            console.log("успешно вызван");
             setSubscribers(response.data.followers);
         } else if (response.statusCode === 401) {
             refreshToken();
@@ -104,10 +201,10 @@ export default function ProfileFeed({ showEdit, onCloseModal}) {
         }
     };
 
+
     const updateSubscriptionsList = async () => {
         const response = await getFollowing(userProfileName);
         if (response.success) {
-            console.log("успешно вызван");
             setSubscribes(response.data.followings);
         } else if (response.statusCode === 401) {
             refreshToken();
@@ -127,6 +224,12 @@ export default function ProfileFeed({ showEdit, onCloseModal}) {
     function closeNotice() {
         setNotice(null);
     }
+
+    const retryLoadPosts = () => {
+        if (postsList.length > 0) {
+            loadPostsData(postsList);
+        }
+    };
 
     if (notFound) {
         return <NotFoundPage />;
@@ -162,7 +265,7 @@ export default function ProfileFeed({ showEdit, onCloseModal}) {
 
     return (
         <div className="flex flex-col">
-            <div className="relative flex flex-col items-center w-full max-w-[62rem] min-h-screen bg-white border-r-2 border-l-2 border-black">
+            <div className="relative flex flex-col items-center w-full max-w-[62rem] min-h-screen bg-white pb-20 mb-5 border-r-2 border-l-2 border-b-2 rounded-b-2xl border-black">
                 <div className="h-56 w-full max-w-[62rem] bg-[#D9D9D9]"></div>
 
                 <div className="absolute top-32 w-full max-w-[62rem] px-8">
@@ -179,7 +282,7 @@ export default function ProfileFeed({ showEdit, onCloseModal}) {
                         <div className="flex-1 pb-8">
                             <div className="flex flex-col mb-4">
                                 <span className="text-3xl px-2">{userProfileName}</span>
-                                <span className="text-xl px-2 text-gray-600">@{userTag}</span>
+                                <span className="text-xl px-2 text-gray-600">@{userProfileName}</span>
                             </div>
 
                             <div className="flex flex-col gap-2 items-start">
@@ -208,26 +311,51 @@ export default function ProfileFeed({ showEdit, onCloseModal}) {
                     </div>
                 </div>
 
-                <div className="flex flex-wrap justify-center items-center max-w-[50rem] mt-48 p-2 gap-3">
-                    {Object.keys(postsList).length > 0 ? (
-                        Object.values(postsList).map((post, index) => (
-                            <Post
-                                key={index}
-                                postId={post.post_id}
-                                postDate={post.create_date}
-                                userTag={`@${userProfileName}`}
-                                userName={userProfileName}
-                                userId={userId}
-                                likers={post.likers}
-                                comments={post.comments}
-                                postText={post.text}
-                            />
-                        ))
-                    ) : (
-                        <div className="text-gray-500 text-center py-8">
-                            {userProfileName} еще не опубликовал(а) постов
-                        </div>
-                    )}
+                <div className="flex justify-center w-full mt-48">
+                    <div className="w-full flex flex-col items-center">
+                        {postsError ? (
+                            <div className="text-center py-8 w-full">
+                                <div className="text-red-500 mb-4">{postsError}</div>
+                                <button
+                                    onClick={retryLoadPosts}
+                                    className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                                >
+                                    Попробовать снова
+                                </button>
+                            </div>
+                        ) : loadingPosts ? (
+                            <div className="text-gray-500 text-center py-8">
+                                Загрузка постов...
+                            </div>
+                        ) : postsData.length > 0 ? (
+                            <div className="flex flex-col items-center w-full gap-6">
+                                {postsData.map((post) => (
+                                    <div key={post.id} className="w-[42rem]">
+                                        <Post
+                                            postId={post.id}
+                                            postDate={new Date(post.create_date).toLocaleDateString('ru-RU')}
+                                            userTag={`@${post.username || userProfileName}`}
+                                            userName={post.username || userProfileName}
+                                            userId={post.uuid || userId}
+                                            likers={post.likers}
+                                            postText={post.text}
+                                            initCommentAmount={post.comments_amount}
+                                            userAvatar={userAvatar}
+                                            edited={post.edited}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        ) : postsList.length > 0 ? (
+                            <div className="text-gray-500 text-center py-8">
+                                Загрузка постов...
+                            </div>
+                        ) : (
+                            <div className="text-gray-500 text-center py-8">
+                                {userProfileName} еще не опубликовал(а) постов
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
             {showEdit && (
@@ -248,9 +376,7 @@ export default function ProfileFeed({ showEdit, onCloseModal}) {
                 duration={notice.duration}
                 isVisible={"true"}
                 onClose={closeNotice}
-
-            />
-            }
+            />}
         </div>
     );
 }

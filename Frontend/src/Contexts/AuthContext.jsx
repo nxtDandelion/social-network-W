@@ -9,9 +9,12 @@ export const AuthProvider =({children}) =>{
     const [guestStatus,setGuestStatus] = useState(false);
     const [contextUserId,setContextUserId] = useState(()=>{return localStorage.getItem("userId") || ""});
     const [contextUserName,setContextUserName] = useState(()=>{return localStorage.getItem("myUsername") || ""})
-    const [actualSubscribes,setActualSubscribes] = useState(true);
 
+    function refreshContext(){
+        setContextUserId(localStorage.getItem("userId"));
+        setContextUserName(localStorage.getItem("myUsername"));
 
+    }
 
     useEffect(()=>{
         if (auth){
@@ -24,7 +27,13 @@ export const AuthProvider =({children}) =>{
                 setContextUserId(storedId);
             }
         }
-    },[auth])
+        else {
+            localStorage.removeItem("myUsername");
+            localStorage.removeItem("userId");
+            localStorage.removeItem("access_token");
+            localStorage.removeItem("refresh_token");
+        }
+    },[auth]);
 
 
     const refreshToken = () =>{
@@ -35,17 +44,18 @@ export const AuthProvider =({children}) =>{
         localStorage.removeItem("userId");
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
+        localStorage.removeItem("myLogin");
     };
 
     const contextValue = useMemo(() => ({
         auth, setAuth,
         showLoginMes, setShowLoginMes,
         invalidToken, setInvalidToken,
-        refreshToken,
+        refreshToken,refreshContext,
         guestStatus,setGuestStatus,
         contextUserName,setContextUserName,
         contextUserId,setContextUserId,
-    }), [auth, showLoginMes,invalidToken,guestStatus,contextUserName,contextUserId]);
+    }), [auth, showLoginMes,invalidToken,guestStatus,contextUserName,contextUserId,refreshContext,refreshToken]);
 
     return (
         <AuthContext.Provider value={contextValue}>

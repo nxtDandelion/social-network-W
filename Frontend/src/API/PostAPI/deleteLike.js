@@ -10,19 +10,15 @@ export const deleteLike = async (postId) => {
         return false;
     }
     try {
-        const profileId = localStorage.getItem("userId");
-        if (!profileId) {
-            return { success: false, error: "Profile ID не найден" };
-        }
         const response = await axios.delete(`${API_BASE_URL}/post/${postId}/like`,
             {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 }
+
             }
         );
-        console.log("Лайк удален успешно:", response.data);
         return { success: true, data: response.data };// Возвращаем созданный пост
     } catch (error) {
         const curResponse = "Удаление лайка:"

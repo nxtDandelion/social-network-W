@@ -12,9 +12,11 @@ from pydantic import BaseModel
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    logging.info(f"Starting Post Service...")
     await connect_rabbitmq()
     async with engine.begin() as conn:
         await conn.run_sync(models.Base.metadata.create_all)
+    logging.info(f"Database tables created/verified")
 
     async def callback_with_db(event_type: str, event_data: dict):
         try:
@@ -26,10 +28,11 @@ async def lifespan(app: FastAPI):
             logging.error(f"Error in callback_with_db: {e}")
     await rabbitmq_service.start_consuming_events(callback_with_db)
     await rabbitmq_service.start_consuming_profile_events(callback_with_db)
-    logging.info("RabbitMQ consumer started successfully")
+    logging.info(f"RabbitMQ consumer started successfully")
     yield
     await engine.dispose()
     await rabbitmq_service.close()
+    logging.info(f"Post Service shutdown complete")
 
 app = FastAPI(title="Post Service", lifespan=lifespan)
 
@@ -56,24 +59,32 @@ class PostUpdateWithProfile(schemas.PostUpdate):
     profile_id: str
 
 async def create_profile(profile: schemas.ProfileCreate, db: AsyncSession = Depends(get_db)):
+    logging.info(f"Creating profile")
     return await crud.create_profile(db, profile)
 
 async def update_profile(profile_uuid: str, profile_update: schemas.ProfileUpdate, db: AsyncSession = Depends(get_db)):
+    logging.info(f"Updating profile {profile_uuid}")
     db_profile = await crud.update_profile(db, profile_uuid, profile_update)
     if db_profile is None:
+        logging.error(f"Profile not found: {profile_uuid}")
         raise HTTPException(status_code=404, detail="Profile not found")
+    logging.info(f"Profile updated successfully: {profile_uuid}")
     return db_profile
 
 async def delete_profile(profile_uuid: str, db: AsyncSession = Depends(get_db)):
+    logging.info(f"Profile deleted: {profile_uuid}")
     return await crud.delete_profile(db, profile_uuid)
 
 async def get_profile_posts(profile_uuid: str, db: AsyncSession = Depends(get_db)):
+    logging.info(f"Getting posts for profile: {profile_uuid}")
     return await crud.get_profile_posts(db, profile_uuid)
 
 async def follow_profile(follower_uuid: str, followed_uuid: str, db: AsyncSession = Depends(get_db)):
+    logging.info(f"Profile {follower_uuid} following {followed_uuid}")
     return await crud.follow_profile(db, follower_uuid, followed_uuid)
 
 async def unfollow_profile(follower_uuid: str, followed_uuid: str, db: AsyncSession = Depends(get_db)):
+    logging.info(f"Profile {follower_uuid} unfollowing {followed_uuid}")
     return await crud.unfollow_profile(db, follower_uuid, followed_uuid)
 
 
@@ -90,28 +101,34 @@ async def create_post(post: PostCreateWithProfile, db: AsyncSession = Depends(ge
             "edited" : post.edited,
             "likers": post.likers or [],
         }
+        logging.info(f"Post created successfully: {post_data}")
         await rabbitmq_service.send_post_created(post_data)
         return post
     except Exception as e:
         logging.error(f"Error in create_post: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.get("/feed")
 async def get_posts_feed(skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db)):
+    logging.info(f"Retrieved posts for feed")
     return await crud.get_posts_feed(db, skip=skip, limit=limit)
 
 @app.get("/subscribe_feed")
 async def get_subscribe_feed(username: str, db: AsyncSession = Depends(get_db)):
+    logging.info(f"Retrieved subscribes for feed")
     return await crud.get_subscribe_feed(db, username)
 
 @app.get("/{post_id}")
 async def get_post(post_id: int, db: AsyncSession = Depends(get_db)):
     post = await crud.get_post(db, post_id)
     if post is None:
+        logging.error(f"Post not found: post_id={post_id}")
         raise HTTPException(status_code=404, detail="Post not found")
     profile = await crud.get_profile(db, post.profile_id)
     post = post.__dict__
     post["username"] = profile.username
+    logging.info(f"Getting post: post_id={post_id}")
     return post
 
 @app.put("/{post_id}")
@@ -119,6 +136,7 @@ async def update_post(post_id: int, post_update: PostUpdateWithProfile, db: Asyn
     try:
         post = await crud.update_post(db, post_id, post_update, post_update.profile_id)
         if post is None:
+            logging.warning(f"Post not found or not authorized: post_id={post_id}, profile_id={post_update.profile_id}")
             raise HTTPException(status_code=404, detail="Post not found or not authorized")
         post_data = {
             "id": post.id,
@@ -129,6 +147,8 @@ async def update_post(post_id: int, post_update: PostUpdateWithProfile, db: Asyn
             "edited": post.edited,
             "likers": post.likers or [],
         }
+        logging.info(f"Post updated successfully: {post_data}")
+
         await rabbitmq_service.send_post_updated(post_data)
         profile = await crud.get_profile(db, post.profile_id)
         post_data["username"] = profile.username
@@ -143,16 +163,20 @@ async def delete_post(post_id: int, profile_id: str, db: AsyncSession = Depends(
         result = await crud.delete_post(db, post_id, profile_id)
         if "deleted" not in result.get("message", ""):
             if "not found" in result.get("message", ""):
+                logging.error(f"Post not found: {post_id}")
                 raise HTTPException(status_code=404, detail="Post not found")
             else:
+                logging.error(f"Not authorized to delete post: post_id={post_id}, profile_id={profile_id}")
                 raise HTTPException(status_code=403, detail="Not authorized to delete this post")
         to_delete = {
             "id": post_id,
         }
+        logging.info(f"Post deleted successfully: {post_id}")
         await rabbitmq_service.send_post_deleted(to_delete)
         return result
     except Exception as e:
         logging.error(f"Error in delete_post: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.post("/{post_id}/like", response_model=schemas.Post)
@@ -160,7 +184,9 @@ async def like_post(post_id: int, like_request: LikeRequest, db: AsyncSession = 
     try:
         post = await crud.like_post(db, post_id, like_request.profile_id)
         if post is None:
+            logging.error(f"Post not found: {post_id}")
             raise HTTPException(status_code=404, detail="Post not found")
+        logging.info(f"Post liked successfully: post_id={post_id}, profile_id={like_request.profile_id}, likes_amount={post.likes_amount}")
         event_data = {
             "id": post.id,
             "profile_id" : like_request.profile_id,
@@ -169,6 +195,7 @@ async def like_post(post_id: int, like_request: LikeRequest, db: AsyncSession = 
         return post
     except Exception as e:
         logging.error(f"Error in like_post: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.delete("/{post_id}/like", response_model=schemas.Post)
@@ -176,7 +203,9 @@ async def unlike_post(post_id: int, like_request: LikeRequest, db: AsyncSession 
     try:
         post = await crud.unlike_post(db, post_id, like_request.profile_id)
         if post is None:
+            logging.error(f"Post not found: {post_id}")
             raise HTTPException(status_code=404, detail="Post not found")
+        logging.info(f"Post unliked successfully: post_id={post_id}, profile_id={like_request.profile_id}, likes_amount={post.likes_amount}")
         event_data = {
             "id": post.id,
             "profile_id": like_request.profile_id,
@@ -185,6 +214,7 @@ async def unlike_post(post_id: int, like_request: LikeRequest, db: AsyncSession 
         return post
     except Exception as e:
         logging.error(f"Error in unlike_post: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.post("/{post_id}/comments", response_model=schemas.Comment)
@@ -192,6 +222,7 @@ async def create_comment(post_id: int, comment: CommentCreateWithProfile, db: As
     try:
         post = await crud.get_post(db, post_id)
         if post is None:
+            logging.warning(f"Post not found for comment creation: {post_id}")
             raise HTTPException(status_code=404, detail="Post not found")
         comment = await crud.create_comment(db, comment, post_id, comment.profile_id)
         comment_data = {
@@ -201,15 +232,19 @@ async def create_comment(post_id: int, comment: CommentCreateWithProfile, db: As
             "profile_id": comment.profile_id,
             "edited": comment.edited
         }
+        logging.info(f"Comment created successfully: {comment_data}")
+
         await rabbitmq_service.send_comment_created(comment_data)
         comment = await crud.get_comment(db, comment.id)
         return comment
     except Exception as e:
         logging.error(f"Error in create_comment: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.get("/{post_id}/comments", response_model=List[schemas.Comment])
 async def get_comments(post_id: int, db: AsyncSession = Depends(get_db)):
+    logging.info(f"Getting comments for post: {post_id}")
     return await crud.get_comments_by_post(db, post_id)
 
 
@@ -218,9 +253,11 @@ async def update_comment(post_id: int, comment_id: int, comment_update: CommentU
     try:
         post = await crud.get_post(db, post_id)
         if post is None:
+            logging.error(f"Post not found for comment update: {post_id}")
             raise HTTPException(status_code=404, detail="Post not found")
         comment = await crud.update_comment(db, comment_id, comment_update, comment_update.profile_id)
         if comment is None:
+            logging.warning(f"Comment not found or not authorized: comment_id={comment_id}, profile_id={comment_update.profile_id}")
             raise HTTPException(status_code=404, detail="Comment not found or not authorized")
         comment_data = {
             "comment_id": comment_id,
@@ -229,11 +266,13 @@ async def update_comment(post_id: int, comment_id: int, comment_update: CommentU
             "profile_id": comment.profile_id,
             "edited": comment.edited
         }
+        logging.info(f"Comment updated successfully: {comment_data}")
         await rabbitmq_service.send_comment_updated(comment_data)
         comment = await crud.get_comment(db, comment_id)
         return comment
     except Exception as e:
         logging.error(f"Error in update_comment: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.delete("/{post_id}/comments/{comment_id}")
@@ -241,20 +280,25 @@ async def delete_comment(post_id: int, comment_id: int, profile_id: str, db: Asy
     try:
         post = await crud.get_post(db, post_id)
         if post is None:
+            logging.warning(f"Post not found for comment deletion: {post_id}")
             raise HTTPException(status_code=404, detail="Post not found")
         result = await crud.delete_comment(db, comment_id, profile_id)
         if "deleted" not in result.get("message", ""):
             if "not found" in result.get("message", ""):
+                logging.warning(f"Comment not found: {comment_id}")
                 raise HTTPException(status_code=404, detail="Comment not found")
             else:
+                logging.warning(f"Not authorized to delete comment: comment_id={comment_id}, profile_id={profile_id}")
                 raise HTTPException(status_code=403, detail="Not authorized to delete this comment")
         event_data = {
             "comment_id": comment_id
         }
+        logging.info(f"Comment deleted successfully: {comment_id}")
         await rabbitmq_service.send_comment_deleted(event_data)
         return result
     except Exception as e:
         logging.error(f"Error in delete_comment: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.post("/comments/{comment_id}/like", response_model=schemas.Comment)
@@ -262,11 +306,13 @@ async def like_comment(comment_id: int, like_request: LikeRequest, db: AsyncSess
     try:
         comment = await crud.like_comment(db, comment_id, like_request.profile_id)
         if comment is None:
+            logging.error(f"Comment not found: comment_id={comment_id}")
             raise HTTPException(status_code=404, detail="Post not found")
         event_data = {
             "id": comment.id,
             "user": like_request.profile_id,
         }
+        logging.info(f"Comment liked: comment_id={comment_id}")
         # await rabbitmq_service.send_comment_liked(event_data)
         return comment
     except Exception as e:
@@ -278,11 +324,13 @@ async def unlike_comment(comment_id: int, like_request: LikeRequest, db: AsyncSe
     try:
         comment = await crud.unlike_comment(db, comment_id, like_request.profile_id)
         if comment is None:
+            logging.error(f"Comment not found: comment_id={comment_id}")
             raise HTTPException(status_code=404, detail="Post not found")
         event_data = {
             "id": comment.id,
             "user": like_request.profile_id,
         }
+        logging.info(f"Comment unliked: comment_id={comment_id}")
         # await rabbitmq_service.send_comment_unliked(event_data)
         return comment
     except Exception as e:
@@ -295,6 +343,7 @@ async def db_health(db: AsyncSession = Depends(get_db)):
         await db.execute(text("SELECT 1"))
         return {"status": "healthy", "database": "connected"}
     except Exception as e:
+        logging.error(f"Database connection failed: {str(e)}")
         raise HTTPException(
             status_code=503,
             detail=f"Database connection failed: {str(e)}"
@@ -302,11 +351,14 @@ async def db_health(db: AsyncSession = Depends(get_db)):
 
 @app.get("/health")
 async def health():
+    logging.info("Health check requested")
     return {"message": "healthy"}
 
 @app.get("/")
 async def root():
+    logging.info("Root endpoint requested")
     return {"message": "Post Service is running"}
 
 if __name__ == "__main__":
+    logging.info("Starting Post Service application")
     uvicorn.run(app, host="0.0.0.0", port=8002)

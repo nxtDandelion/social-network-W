@@ -10,9 +10,6 @@ export const responseLog = async (login,password) =>{
             password: password,
             ip:"string"
         });
-        console.log("Запрос на вход успешен");
-        console.log(response.data,"Login");
-
         return {success:true,data:response.data};
     }
     catch (error) {
@@ -30,15 +27,14 @@ export const responseReg = async (login, userName, mail, password) => {
             role: "user",
             password: password
         });
-        console.log("все верно");
-
         return {success:true,data:response.data};
-
     } catch (error) {
         const curResponse = "Регистрация:"
         return (errorHandler(error,curResponse));
     }
 };
+
+
 export const logout = () =>{
     localStorage.clear();
 }

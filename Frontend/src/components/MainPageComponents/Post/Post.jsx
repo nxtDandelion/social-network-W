@@ -8,14 +8,13 @@ import CommentModalPage from "./PostComponents/CommentsComponents/CommentModalPa
 import {responseCommentsList} from "../../../API/PostAPI/getCommentsList.js";
 import {postLike} from "../../../API/PostAPI/postLike.js";
 import {deleteLike} from "../../../API/PostAPI/deleteLike.js";
-import {CommentContext} from "../../../Contexts/CommentContext.jsx";
+import TextWithTags from "../../TextWithTag.jsx";
+import {FeedContext} from "../../../Contexts/FeedContext.jsx";
 
-
-export default function Post({postH,postW,postDate,likers,postText,userName,userTag,
+export default function Post({postDate,likers,postText,userName,userTag,onHashtagClick,
                                  userAvatar,userId,edited,postId,isModal,onModalFunc,initCommentAmount}) {
 
     const {auth,setShowLoginMes,refreshToken,contextUserId} = useContext(AuthContext);
-    const {freshCommentsAmount,commentCreated,commentDeleted} = useContext(CommentContext);
     const [showComments,setShowComments] = useState(false);
     const [commentsList,setCommentsList] = useState({});
     const [commentsAmount,setCommentsAmount] = useState(initCommentAmount || 0);
@@ -23,19 +22,19 @@ export default function Post({postH,postW,postDate,likers,postText,userName,user
     const [likersList,setLikersList] = useState([]);
     const [isLoading,setIsLoading] = useState(true);
     const [isAnimating, setIsAnimating] = useState(false);
+    const {likeUpdated} = useContext(FeedContext);
 
 
     useEffect(() => {
-        if (commentCreated && commentCreated.post_id === postId) {
-            setCommentsAmount(prev => prev + 1);
+        if (likeUpdated.id ===postId) {
+            if (likeUpdated.list.includes(contextUserId)){
+                setIsLiked(true);
+            }
+            else{
+                setIsLiked(false);
+            }
         }
-    },[commentCreated]);
-
-    useEffect(() => {
-        if (commentDeleted && commentDeleted.post_id === postId) {
-            setCommentsAmount(prev => prev - 1);
-        }
-    },[commentDeleted]);
+    },[likeUpdated]);
 
     useEffect(() => {
         const safeLikers = Array.isArray(likers) ? likers : [];
@@ -51,7 +50,6 @@ export default function Post({postH,postW,postDate,likers,postText,userName,user
 
         setIsLoading(false);
     }, [likers]);
-
 
     const likeHandleClick = async () => {
         if (!auth) {
@@ -84,7 +82,6 @@ export default function Post({postH,postW,postDate,likers,postText,userName,user
                 }, 300);
 
             } else if (response.statusCode === 401) {
-                console.error(response.error);
                 refreshToken();
                 setIsAnimating(false);
             } else {
@@ -97,13 +94,11 @@ export default function Post({postH,postW,postDate,likers,postText,userName,user
     }
 
     async function commentHandleClick () {
-
         if (isModal){
             onModalFunc();
         }
         const response = await responseCommentsList(postId);
         if (response.success) {
-
             const comments = response.data;
             const commentsById = {}
             Object.values(comments).forEach(comment => {
@@ -116,21 +111,23 @@ export default function Post({postH,postW,postDate,likers,postText,userName,user
         }
     }
 
-    const handleClose = () =>{
+    const handleClose = (commentsList) =>{
+        const count = Object.keys(commentsList).length;
+        setCommentsAmount(count);
         setShowComments(false);
     }
 
     if (isLoading) {
         return (
-            <div className="flex flex-col w-[42rem] min-h-96 animate-pulse">
-                <div className="flex justify-between w-2xl max-h-20 pr-4 pl-4 pt-2 bg-gray-300 rounded-t-3xl">
+            <div className="flex flex-col w-full max-w-[42rem] min-h-96 animate-pulse">
+                <div className="flex justify-between w-full max-h-20 pr-4 pl-4 pt-2 bg-gray-300 rounded-t-3xl">
                     <div className="w-32 h-8 bg-gray-400 rounded"></div>
                     <div className="w-8 h-8 bg-gray-400 rounded"></div>
                 </div>
-                <div className="flex w-2xl min-h-80 bg-gray-200 border-r-2 border-l-2 border-gray-300">
+                <div className="flex w-full min-h-80 bg-gray-200 border-r-2 border-l-2 border-gray-300">
                     <div className="w-full h-40 bg-gray-300 m-4 rounded"></div>
                 </div>
-                <div className="flex w-2xl h-14 bg-gray-300">
+                <div className="flex w-full h-14 bg-gray-300">
                     <div className="flex w-2/4">
                         <div className="flex w-1/2 items-center ml-3">
                             <div className="w-6 h-6 bg-gray-400 rounded"></div>
@@ -143,8 +140,8 @@ export default function Post({postH,postW,postDate,likers,postText,userName,user
     }
 
     return (
-        <div className="flex flex-col w-[42rem]  min-h-96">
-            <div className="flex justify-between w-2xl  max-h-20 pr-4 pl-4 pt-2 bg-black rounded-t-3xl">
+        <div className="flex flex-col w-full max-w-[42rem] min-h-96">
+            <div className="flex justify-between w-full max-h-20 pr-4 pl-4 pt-2 bg-black rounded-t-3xl">
                 <ProfileInfo
                     component="post"
                     userName={userName}
@@ -153,29 +150,35 @@ export default function Post({postH,postW,postDate,likers,postText,userName,user
                     userId={userId}
                 />
                 <div className="flex flex-col">
-
                     <OtherFuncMenu
                         userId={userId}
                         postId={postId}
                         initText={postText}
                         edited={edited}
+                        userAvatar={userAvatar}
                     />
                     <div className={`${edited ? "inline-block" : "hidden"} text-white`}>
                         Отредактирован
                     </div>
                 </div>
             </div>
-            <div className="flex w-2xl min-h-80 bg-white border-r-2 border-l-2 border-black">
-                <p className="text-lg p-4"> {postText}</p>
+            <div className="flex w-full min-h-80 bg-white border-r-2 border-l-2 border-black p-4">
+                <div className="w-full">
+                    <div className="text-lg whitespace-pre-wrap break-words overflow-wrap-anywhere max-w-full">
+                        <TextWithTags
+                            text={postText}
+                            onHashtagSearch={onHashtagClick}
+                        />
+                    </div>
+                </div>
             </div>
-            <div className="flex w-2xl h-14 bg-black">
+            <div className="flex w-full h-14 bg-black">
                 <div className="flex w-2/4">
                     <button
                         onClick={likeHandleClick}
                         className="flex w-1/2 items-center ml-3 hover:opacity-80 transition-opacity duration-200"
                         disabled={isAnimating}
                     >
-
                         <div className={`
                             transition-all duration-300 ease-in-out 
                             transform origin-center
@@ -190,7 +193,7 @@ export default function Post({postH,postW,postDate,likers,postText,userName,user
                         `}>
                             {likersList.length}
                         </span>
-                    </button >
+                    </button>
                     <button onClick={commentHandleClick} className="flex w-1/2 items-center ml-3 hover:opacity-80">
                         <CommentIcon/>
                         <span className="inline-block text-white text-xl font-bold tracking-wider"> {commentsAmount}</span>
@@ -216,9 +219,6 @@ export default function Post({postH,postW,postDate,likers,postText,userName,user
                 likers={likersList}
                 comments={commentsList}
                 edited={edited}
-
-
-
             />}
         </div>
     )

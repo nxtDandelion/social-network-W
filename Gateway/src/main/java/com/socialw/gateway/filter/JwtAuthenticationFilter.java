@@ -37,24 +37,18 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
     // Пути, которые НЕ требуют авторизации вообще (для любых HTTP методов)
     private final Set<String> excludedAnyMethodPaths = Set.of(
-            "/health",
-            "/auth/",
-            "/verify-token",
-            "/refresh"
+            "/health", "/auth/", "/verify-token", "/refresh"
     );
 
-    // Пути, которые НЕ требуют авторизации (только для GET запросов)
-    private final Set<String> excludedGetOnlyPaths = Set.of(
-            "/post/feed",
-            "/search"
-    );
-
-    // Паттерны путей, которые не требуют авторизации (только для GET запросов)
-    private final Set<String> excludedGetOnlyPatterns = Set.of(
-            "^/post/[^/]+/comments$",           // /post/{id_post}/comments
-            "^/profile/[^/]+$",                // /profile/{username}
-            "^/post/[^/]+$"                   // /post/{id_post}
-    );
+     // Паттерны путей, которые не требуют авторизации (только для GET запросов)
+        private final Set<String> excludedGetPatterns = Set.of(
+                "^/post/feed$",
+                "^/post/[^/]+/comments$",           // /post/{id_post}/comments
+                "^/profile/[^/]+$",                 // /profile/{username}
+                "^/search$",                        // /search
+                "^/search/hashtag$",                // /search/hashtag
+                "^/post/[^/]+$"                    // /post/{id_post}
+        );
 
     public JwtAuthenticationFilter(WebClient webClient, RouteLocator routeLocator, ObjectMapper objectMapper) {
         this.webClient = webClient;
@@ -69,13 +63,11 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
         log.debug("Checking authentication for {} {}", method, path);
 
-        // Проверяем, не является ли путь исключенным
         if (isExcludedPath(path, method)) {
             log.debug("Path {} excluded from authentication for method {}", path, method);
             return chain.filter(exchange);
         }
 
-        // Извлекаем токен из заголовка Authorization
         String token = extractTokenFromHeader(exchange.getRequest());
 
         if (token == null || token.isBlank()) {
@@ -83,11 +75,11 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             return unauthorizedResponse(exchange, "JWT token required in Authorization header");
         }
 
-        // Верифицируем токен и обрабатываем запрос
         return verifyAndProcessToken(exchange, chain, token, method);
     }
 
-    private Mono<Void> verifyAndProcessToken(ServerWebExchange exchange, GatewayFilterChain chain, String token, String method) {
+    private Mono<Void> verifyAndProcessToken(ServerWebExchange exchange, GatewayFilterChain chain,
+                                             String token, String method) {
         return getAuthServiceUrl()
                 .flatMap(authUrl -> webClient.post()
                         .uri(authUrl + "/verify-token")
@@ -97,10 +89,9 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                         .bodyToMono(TokenVerificationResponse.class))
                 .flatMap(response -> {
                     if (response.isValid()) {
-                        log.info("User authenticated: {} ({})", response.getLogin(), response.getUser_uuid());
+                        log.info("User authenticated: {}", response.getLogin());
                         return createModifiedRequest(exchange, chain, response.getUser_uuid(), method);
                     } else {
-                        log.warn("Token validation failed for token: {}", maskToken(token));
                         return unauthorizedResponse(exchange, "Token validation failed");
                     }
                 })
@@ -110,16 +101,14 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                 });
     }
 
-    private Mono<Void> createModifiedRequest(ServerWebExchange exchange, GatewayFilterChain chain, String userUuid, String method) {
+    private Mono<Void> createModifiedRequest(ServerWebExchange exchange, GatewayFilterChain chain,
+                                             String userUuid, String method) {
         try {
-            // Для GET запросов добавляем profile_id в query parameters
             if ("GET".equalsIgnoreCase(method)) {
-                ServerHttpRequest newRequest = addProfileIdToQueryParams(exchange.getRequest(), userUuid);
-                log.debug("Added profile_id={} to query params for GET request", userUuid);
-                return chain.filter(exchange.mutate().request(newRequest).build());
+                log.debug("GET request, passing through without modifications");
+                return chain.filter(exchange);
             }
 
-            // Для POST/PUT/PATCH/DELETE запросов добавляем profile_id в тело
             return readRequestBody(exchange)
                     .flatMap(body -> {
                         try {
@@ -127,7 +116,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
                             if (body.isEmpty()) {
                                 modifiedBody = "{\"profile_id\":\"" + userUuid + "\"}";
-                                log.debug("Empty body, created new with profile_id={}", userUuid);
+                                log.debug("Created new body with profile_id={}", userUuid);
                             } else {
                                 JsonNode jsonNode = objectMapper.readTree(body);
                                 modifiedBody = modifyBodyWithProfileId(jsonNode, userUuid);
@@ -138,14 +127,12 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                             return chain.filter(exchange.mutate().request(newRequest).build());
                         } catch (Exception e) {
                             log.error("Error modifying request body: {}", e.getMessage());
-                            // В случае ошибки, создаем минимальное тело с profile_id
                             String simpleBody = "{\"profile_id\":\"" + userUuid + "\"}";
                             ServerHttpRequest newRequest = createRequestWithBody(exchange.getRequest(), simpleBody);
                             return chain.filter(exchange.mutate().request(newRequest).build());
                         }
                     })
                     .switchIfEmpty(Mono.defer(() -> {
-                        // Для запросов без тела (кроме GET) создаем тело с profile_id
                         String simpleBody = "{\"profile_id\":\"" + userUuid + "\"}";
                         ServerHttpRequest newRequest = createRequestWithBody(exchange.getRequest(), simpleBody);
                         log.debug("Created new body with profile_id={} for empty request", userUuid);
@@ -157,33 +144,16 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         }
     }
 
-    private ServerHttpRequest addProfileIdToQueryParams(ServerHttpRequest request, String userUuid) {
-        org.springframework.web.util.UriComponentsBuilder uriBuilder =
-                org.springframework.web.util.UriComponentsBuilder.fromUri(request.getURI());
-
-        // Добавляем или заменяем параметр profile_id
-        uriBuilder.replaceQueryParam("profile_id", userUuid);
-
-        return request.mutate()
-                .uri(uriBuilder.build().toUri())
-                .build();
-    }
-
     private String modifyBodyWithProfileId(JsonNode jsonNode, String userUuid) throws Exception {
         if (!jsonNode.isObject()) {
             throw new IllegalArgumentException("Request body must be a JSON object");
         }
 
         ObjectNode objectNode = (ObjectNode) jsonNode;
-
-        // Проверяем, есть ли уже profile_id в теле
-        if (objectNode.has("profile_id")) {
-            log.warn("Request body already contains profile_id, overwriting with authenticated user: {}", userUuid);
-        }
-
         objectNode.put("profile_id", userUuid);
 
         String result = objectMapper.writeValueAsString(objectNode);
+        log.debug("Modified body: {}", result);
         return result;
     }
 
@@ -195,6 +165,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                         dataBuffer.read(bytes);
                         DataBufferUtils.release(dataBuffer);
                         String body = new String(bytes, StandardCharsets.UTF_8);
+                        log.debug("Original request body: {}", body);
                         return body;
                     } catch (Exception e) {
                         DataBufferUtils.release(dataBuffer);
@@ -220,16 +191,14 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
                 byte[] bodyBytes = body.getBytes(StandardCharsets.UTF_8);
                 headers.setContentLength(bodyBytes.length);
-                headers.setContentType(new MediaType(MediaType.APPLICATION_JSON, StandardCharsets.UTF_8));
 
-                // Удаляем заголовки, которые могут конфликтовать с новым телом
-                headers.remove(HttpHeaders.CONTENT_LENGTH);
-                headers.remove(HttpHeaders.TRANSFER_ENCODING);
+                headers.setContentType(new MediaType(MediaType.APPLICATION_JSON, StandardCharsets.UTF_8));
 
                 return headers;
             }
         };
     }
+
 
     private String extractTokenFromHeader(ServerHttpRequest request) {
         String authHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
@@ -249,7 +218,6 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     }
 
     private boolean isExcludedPath(String path, String method) {
-        // 1. Проверяем пути, которые не требуют авторизации для любых методов
         if (excludedAnyMethodPaths.stream().anyMatch(excluded -> {
             if (excluded.endsWith("/")) {
                 return path.startsWith(excluded);
@@ -260,31 +228,11 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             return true;
         }
 
-        // 2. Проверяем пути, которые не требуют авторизации только для GET методов
         if (!"GET".equalsIgnoreCase(method)) {
             return false;
         }
 
-        // Проверяем точные совпадения или префиксы для GET
-        if (excludedGetOnlyPaths.stream().anyMatch(excluded -> {
-            if (excluded.endsWith("/")) {
-                return path.startsWith(excluded);
-            } else {
-                return path.equals(excluded) || path.startsWith(excluded + "/");
-            }
-        })) {
-            return true;
-        }
-
-        // Проверяем регулярные выражения для паттернов (только GET)
-        return excludedGetOnlyPatterns.stream().anyMatch(pattern -> path.matches(pattern));
-    }
-
-    private String maskToken(String token) {
-        if (token == null || token.length() <= 10) {
-            return "***";
-        }
-        return token.substring(0, 6) + "..." + token.substring(token.length() - 4);
+        return excludedGetPatterns.stream().anyMatch(pattern -> path.matches(pattern));
     }
 
     private Mono<Void> unauthorizedResponse(ServerWebExchange exchange, String message) {

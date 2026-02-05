@@ -4,7 +4,7 @@ import { CameraIcon } from "../Icons/CamerIcon.jsx";
 import { ProfileIcon } from "../Icons/ProfileIcon.jsx";
 import { getCroppedImg } from '../../utils/cropImage';
 
-const CircleAvatarUpload = ({ onAvatarChange }) => {
+const AvatarUpload = ({ onAvatarChange }) => {
     const [selectedFile, setSelectedFile] = useState(null);
     const [preview, setPreview] = useState(null);
     const [showFileInfo, setShowFileInfo] = useState(false);
@@ -16,13 +16,14 @@ const CircleAvatarUpload = ({ onAvatarChange }) => {
 
     const fileInputRef = useRef(null);
 
-    // Обработчик выбора файла
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+
     const handleFileSelect = (event) => {
         const file = event.target.files[0];
         if (!file) return;
 
-        if (!file.type.startsWith('image/')) {
-            alert('Выберите изображение!');
+        if (!allowedTypes.includes(file.type)) {
+            alert('Разрешены только файлы JPG, PNG или WebP!');
             return;
         }
 
@@ -105,8 +106,8 @@ const CircleAvatarUpload = ({ onAvatarChange }) => {
     return (
         <div className="flex flex-col items-center space-y-4">
             {showCropper && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-70">
-                    <div className="bg-white rounded-[40px] shadow-2xl w-full max-w-2xl overflow-hidden">
+                <div className="fixed inset-0 z-[20] flex items-center justify-center p-4 bg-black bg-opacity-70">
+                    <div className=" bg-white rounded-[40px] shadow-2xl w-full max-w-2xl overflow-hidden">
                         <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
                             <h3 className="text-xl font-semibold">Обрезка фотографии</h3>
                             <button
@@ -117,21 +118,19 @@ const CircleAvatarUpload = ({ onAvatarChange }) => {
                             </button>
                         </div>
 
-                        {/* Область для кропа */}
                         <div className="p-6">
                             <div className="relative w-full h-96 bg-gray-900 rounded-lg overflow-hidden">
                                 <Cropper
                                     image={preview}
                                     crop={crop}
                                     zoom={zoom}
-                                    aspect={1} // Квадратное соотношение
+                                    aspect={1}
                                     onCropChange={setCrop}
                                     onZoomChange={setZoom}
                                     onCropComplete={onCropComplete}
                                 />
                             </div>
 
-                            {/* Контролы для кропа */}
                             <div className="mt-6 space-y-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -174,7 +173,6 @@ const CircleAvatarUpload = ({ onAvatarChange }) => {
                 </div>
             )}
 
-            {/* Круглая область аватарки (основной вид) */}
             <div className="relative">
                 <div
                     className="w-48 h-48 rounded-full border-4 border-gray-200
@@ -197,7 +195,7 @@ const CircleAvatarUpload = ({ onAvatarChange }) => {
                     )}
                 </div>
 
-                {/* Иконка камеры в углу */}
+
                 <div
                     className="absolute bottom-2 right-2 w-10 h-10 bg-gray-800
                                rounded-full flex items-center justify-center
@@ -209,16 +207,14 @@ const CircleAvatarUpload = ({ onAvatarChange }) => {
                 </div>
             </div>
 
-            {/* Скрытый input */}
             <input
                 type="file"
                 ref={fileInputRef}
                 onChange={handleFileSelect}
-                accept="image/*"
+                accept=".jpg,.jpeg,.png,.webp"
                 className="hidden"
             />
 
-            {/* Информация о файле */}
             <div className={`text-center space-y-2 transition-all duration-300 
                            ${showFileInfo ? 'opacity-100 max-h-40' : 'opacity-0 max-h-0 overflow-hidden'}`}>
                 <div className="text-sm text-gray-600">
@@ -255,4 +251,4 @@ const CircleAvatarUpload = ({ onAvatarChange }) => {
     );
 };
 
-export default CircleAvatarUpload;
+export default AvatarUpload;

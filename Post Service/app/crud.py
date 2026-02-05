@@ -26,7 +26,7 @@ async def update_profile(db: AsyncSession, profile_uuid: str, profile_update: sc
             .where(models.Profile.uuid == profile_uuid)
             .values(**filtered_data)
         )
-        logging.error(f"Update stmt: {stmt}")
+        logging.info(f"Update stmt: {stmt}")
         await db.execute(stmt)
         await db.commit()
 
