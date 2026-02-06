@@ -37,7 +37,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
     // Пути, которые НЕ требуют авторизации вообще (для любых HTTP методов)
     private final Set<String> excludedAnyMethodPaths = Set.of(
-            "/health", "/auth/", "/verify-token", "/refresh"
+            "/auth/", "/verify-token", "/refresh"
     );
 
      // Паттерны путей, которые не требуют авторизации (только для GET запросов)
