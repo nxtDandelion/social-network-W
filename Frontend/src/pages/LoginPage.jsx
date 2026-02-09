@@ -60,6 +60,7 @@ export default function LoginPage() {
                 localStorage.setItem("userId",response.data.id);
                 localStorage.setItem("myLogin",login);
                 localStorage.setItem("access_token",response.data.access_token);
+                localStorage.setItem("infinity", response.data.username);
                 const getMyProfile = await getUserProfile(response.data.username);
                 if (getMyProfile.success) {
                     localStorage.setItem("UserPhoto",getMyProfile.data.photo);

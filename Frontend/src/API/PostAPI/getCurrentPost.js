@@ -6,10 +6,6 @@ export const getCurrentPost = async (postId) =>{
 
     const token = localStorage.getItem("access_token");
 
-    if (!token) {
-        console.error("Токен не найден");
-        return false;
-    }
     try {
         const response = await axios.get(`${API_BASE_URL}/post/${postId}`,{
             headers: {

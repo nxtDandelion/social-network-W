@@ -1,16 +1,10 @@
 from fastapi import FastAPI, Depends, HTTPException, status, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
-from database import get_db, wait_for_db, engine
+from .database import get_db, wait_for_db, engine
 from contextlib import asynccontextmanager
-import schemas
-import uvicorn
-import models
-import handlers
-import security
-import crud
-import rabbitmq
-import logging
+from . import schemas, models, handlers, security, crud, rabbitmq
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
