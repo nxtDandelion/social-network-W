@@ -3,7 +3,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from fastapi import HTTPException, status
 from app.services.follow_service import FollowService
 from app.schemas.follow import FollowResponse, FollowersListResponse
-from app.schemas.follow import FollowingListResponse
+from app.schemas.follow import FollowingListResponse, UserShortInfo
+from app.schemas.profile import ProfileResponse
 
 
 class TestFollowService:
@@ -19,6 +20,7 @@ class TestFollowService:
         mock.get_followers_count = AsyncMock()
         mock.get_following_list = AsyncMock()
         mock.get_following_count = AsyncMock()
+        mock.get_profile = AsyncMock()
         return mock
 
     @pytest.fixture
@@ -30,11 +32,45 @@ class TestFollowService:
             service = FollowService(db=MagicMock())
             return service
 
+    @pytest.fixture
+    def sample_profile_response(self):
+        """Создаём ProfileResponse через model_construct (без валидации)"""
+        return ProfileResponse.model_construct(
+            uuid="test-uuid-123",
+            username="testuser",
+            login="testlogin",
+            email="test@example.com",
+            photo="photo.jpg",
+            tag="tag123",
+            subscribers={},
+            subscribes={},
+            subscribers_amount=0,
+            user_posts=[]
+        )
+
+    @pytest.fixture
+    def sample_user_short_info(self):
+        return UserShortInfo(
+            uuid="user123",
+            username="testuser",
+            photo="photo.jpg",
+            tag="tag123",
+            followed_at="2023-01-01T00:00:00"
+        )
+
     @pytest.mark.asyncio
-    async def test_follow_user_success(self, follow_service, mock_crud):
+    async def test_follow_user_success(
+        self,
+        follow_service,
+        mock_crud,
+        sample_profile_response
+    ):
 
         mock_crud.get_profile_exists.return_value = True
         mock_crud.get_follow_exists.return_value = False
+
+        mock_crud.follow_user.return_value = None
+        mock_crud.get_profile.return_value = sample_profile_response
 
         result = await follow_service.follow_user(
             "follower123",
@@ -105,10 +141,18 @@ class TestFollowService:
         assert "Follow already exists" in str(exc_info.value.detail)
 
     @pytest.mark.asyncio
-    async def test_unfollow_user_success(self, follow_service, mock_crud):
+    async def test_unfollow_user_success(
+        self,
+        follow_service,
+        mock_crud,
+        sample_profile_response
+    ):
 
         mock_crud.get_profile_exists.return_value = True
         mock_crud.get_follow_exists.return_value = True
+        mock_crud.unfollow_user.return_value = None
+
+        mock_crud.get_profile.return_value = sample_profile_response
 
         result = await follow_service.unfollow_user(
             "follower123",
@@ -116,10 +160,14 @@ class TestFollowService:
         )
 
         assert isinstance(result, FollowResponse)
+        assert result.follower_id == "follower123"
+        assert result.following_id == "following123"
         mock_crud.unfollow_user.assert_called_once_with(
             "follower123",
             "following123"
         )
+
+        mock_crud.get_profile.assert_called_once_with("follower123")
 
     @pytest.mark.asyncio
     async def test_unfollow_user_follow_not_exists(
