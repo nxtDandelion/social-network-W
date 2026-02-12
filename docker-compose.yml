@@ -1,6 +1,18 @@
 version: '3.8'
 
 services:
+  nginx:
+    build: ./frontend
+    container_name: social_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - gateway
+    networks:
+      - social-network
+    restart: unless-stopped
+
   # Базы данных PostgreSQL
   auth-db:
     image: postgres:17
