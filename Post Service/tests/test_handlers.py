@@ -120,14 +120,11 @@ async def test_handle_user_registered_minimal():
     mock_db = AsyncMock()
     event_data = {
         'uuid': 'test-uuid-123'
-        # Без username - это вызывает ошибку валидации
     }
     
     with patch('app.handlers.crud.create_profile', new_callable=AsyncMock) as mock_create:
-        # Функция должна поймать ошибку и не вызвать create_profile
         await handle_user_registered(event_data, mock_db)
         
-        # Проверяем, что create_profile НЕ был вызван из-за ошибки валидации
         mock_create.assert_not_called()
 
 @pytest.mark.asyncio

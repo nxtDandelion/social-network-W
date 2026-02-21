@@ -1,4 +1,3 @@
-"""Improved tests for RabbitMQ Service with better coverage"""
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch, call
 import sys
@@ -13,7 +12,6 @@ from app.rabbitmq import RabbitMQService, rabbitmq_service, connect_rabbitmq, ge
 
 @pytest.mark.asyncio
 async def test_service_initialization():
-    """Test RabbitMQ service initialization"""
     service = RabbitMQService()
     assert service.connection is None
     assert service.channel is None
@@ -22,7 +20,6 @@ async def test_service_initialization():
 
 @pytest.mark.asyncio
 async def test_service_has_required_attributes():
-    """Test service has required attributes"""
     service = RabbitMQService()
     assert hasattr(service, 'send_post_created')
     assert hasattr(service, 'send_post_updated')
@@ -36,7 +33,6 @@ async def test_service_has_required_attributes():
 
 @pytest.mark.asyncio
 async def test_send_post_event_not_connected():
-    """Test sending event when not connected fails"""
     service = RabbitMQService()
     service.is_connected = False
     
@@ -46,7 +42,6 @@ async def test_send_post_event_not_connected():
 
 @pytest.mark.asyncio
 async def test_send_post_created_when_not_connected():
-    """Test send_post_created logs error when not connected"""
     service = RabbitMQService()
     service.is_connected = False
     
@@ -57,7 +52,6 @@ async def test_send_post_created_when_not_connected():
 
 @pytest.mark.asyncio
 async def test_send_post_updated_when_not_connected():
-    """Test send_post_updated logs error when not connected"""
     service = RabbitMQService()
     service.is_connected = False
     
@@ -68,7 +62,6 @@ async def test_send_post_updated_when_not_connected():
 
 @pytest.mark.asyncio
 async def test_send_post_deleted_when_not_connected():
-    """Test send_post_deleted fails when not connected"""
     service = RabbitMQService()
     service.is_connected = False
     
@@ -78,7 +71,6 @@ async def test_send_post_deleted_when_not_connected():
 
 @pytest.mark.asyncio
 async def test_send_comment_created_when_not_connected():
-    """Test send_comment_created fails when not connected"""
     service = RabbitMQService()
     service.is_connected = False
     
@@ -88,7 +80,6 @@ async def test_send_comment_created_when_not_connected():
 
 @pytest.mark.asyncio
 async def test_send_comment_updated_when_not_connected():
-    """Test send_comment_updated fails when not connected"""
     service = RabbitMQService()
     service.is_connected = False
     
@@ -98,7 +89,6 @@ async def test_send_comment_updated_when_not_connected():
 
 @pytest.mark.asyncio
 async def test_send_comment_deleted_when_not_connected():
-    """Test send_comment_deleted fails when not connected"""
     service = RabbitMQService()
     service.is_connected = False
     
@@ -108,7 +98,6 @@ async def test_send_comment_deleted_when_not_connected():
 
 @pytest.mark.asyncio
 async def test_send_post_liked_when_not_connected():
-    """Test send_post_liked fails when not connected"""
     service = RabbitMQService()
     service.is_connected = False
     
@@ -118,7 +107,6 @@ async def test_send_post_liked_when_not_connected():
 
 @pytest.mark.asyncio
 async def test_send_post_unliked_when_not_connected():
-    """Test send_post_unliked fails when not connected"""
     service = RabbitMQService()
     service.is_connected = False
     
@@ -128,7 +116,6 @@ async def test_send_post_unliked_when_not_connected():
 
 @pytest.mark.asyncio
 async def test_send_post_event_success():
-    """Test sending post event successfully"""
     service = RabbitMQService()
     service.is_connected = True
     service.post_events_exchange = AsyncMock()
@@ -145,7 +132,6 @@ async def test_send_post_event_success():
 
 @pytest.mark.asyncio
 async def test_send_post_event_with_error():
-    """Test error handling in send_post_event"""
     service = RabbitMQService()
     service.is_connected = True
     service.post_events_exchange = AsyncMock()
@@ -157,7 +143,6 @@ async def test_send_post_event_with_error():
 
 @pytest.mark.asyncio
 async def test_start_consuming_events_not_connected():
-    """Test consuming events when not connected"""
     service = RabbitMQService()
     service.is_connected = False
     
@@ -170,7 +155,6 @@ async def test_start_consuming_events_not_connected():
 
 @pytest.mark.asyncio
 async def test_start_consuming_profile_events_not_connected():
-    """Test consuming profile events when not connected"""
     service = RabbitMQService()
     service.is_connected = False
     
@@ -183,7 +167,6 @@ async def test_start_consuming_profile_events_not_connected():
 
 @pytest.mark.asyncio
 async def test_connect_to_rabbitmq():
-    """Test connect_rabbitmq function"""
     with patch.object(rabbitmq_service, 'connect', new_callable=AsyncMock) as mock:
         await connect_rabbitmq()
         mock.assert_called_once()
@@ -191,7 +174,6 @@ async def test_connect_to_rabbitmq():
 
 @pytest.mark.asyncio
 async def test_close_when_connected():
-    """Test closing connection when connected"""
     service = RabbitMQService()
     service.connection = AsyncMock()
     
@@ -201,7 +183,6 @@ async def test_close_when_connected():
 
 @pytest.mark.asyncio
 async def test_close_when_no_connection():
-    """Test closing when no connection"""
     service = RabbitMQService()
     service.connection = None
     
@@ -210,7 +191,6 @@ async def test_close_when_no_connection():
 
 @pytest.mark.asyncio
 async def test_send_post_created_success():
-    """Test send_post_created sends correct event"""
     service = RabbitMQService()
     service.is_connected = True
     service.post_events_exchange = AsyncMock()
@@ -224,7 +204,6 @@ async def test_send_post_created_success():
 
 @pytest.mark.asyncio
 async def test_send_post_updated_success():
-    """Test send_post_updated sends correct event"""
     service = RabbitMQService()
     service.is_connected = True
     service.post_events_exchange = AsyncMock()
@@ -238,7 +217,6 @@ async def test_send_post_updated_success():
 
 @pytest.mark.asyncio
 async def test_send_comment_created_success():
-    """Test send_comment_created sends correct event"""
     service = RabbitMQService()
     service.is_connected = True
     service.post_events_exchange = AsyncMock()
@@ -252,7 +230,6 @@ async def test_send_comment_created_success():
 
 @pytest.mark.asyncio
 async def test_send_comment_updated_success():
-    """Test send_comment_updated sends correct event"""
     service = RabbitMQService()
     service.is_connected = True
     service.post_events_exchange = AsyncMock()
@@ -266,7 +243,6 @@ async def test_send_comment_updated_success():
 
 @pytest.mark.asyncio
 async def test_send_comment_deleted_success():
-    """Test send_comment_deleted sends correct event"""
     service = RabbitMQService()
     service.is_connected = True
     service.post_events_exchange = AsyncMock()
@@ -280,7 +256,6 @@ async def test_send_comment_deleted_success():
 
 @pytest.mark.asyncio
 async def test_send_post_liked_success():
-    """Test send_post_liked sends correct event"""
     service = RabbitMQService()
     service.is_connected = True
     service.post_events_exchange = AsyncMock()
@@ -294,7 +269,6 @@ async def test_send_post_liked_success():
 
 @pytest.mark.asyncio
 async def test_send_post_unliked_success():
-    """Test send_post_unliked sends correct event"""
     service = RabbitMQService()
     service.is_connected = True
     service.post_events_exchange = AsyncMock()
@@ -308,14 +282,12 @@ async def test_send_post_unliked_success():
 
 @pytest.mark.asyncio
 async def test_rabbitmq_service_singleton():
-    """Test global rabbitmq_service is singleton"""
     assert rabbitmq_service is not None
     assert isinstance(rabbitmq_service, RabbitMQService)
 
 
 @pytest.mark.asyncio
 async def test_service_state_transitions():
-    """Test service state transitions"""
     service = RabbitMQService()
     
     assert service.is_connected is False
@@ -328,7 +300,6 @@ async def test_service_state_transitions():
 
 @pytest.mark.asyncio
 async def test_multiple_event_types():
-    """Test all different event types can be prepared"""
     service = RabbitMQService()
     service.is_connected = True
     service.post_events_exchange = AsyncMock()
@@ -350,7 +321,6 @@ async def test_multiple_event_types():
 
 @pytest.mark.asyncio
 async def test_send_with_empty_data():
-    """Test sending events with empty data"""
     service = RabbitMQService()
     service.is_connected = True
     service.post_events_exchange = AsyncMock()
@@ -362,7 +332,6 @@ async def test_send_with_empty_data():
 
 @pytest.mark.asyncio
 async def test_send_with_complex_data():
-    """Test sending events with complex nested data"""
     service = RabbitMQService()
     service.is_connected = True
     service.post_events_exchange = AsyncMock()
@@ -380,7 +349,6 @@ async def test_send_with_complex_data():
 
 @pytest.mark.asyncio
 async def test_service_initialization_attributes():
-    """Test all service attributes are properly initialized"""
     service = RabbitMQService()
     
     assert hasattr(service, 'connection')
@@ -395,7 +363,6 @@ async def test_service_initialization_attributes():
 
 @pytest.mark.asyncio
 async def test_get_rabbitmq_function():
-    """Test get_rabbitmq utility function"""
     from app.rabbitmq import get_rabbitmq, RabbitMQService
     
     service = get_rabbitmq()
@@ -405,7 +372,6 @@ async def test_get_rabbitmq_function():
 
 @pytest.mark.asyncio
 async def test_all_event_sending_methods_exist():
-    """Test all event sending methods are defined"""
     service = RabbitMQService()
     
     methods_to_check = [
@@ -431,7 +397,6 @@ async def test_all_event_sending_methods_exist():
 
 @pytest.mark.asyncio
 async def test_close_idempotent():
-    """Test close can be called multiple times safely"""
     service = RabbitMQService()
     service.connection = None
     
@@ -442,7 +407,6 @@ async def test_close_idempotent():
 
 @pytest.mark.asyncio
 async def test_service_methods_are_async():
-    """Test service methods are async"""
     import inspect
     service = RabbitMQService()
     
@@ -468,11 +432,9 @@ async def test_service_methods_are_async():
 
 
 class TestRabbitMQErrorHandling:
-    """Test error handling in RabbitMQ service"""
     
     @pytest.mark.asyncio
     async def test_send_post_created_with_error_logs(self):
-        """Test send_post_created error handling and logging"""
         service = RabbitMQService()
         service.is_connected = False
         
@@ -482,7 +444,6 @@ class TestRabbitMQErrorHandling:
     
     @pytest.mark.asyncio
     async def test_send_post_updated_with_error_logs(self):
-        """Test send_post_updated error handling"""
         service = RabbitMQService()
         service.is_connected = False
         
@@ -492,7 +453,6 @@ class TestRabbitMQErrorHandling:
     
     @pytest.mark.asyncio
     async def test_send_comment_created_error(self):
-        """Test send_comment_created with disconnected service"""
         service = RabbitMQService()
         service.is_connected = False
         
@@ -501,7 +461,6 @@ class TestRabbitMQErrorHandling:
     
     @pytest.mark.asyncio
     async def test_send_comment_updated_error(self):
-        """Test send_comment_updated with disconnected service"""
         service = RabbitMQService()
         service.is_connected = False
         
@@ -510,7 +469,6 @@ class TestRabbitMQErrorHandling:
     
     @pytest.mark.asyncio
     async def test_send_comment_deleted_error(self):
-        """Test send_comment_deleted with disconnected service"""
         service = RabbitMQService()
         service.is_connected = False
         
@@ -519,7 +477,6 @@ class TestRabbitMQErrorHandling:
     
     @pytest.mark.asyncio
     async def test_send_post_liked_error(self):
-        """Test send_post_liked with disconnected service"""
         service = RabbitMQService()
         service.is_connected = False
         
@@ -528,7 +485,6 @@ class TestRabbitMQErrorHandling:
     
     @pytest.mark.asyncio
     async def test_send_post_unliked_error(self):
-        """Test send_post_unliked with disconnected service"""
         service = RabbitMQService()
         service.is_connected = False
         
@@ -537,11 +493,9 @@ class TestRabbitMQErrorHandling:
 
 
 class TestRabbitMQMessageFormatting:
-    """Test message formatting and JSON serialization"""
     
     @pytest.mark.asyncio
     async def test_message_contains_event_type(self):
-        """Test sent message includes event_type"""
         service = RabbitMQService()
         service.is_connected = True
         service.post_events_exchange = AsyncMock()
@@ -558,7 +512,6 @@ class TestRabbitMQMessageFormatting:
     
     @pytest.mark.asyncio
     async def test_message_contains_timestamp(self):
-        """Test sent message includes timestamp"""
         service = RabbitMQService()
         service.is_connected = True
         service.post_events_exchange = AsyncMock()
@@ -574,7 +527,6 @@ class TestRabbitMQMessageFormatting:
     
     @pytest.mark.asyncio
     async def test_message_delivery_mode_persistent(self):
-        """Test message is set to persistent delivery"""
         service = RabbitMQService()
         service.is_connected = True
         service.post_events_exchange = AsyncMock()
@@ -589,7 +541,6 @@ class TestRabbitMQMessageFormatting:
     
     @pytest.mark.asyncio
     async def test_message_content_type_json(self):
-        """Test message content type is JSON"""
         service = RabbitMQService()
         service.is_connected = True
         service.post_events_exchange = AsyncMock()
@@ -604,11 +555,9 @@ class TestRabbitMQMessageFormatting:
 
 
 class TestRabbitMQDataVariants:
-    """Test service with various data formats"""
     
     @pytest.mark.asyncio
     async def test_send_with_special_characters(self):
-        """Test sending data with special characters"""
         service = RabbitMQService()
         service.is_connected = True
         service.post_events_exchange = AsyncMock()
@@ -625,7 +574,6 @@ class TestRabbitMQDataVariants:
     
     @pytest.mark.asyncio
     async def test_send_with_unicode(self):
-        """Test sending data with unicode characters"""
         service = RabbitMQService()
         service.is_connected = True
         service.post_events_exchange = AsyncMock()
@@ -640,7 +588,6 @@ class TestRabbitMQDataVariants:
     
     @pytest.mark.asyncio
     async def test_send_with_large_data(self):
-        """Test sending large data payloads"""
         service = RabbitMQService()
         service.is_connected = True
         service.post_events_exchange = AsyncMock()
@@ -657,7 +604,6 @@ class TestRabbitMQDataVariants:
     
     @pytest.mark.asyncio
     async def test_send_with_numeric_values(self):
-        """Test sending various numeric data types"""
         service = RabbitMQService()
         service.is_connected = True
         service.post_events_exchange = AsyncMock()
@@ -676,7 +622,6 @@ class TestRabbitMQDataVariants:
     
     @pytest.mark.asyncio
     async def test_send_with_null_values(self):
-        """Test sending data with None/null values"""
         service = RabbitMQService()
         service.is_connected = True
         service.post_events_exchange = AsyncMock()
@@ -694,7 +639,6 @@ class TestRabbitMQDataVariants:
     
     @pytest.mark.asyncio
     async def test_send_with_boolean_values(self):
-        """Test sending boolean values"""
         service = RabbitMQService()
         service.is_connected = True
         service.post_events_exchange = AsyncMock()
@@ -711,11 +655,9 @@ class TestRabbitMQDataVariants:
 
 
 class TestRabbitMQConnectionStates:
-    """Test service behavior in different connection states"""
     
     @pytest.mark.asyncio
     async def test_transition_from_connected_to_disconnected(self):
-        """Test transitioning from connected to disconnected state"""
         service = RabbitMQService()
         service.is_connected = True
         service.post_events_exchange = AsyncMock()
@@ -733,7 +675,6 @@ class TestRabbitMQConnectionStates:
     
     @pytest.mark.asyncio
     async def test_multiple_services_independent(self):
-        """Test multiple service instances are independent"""
         service1 = RabbitMQService()
         service2 = RabbitMQService()
         
@@ -746,11 +687,9 @@ class TestRabbitMQConnectionStates:
 
 
 class TestRabbitMQIntegration:
-    """Test integration scenarios"""
     
     @pytest.mark.asyncio
     async def test_all_event_types_with_same_data(self):
-        """Test all event types can handle same data structure"""
         service = RabbitMQService()
         service.is_connected = True
         service.post_events_exchange = AsyncMock()
@@ -782,7 +721,6 @@ class TestRabbitMQIntegration:
     
     @pytest.mark.asyncio
     async def test_sequence_of_operations(self):
-        """Test sequence of send operations"""
         service = RabbitMQService()
         service.is_connected = True
         service.post_events_exchange = AsyncMock()
@@ -803,7 +741,6 @@ class TestRabbitMQIntegration:
     
     @pytest.mark.asyncio
     async def test_concurrent_sends_simulation(self):
-        """Test behavior with rapid successive sends"""
         service = RabbitMQService()
         service.is_connected = True
         service.post_events_exchange = AsyncMock()
@@ -818,14 +755,10 @@ class TestRabbitMQIntegration:
                 pass
 
 
-# ============= НОВЫЕ ТЕСТЫ ДЛЯ ПОКРЫТИЯ =============
-
 @pytest.mark.asyncio
 class TestRabbitMQCoverage:
-    """Тесты для покрытия недостающих строк в rabbitmq.py"""
     
     async def test_connect_success(self):
-        """Тест успешного подключения"""
         service = RabbitMQService()
         
         with patch('aio_pika.connect_robust', new_callable=AsyncMock) as mock_connect:
@@ -851,14 +784,10 @@ class TestRabbitMQCoverage:
                 virtualhost='/',
             )
             
-            # Проверяем создание exchange
             assert mock_channel.declare_exchange.call_count == 3
-            
-            # Проверяем создание очередей
             assert mock_channel.declare_queue.call_count == 2
 
     async def test_start_consuming_events_success(self):
-        """Тест успешного запуска consumer для событий"""
         service = RabbitMQService()
         service.is_connected = True
         service.post_commands_queue = AsyncMock()
@@ -870,7 +799,6 @@ class TestRabbitMQCoverage:
         service.post_commands_queue.consume.assert_called_once()
 
     async def test_start_consuming_profile_events_success(self):
-        """Тест успешного запуска consumer для профильных событий"""
         service = RabbitMQService()
         service.is_connected = True
         service.post_profile_events_queue = AsyncMock()
@@ -882,22 +810,18 @@ class TestRabbitMQCoverage:
         service.post_profile_events_queue.consume.assert_called_once()
 
     async def test_message_processing_success(self):
-        """Тест успешной обработки сообщения"""
         service = RabbitMQService()
         service.is_connected = True
         service.post_commands_queue = AsyncMock()
         
-        # Создаем специальный мок для message, который поддерживает асинхронный контекстный менеджер
         mock_message = AsyncMock()
         mock_message.body = json.dumps({"test": "data"}).encode()
         mock_message.headers = {'event': 'test_event'}
         
-        # Создаем отдельный мок для асинхронного контекстного менеджера
         mock_cm = AsyncMock()
         mock_cm.__aenter__ = AsyncMock()
         mock_cm.__aexit__ = AsyncMock()
         
-        # Устанавливаем process как функцию, возвращающую контекстный менеджер
         mock_message.process = MagicMock(return_value=mock_cm)
         
         callback_called = False
@@ -910,7 +834,6 @@ class TestRabbitMQCoverage:
             callback_event_type = event_type
             callback_data = data
         
-        # Симулируем получение сообщения
         consume_callback = None
         
         async def consume_side_effect(cb):
@@ -920,7 +843,6 @@ class TestRabbitMQCoverage:
         service.post_commands_queue.consume.side_effect = consume_side_effect
         await service.start_consuming_events(callback)
         
-        # Вызываем callback с сообщением
         await consume_callback(mock_message)
         
         assert callback_called is True
@@ -931,23 +853,19 @@ class TestRabbitMQCoverage:
         mock_cm.__aexit__.assert_called_once()
 
     async def test_message_processing_invalid_json(self):
-        """Тест обработки сообщения с невалидным JSON"""
         service = RabbitMQService()
         service.is_connected = True
         service.post_commands_queue = AsyncMock()
         
-        # Создаем специальный мок для message
         mock_message = AsyncMock()
         mock_message.body = b'invalid json'
         mock_message.headers = {'event': 'test_event'}
         mock_message.reject = AsyncMock()
         
-        # Создаем отдельный мок для асинхронного контекстного менеджера
         mock_cm = AsyncMock()
         mock_cm.__aenter__ = AsyncMock()
         mock_cm.__aexit__ = AsyncMock()
         
-        # Устанавливаем process как функцию, возвращающую контекстный менеджер
         mock_message.process = MagicMock(return_value=mock_cm)
         
         callback_called = False
@@ -956,7 +874,6 @@ class TestRabbitMQCoverage:
             nonlocal callback_called
             callback_called = True
         
-        # Симулируем получение сообщения
         consume_callback = None
         
         async def consume_side_effect(cb):
@@ -977,29 +894,24 @@ class TestRabbitMQCoverage:
             mock_cm.__aexit__.assert_called_once()
 
     async def test_message_processing_general_error(self):
-        """Тест обработки сообщения с общей ошибкой"""
         service = RabbitMQService()
         service.is_connected = True
         service.post_commands_queue = AsyncMock()
         
-        # Создаем специальный мок для message
         mock_message = AsyncMock()
         mock_message.body = json.dumps({"test": "data"}).encode()
         mock_message.headers = {'event': 'test_event'}
         mock_message.reject = AsyncMock()
         
-        # Создаем отдельный мок для асинхронного контекстного менеджера
         mock_cm = AsyncMock()
         mock_cm.__aenter__ = AsyncMock()
         mock_cm.__aexit__ = AsyncMock()
         
-        # Устанавливаем process как функцию, возвращающую контекстный менеджер
         mock_message.process = MagicMock(return_value=mock_cm)
         
         async def callback(event_type, data):
             raise Exception("Callback error")
         
-        # Симулируем получение сообщения
         consume_callback = None
         
         async def consume_side_effect(cb):
@@ -1019,22 +931,18 @@ class TestRabbitMQCoverage:
             mock_cm.__aexit__.assert_called_once()
 
     async def test_profile_message_processing_success(self):
-        """Тест успешной обработки профильного сообщения"""
         service = RabbitMQService()
         service.is_connected = True
         service.post_profile_events_queue = AsyncMock()
         
-        # Создаем специальный мок для message
         mock_message = AsyncMock()
         mock_message.body = json.dumps({"profile": "data"}).encode()
         mock_message.headers = {'event': 'profile_updated'}
         
-        # Создаем отдельный мок для асинхронного контекстного менеджера
         mock_cm = AsyncMock()
         mock_cm.__aenter__ = AsyncMock()
         mock_cm.__aexit__ = AsyncMock()
         
-        # Устанавливаем process как функцию, возвращающую контекстный менеджер
         mock_message.process = MagicMock(return_value=mock_cm)
         
         callback_called = False
@@ -1047,7 +955,6 @@ class TestRabbitMQCoverage:
             callback_event_type = event_type
             callback_data = data
         
-        # Симулируем получение сообщения
         consume_callback = None
         
         async def consume_side_effect(cb):
@@ -1057,7 +964,6 @@ class TestRabbitMQCoverage:
         service.post_profile_events_queue.consume.side_effect = consume_side_effect
         await service.start_consuming_profile_events(callback)
         
-        # Вызываем callback с сообщением
         await consume_callback(mock_message)
         
         assert callback_called is True
@@ -1068,7 +974,6 @@ class TestRabbitMQCoverage:
         mock_cm.__aexit__.assert_called_once()
 
     async def test_send_post_event_with_exception(self):
-        """Тест отправки события с исключением при публикации"""
         service = RabbitMQService()
         service.is_connected = True
         service.post_events_exchange = AsyncMock()
@@ -1083,7 +988,6 @@ class TestRabbitMQCoverage:
             mock_log.assert_called_once()
 
     async def test_all_send_methods_call_send_post_event(self):
-        """Тест что все методы отправки вызывают send_post_event"""
         service = RabbitMQService()
         service.is_connected = True
         service.post_events_exchange = AsyncMock()
@@ -1114,7 +1018,6 @@ class TestRabbitMQCoverage:
             mock_send.assert_called_with('post_unliked', {'id': 1})
 
     async def test_connect_failure(self):
-        """Тест ошибки подключения"""
         service = RabbitMQService()
         
         with patch('aio_pika.connect_robust', side_effect=Exception("Connection failed")):
