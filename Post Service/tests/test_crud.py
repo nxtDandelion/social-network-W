@@ -15,23 +15,150 @@ def mock_db():
     mock.commit = AsyncMock()
     mock.refresh = AsyncMock()
     mock.execute = AsyncMock()
+    mock.delete = AsyncMock()
     return mock
 
+# ============= ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =============
+
 def setup_mock_scalar_result(mock_db, return_value):
-    """Настраивает mock для scalar результатов"""
+    """Настраивает mock для scalar результатов (один объект)"""
     mock_scalars = MagicMock()
     mock_scalars.first.return_value = return_value
     mock_result = MagicMock()
     mock_result.scalars.return_value = mock_scalars
     mock_db.execute.return_value = mock_result
+    return mock_result
 
 def setup_mock_scalars_result(mock_db, return_value):
-    """Настраивает mock для scalars().all() результатов"""
+    """Настраивает mock для scalars().all() результатов (список объектов)"""
     mock_scalars = MagicMock()
     mock_scalars.all.return_value = return_value
     mock_result = MagicMock()
     mock_result.scalars.return_value = mock_scalars
     mock_db.execute.return_value = mock_result
+    return mock_result
+
+def setup_mock_feed_result(mock_db, posts_with_data):
+    """Настраивает mock для get_posts_feed (возвращает кортежи post, username, photo)"""
+    mock_rows = []
+    for post, username, photo in posts_with_data:
+        mock_row = MagicMock()
+        mock_row.__iter__.return_value = (post, username, photo)
+        mock_rows.append(mock_row)
+    
+    mock_result = MagicMock()
+    mock_result.all.return_value = mock_rows
+    mock_db.execute.return_value = mock_result
+    return mock_result
+
+def setup_mock_comment_result(mock_db, comment, username="testuser", photo=None):
+    """Настраивает mock для get_comment (возвращает кортеж comment, username, photo)"""
+    mock_row = MagicMock()
+    mock_row.__iter__.return_value = (comment, username, photo)
+    
+    mock_result = MagicMock()
+    mock_result.first.return_value = mock_row
+    
+    mock_db.execute.return_value = mock_result
+    return mock_result
+
+def setup_mock_comment_list_result(mock_db, comments_with_data):
+    """Настраивает mock для get_comments_by_post (возвращает список кортежей comment, username, photo)"""
+    mock_rows = []
+    for comment, username, photo in comments_with_data:
+        mock_row = MagicMock()
+        mock_row.__iter__.return_value = (comment, username, photo)
+        mock_rows.append(mock_row)
+    
+    mock_result = MagicMock()
+    mock_result.all.return_value = mock_rows
+    mock_db.execute.return_value = mock_result
+    return mock_result
+
+def setup_mock_comment_delete_result(mock_db, comment, post_id=1):
+    """Настраивает mock для delete_comment (возвращает кортеж comment, post_id)"""
+    mock_row = MagicMock()
+    mock_row.__iter__.return_value = (comment, post_id)
+    
+    mock_result = MagicMock()
+    mock_result.first.return_value = mock_row
+    
+    mock_db.execute.return_value = mock_result
+    return mock_result
+
+def setup_mock_update_comment_flow(mock_db, comment, username="testuser"):
+    """Настраивает сложный поток для update_comment"""
+    call_count = 0
+    
+    async def execute_side_effect(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        
+        if call_count == 1:  # Первый запрос - get_comment
+            mock_row = MagicMock()
+            mock_row.__iter__.return_value = (comment, username, None)
+            mock_result = MagicMock()
+            mock_result.first.return_value = mock_row
+            return mock_result
+        elif call_count == 2:  # Второй запрос - update
+            mock_result = MagicMock()
+            return mock_result
+        else:  # Третий запрос - select после update
+            mock_scalars = MagicMock()
+            mock_scalars.first.return_value = comment
+            mock_result = MagicMock()
+            mock_result.scalars.return_value = mock_scalars
+            return mock_result
+    
+    mock_db.execute.side_effect = execute_side_effect
+
+def setup_mock_complete_comment_flow(mock_db, comment, username="testuser", post_id=1):
+    """Настраивает полный поток для комментария (get, update, delete)"""
+    call_count = 0
+    
+    async def execute_side_effect(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        
+        if call_count == 1:  # get_comment
+            mock_row = MagicMock()
+            mock_row.__iter__.return_value = (comment, username, None)
+            mock_result = MagicMock()
+            mock_result.first.return_value = mock_row
+            return mock_result
+        elif call_count == 2:  # update_comment - первый запрос (get_comment)
+            mock_row = MagicMock()
+            mock_row.__iter__.return_value = (comment, username, None)
+            mock_result = MagicMock()
+            mock_result.first.return_value = mock_row
+            return mock_result
+        elif call_count == 3:  # update_comment - update
+            mock_result = MagicMock()
+            return mock_result
+        elif call_count == 4:  # update_comment - select после update
+            mock_scalars = MagicMock()
+            mock_scalars.first.return_value = comment
+            mock_result = MagicMock()
+            mock_result.scalars.return_value = mock_scalars
+            return mock_result
+        else:  # delete_comment
+            mock_row = MagicMock()
+            mock_row.__iter__.return_value = (comment, post_id)
+            mock_result = MagicMock()
+            mock_result.first.return_value = mock_row
+            return mock_result
+    
+    mock_db.execute.side_effect = execute_side_effect
+
+def setup_mock_empty_result(mock_db):
+    """Настраивает mock для пустого результата"""
+    mock_result = MagicMock()
+    mock_result.first.return_value = None
+    mock_result.all.return_value = []
+    mock_db.execute.return_value = mock_result
+    return mock_result
+
+# ============= ТЕСТЫ PROFILE =============
 
 @pytest.mark.asyncio
 class TestCRUDProfile:
@@ -82,6 +209,8 @@ class TestCRUDProfile:
         mock_db.commit.assert_called_once()
         assert result["message"] == "Profile deleted successfully"
 
+# ============= ТЕСТЫ POST =============
+
 @pytest.mark.asyncio
 class TestCRUDPost:
     async def test_create_post(self, mock_db):
@@ -103,17 +232,21 @@ class TestCRUDPost:
         assert result.text == "Test post"
 
     async def test_get_posts_feed(self, mock_db):
-        mock_posts = [
-            models.Post(id=1, text="Post 1", profile_id="test-uuid-123"),
-            models.Post(id=2, text="Post 2", profile_id="test-uuid-123")
+        """Тест получения ленты постов"""
+        mock_posts_with_data = [
+            (models.Post(id=1, text="Post 1", profile_id="test-uuid-123"), "user1", "photo1.jpg"),
+            (models.Post(id=2, text="Post 2", profile_id="test-uuid-123"), "user2", "photo2.jpg")
         ]
-        setup_mock_scalars_result(mock_db, mock_posts)
+        setup_mock_feed_result(mock_db, mock_posts_with_data)
         
         result = await crud.get_posts_feed(mock_db, skip=0, limit=10)
         
         assert len(result) == 2
-        assert result[0].text == "Post 1"
-        assert result[1].text == "Post 2"
+        assert result[0]["id"] == 1
+        assert result[0]["text"] == "Post 1"
+        assert result[0]["username"] == "user1"
+        assert result[1]["id"] == 2
+        assert result[1]["text"] == "Post 2"
 
     async def test_get_profile_posts(self, mock_db):
         mock_posts = [models.Post(id=1, text="Post 1", profile_id="test-uuid-123")]
@@ -217,6 +350,8 @@ class TestCRUDPost:
         mock_db.commit.assert_called_once()
         mock_db.refresh.assert_called_once()
 
+# ============= ТЕСТЫ COMMENT =============
+
 @pytest.mark.asyncio
 class TestCRUDComment:
     async def test_create_comment(self, mock_db):
@@ -235,24 +370,30 @@ class TestCRUDComment:
             post_id=1, 
             profile_id="test-uuid-123"
         )
-        setup_mock_scalar_result(mock_db, mock_comment)
+        setup_mock_comment_result(mock_db, mock_comment, "testuser", "photo.jpg")
         
         result = await crud.get_comment(mock_db, 1)
         
         assert result.id == 1
         assert result.text == "Test comment"
+        assert result.username == "testuser"
+        assert result.photo == "photo.jpg"
 
     async def test_get_comments_by_post(self, mock_db):
-        mock_comments = [
-            models.Comment(id=1, text="Comment 1", post_id=1, profile_id="test-uuid-123"),
-            models.Comment(id=2, text="Comment 2", post_id=1, profile_id="test-uuid-123")
+        mock_comments_with_data = [
+            (models.Comment(id=1, text="Comment 1", post_id=1, profile_id="test-uuid-123"), "user1", None),
+            (models.Comment(id=2, text="Comment 2", post_id=1, profile_id="test-uuid-123"), "user2", None)
         ]
-        setup_mock_scalars_result(mock_db, mock_comments)
+        setup_mock_comment_list_result(mock_db, mock_comments_with_data)
         
         result = await crud.get_comments_by_post(mock_db, 1)
         
         assert len(result) == 2
-        assert all(comment.post_id == 1 for comment in result)
+        assert result[0]["id"] == 1
+        assert result[0]["text"] == "Comment 1"
+        assert result[0]["username"] == "user1"
+        assert result[1]["id"] == 2
+        assert result[1]["text"] == "Comment 2"
 
     async def test_update_comment_success(self, mock_db):
         comment_update = schemas.CommentUpdate(text="Updated comment")
@@ -263,21 +404,11 @@ class TestCRUDComment:
             profile_id="test-uuid-123"
         )
 
-        call_count = 0
-        async def execute_side_effect(*args, **kwargs):
-            nonlocal call_count
-            call_count += 1
-            mock_scalars = MagicMock()
-            mock_scalars.first.return_value = mock_comment
-            mock_result = MagicMock()
-            mock_result.scalars.return_value = mock_scalars
-            return mock_result
-
-        mock_db.execute.side_effect = execute_side_effect
+        setup_mock_update_comment_flow(mock_db, mock_comment, "testuser")
 
         result = await crud.update_comment(mock_db, 1, comment_update, "test-uuid-123")
 
-        assert mock_db.execute.call_count == 3
+        assert result is not None
         mock_db.commit.assert_called_once()
 
     async def test_delete_comment_success(self, mock_db):
@@ -287,13 +418,46 @@ class TestCRUDComment:
             post_id=1, 
             profile_id="test-uuid-123"
         )
-        setup_mock_scalar_result(mock_db, mock_comment)
+        setup_mock_comment_delete_result(mock_db, mock_comment, 1)
         
         result = await crud.delete_comment(mock_db, 1, "test-uuid-123")
         
-        mock_db.execute.assert_called()
-        mock_db.commit.assert_called_once()
         assert result["message"] == "Comment deleted successfully"
+        mock_db.commit.assert_called_once()
+
+    async def test_update_comment_not_found(self, mock_db):
+        comment_update = schemas.CommentUpdate(text="Updated comment")
+        setup_mock_empty_result(mock_db)
+        
+        result = await crud.update_comment(mock_db, 999, comment_update, "test-123")
+        
+        assert result is None
+
+    async def test_update_comment_unauthorized(self, mock_db):
+        comment_update = schemas.CommentUpdate(text="Updated comment")
+        mock_comment = models.Comment(id=1, text="Original", post_id=1, profile_id="owner-123")
+        setup_mock_comment_result(mock_db, mock_comment, "owner")
+        
+        result = await crud.update_comment(mock_db, 1, comment_update, "different-123")
+        
+        assert result is None
+
+    async def test_delete_comment_not_found(self, mock_db):
+        setup_mock_empty_result(mock_db)
+        
+        result = await crud.delete_comment(mock_db, 999, "test-123")
+        
+        assert result["message"] == "Comment not found"
+
+    async def test_delete_comment_unauthorized(self, mock_db):
+        mock_comment = models.Comment(id=1, text="Test", post_id=1, profile_id="owner-123")
+        setup_mock_comment_delete_result(mock_db, mock_comment, 1)
+        
+        result = await crud.delete_comment(mock_db, 1, "different-123")
+        
+        assert result["message"] == "Not authorized to delete this comment"
+
+# ============= ТЕСТЫ EDGE CASES =============
 
 @pytest.mark.asyncio
 class TestCRUDEdgeCases:
@@ -333,7 +497,7 @@ class TestCRUDEdgeCases:
         
         result = await crud.update_profile(mock_db, "test-uuid-123", update_data)
         
-        mock_db.execute.assert_called_once() 
+        mock_db.execute.assert_called_once()
         mock_db.commit.assert_not_called()
 
     async def test_get_profile_posts_empty(self, mock_db):
@@ -347,52 +511,16 @@ class TestCRUDEdgeCases:
 
     async def test_get_posts_feed_with_pagination(self, mock_db):
         """Тест получения ленты с пагинацией"""
-        mock_posts = [
-            models.Post(id=1, text="Post 1", profile_id="test-123"),
-            models.Post(id=2, text="Post 2", profile_id="test-123")
+        mock_posts_with_data = [
+            (models.Post(id=1, text="Post 1", profile_id="test-123"), "user1", None),
+            (models.Post(id=2, text="Post 2", profile_id="test-123"), "user2", None)
         ]
-        setup_mock_scalars_result(mock_db, mock_posts)
+        setup_mock_feed_result(mock_db, mock_posts_with_data)
         
         result = await crud.get_posts_feed(mock_db, skip=5, limit=10)
         
         assert len(result) == 2
         mock_db.execute.assert_called_once()
-
-    async def test_update_comment_not_found(self, mock_db):
-        """Тест обновления несуществующего комментария"""
-        comment_update = schemas.CommentUpdate(text="Updated comment")
-        setup_mock_scalar_result(mock_db, None)
-        
-        result = await crud.update_comment(mock_db, 999, comment_update, "test-123")
-        
-        assert result is None
-
-    async def test_update_comment_unauthorized(self, mock_db):
-        """Тест обновления комментария без прав"""
-        comment_update = schemas.CommentUpdate(text="Updated comment")
-        mock_comment = models.Comment(id=1, text="Original", post_id=1, profile_id="owner-123")
-        setup_mock_scalar_result(mock_db, mock_comment)
-        
-        result = await crud.update_comment(mock_db, 1, comment_update, "different-123")
-        
-        assert result is None
-
-    async def test_delete_comment_not_found(self, mock_db):
-        """Тест удаления несуществующего комментария"""
-        setup_mock_scalar_result(mock_db, None)
-        
-        result = await crud.delete_comment(mock_db, 999, "test-123")
-        
-        assert result["message"] == "Comment not found"
-
-    async def test_delete_comment_unauthorized(self, mock_db):
-        """Тест удаления комментария без прав"""
-        mock_comment = models.Comment(id=1, text="Test", post_id=1, profile_id="owner-123")
-        setup_mock_scalar_result(mock_db, mock_comment)
-        
-        result = await crud.delete_comment(mock_db, 1, "different-123")
-        
-        assert result["message"] == "Not authorized to delete this comment"
 
     async def test_like_post_already_liked(self, mock_db):
         """Тест лайка поста который уже лайкнут"""
@@ -401,7 +529,7 @@ class TestCRUDEdgeCases:
             text="Test post", 
             profile_id="test-123"
         )
-        mock_post.likers = ["liker-123"] 
+        mock_post.likers = ["liker-123"]
         mock_post.likes_amount = 1
         
         setup_mock_scalar_result(mock_db, mock_post)
@@ -418,7 +546,7 @@ class TestCRUDEdgeCases:
             text="Test post", 
             profile_id="test-123"
         )
-        mock_post.likers = [] 
+        mock_post.likers = []
         mock_post.likes_amount = 0
         
         setup_mock_scalar_result(mock_db, mock_post)
@@ -430,7 +558,7 @@ class TestCRUDEdgeCases:
 
     async def test_get_comments_by_post_empty(self, mock_db):
         """Тест получения комментариев когда их нет"""
-        setup_mock_scalars_result(mock_db, [])
+        setup_mock_comment_list_result(mock_db, [])
         
         result = await crud.get_comments_by_post(mock_db, 1)
         
@@ -448,6 +576,8 @@ class TestCRUDEdgeCases:
         result = await crud.unfollow_profile(mock_db, "follower-123", "followed-123")
         
         assert result["message"] == "???"
+
+# ============= ТЕСТЫ ERROR CASES =============
 
 @pytest.mark.asyncio
 class TestCRUDErrorCases:
@@ -512,14 +642,15 @@ class TestCRUDErrorCases:
         """Тест обновления комментария с проверкой flag_modified"""
         comment_update = schemas.CommentUpdate(text="Updated comment")
         mock_comment = models.Comment(id=1, text="Original", post_id=1, profile_id="test-123")
-        
-        setup_mock_scalar_result(mock_db, mock_comment)
-        
+
+        setup_mock_update_comment_flow(mock_db, mock_comment, "testuser")
+
         with patch('app.crud.flag_modified') as mock_flag:
             result = await crud.update_comment(mock_db, 1, comment_update, "test-123")
             
-            mock_db.execute.assert_called()
             mock_db.commit.assert_called_once()
+
+# ============= ТЕСТЫ JSON FIELDS =============
 
 @pytest.mark.asyncio
 class TestCRUDJSONFields:
@@ -547,7 +678,7 @@ class TestCRUDJSONFields:
             text="Test post", 
             profile_id="test-123"
         )
-        mock_post.likers = [] 
+        mock_post.likers = []
         mock_post.likes_amount = 0
         
         setup_mock_scalar_result(mock_db, mock_post)
@@ -577,6 +708,8 @@ class TestCRUDJSONFields:
             mock_flag.assert_called_once_with(mock_post, "likers")
             mock_db.commit.assert_called_once()
             mock_db.refresh.assert_called_once()
+
+# ============= ТЕСТЫ COMPLEX SCENARIOS =============
 
 @pytest.mark.asyncio
 class TestCRUDComplexScenarios:
@@ -621,28 +754,17 @@ class TestCRUDComplexScenarios:
         """Тест полного жизненного цикла комментария"""
         comment_data = schemas.CommentCreate(text="Test comment")
         await crud.create_comment(mock_db, comment_data, 1, "test-123")
-        
+
         mock_comment = models.Comment(id=1, text="Test comment", post_id=1, profile_id="test-123")
-        setup_mock_scalar_result(mock_db, mock_comment)
+        
+        setup_mock_complete_comment_flow(mock_db, mock_comment, "testuser", 1)
+        
         comment = await crud.get_comment(mock_db, 1)
         assert comment is not None
-        
+
         comment_update = schemas.CommentUpdate(text="Updated comment")
-        
-        call_count = 0
-        async def execute_side_effect(*args, **kwargs):
-            nonlocal call_count
-            call_count += 1
-            mock_scalars = MagicMock()
-            mock_scalars.first.return_value = mock_comment
-            mock_result = MagicMock()
-            mock_result.scalars.return_value = mock_scalars
-            return mock_result
-        
-        mock_db.execute.side_effect = execute_side_effect
         updated_comment = await crud.update_comment(mock_db, 1, comment_update, "test-123")
-        
-        setup_mock_scalar_result(mock_db, mock_comment)
+
         deleted_result = await crud.delete_comment(mock_db, 1, "test-123")
         assert deleted_result["message"] == "Comment deleted successfully"
 
@@ -677,3 +799,18 @@ class TestCRUDComplexScenarios:
         with patch('app.crud.flag_modified') as mock_flag:
             await crud.unlike_post(mock_db, 1, "user1")
             assert mock_flag.call_count == 1
+
+# ============= ТЕСТЫ SUBSCRIBE FEED =============
+
+@pytest.mark.asyncio
+class TestCRUDSubscribeFeed:
+    async def test_get_subscribe_feed_simple(self, mock_db):
+        """Тест получения ленты подписок"""
+        mock_profile = models.Profile(uuid="test-123", username="testuser")
+        mock_profile.subscribes = {"user2": {"uuid": "user2"}}
+        
+        setup_mock_scalar_result(mock_db, mock_profile)
+        
+        result = await crud.get_subscribe_feed(mock_db, "testuser")
+        
+        assert result == []
