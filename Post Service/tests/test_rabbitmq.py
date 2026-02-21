@@ -8,7 +8,7 @@ from datetime import datetime
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from app.rabbitmq import RabbitMQService, rabbitmq_service, connect_rabbitmq
+from app.rabbitmq import RabbitMQService, rabbitmq_service, connect_rabbitmq, get_rabbitmq
 
 
 @pytest.mark.asyncio
@@ -816,3 +816,309 @@ class TestRabbitMQIntegration:
                 assert service.post_events_exchange.publish.call_count >= 10
             except Exception:
                 pass
+
+
+# ============= НОВЫЕ ТЕСТЫ ДЛЯ ПОКРЫТИЯ =============
+
+@pytest.mark.asyncio
+class TestRabbitMQCoverage:
+    """Тесты для покрытия недостающих строк в rabbitmq.py"""
+    
+    async def test_connect_success(self):
+        """Тест успешного подключения"""
+        service = RabbitMQService()
+        
+        with patch('aio_pika.connect_robust', new_callable=AsyncMock) as mock_connect:
+            mock_connection = AsyncMock()
+            mock_channel = AsyncMock()
+            mock_connect.return_value = mock_connection
+            mock_connection.channel.return_value = mock_channel
+            
+            mock_channel.declare_exchange = AsyncMock()
+            mock_queue = AsyncMock()
+            mock_channel.declare_queue = AsyncMock(return_value=mock_queue)
+            
+            await service.connect()
+            
+            assert service.is_connected is True
+            assert service.connection == mock_connection
+            assert service.channel == mock_channel
+            mock_connect.assert_called_once_with(
+                host='rabbitmq',
+                port=5672,
+                login='guest',
+                password='guest',
+                virtualhost='/',
+            )
+            
+            # Проверяем создание exchange
+            assert mock_channel.declare_exchange.call_count == 3
+            
+            # Проверяем создание очередей
+            assert mock_channel.declare_queue.call_count == 2
+
+    async def test_start_consuming_events_success(self):
+        """Тест успешного запуска consumer для событий"""
+        service = RabbitMQService()
+        service.is_connected = True
+        service.post_commands_queue = AsyncMock()
+        
+        async def callback(event_type, data):
+            pass
+        
+        await service.start_consuming_events(callback)
+        service.post_commands_queue.consume.assert_called_once()
+
+    async def test_start_consuming_profile_events_success(self):
+        """Тест успешного запуска consumer для профильных событий"""
+        service = RabbitMQService()
+        service.is_connected = True
+        service.post_profile_events_queue = AsyncMock()
+        
+        async def callback(event_type, data):
+            pass
+        
+        await service.start_consuming_profile_events(callback)
+        service.post_profile_events_queue.consume.assert_called_once()
+
+    async def test_message_processing_success(self):
+        """Тест успешной обработки сообщения"""
+        service = RabbitMQService()
+        service.is_connected = True
+        service.post_commands_queue = AsyncMock()
+        
+        # Создаем специальный мок для message, который поддерживает асинхронный контекстный менеджер
+        mock_message = AsyncMock()
+        mock_message.body = json.dumps({"test": "data"}).encode()
+        mock_message.headers = {'event': 'test_event'}
+        
+        # Создаем отдельный мок для асинхронного контекстного менеджера
+        mock_cm = AsyncMock()
+        mock_cm.__aenter__ = AsyncMock()
+        mock_cm.__aexit__ = AsyncMock()
+        
+        # Устанавливаем process как функцию, возвращающую контекстный менеджер
+        mock_message.process = MagicMock(return_value=mock_cm)
+        
+        callback_called = False
+        callback_event_type = None
+        callback_data = None
+        
+        async def callback(event_type, data):
+            nonlocal callback_called, callback_event_type, callback_data
+            callback_called = True
+            callback_event_type = event_type
+            callback_data = data
+        
+        # Симулируем получение сообщения
+        consume_callback = None
+        
+        async def consume_side_effect(cb):
+            nonlocal consume_callback
+            consume_callback = cb
+        
+        service.post_commands_queue.consume.side_effect = consume_side_effect
+        await service.start_consuming_events(callback)
+        
+        # Вызываем callback с сообщением
+        await consume_callback(mock_message)
+        
+        assert callback_called is True
+        assert callback_event_type == 'test_event'
+        assert callback_data == {"test": "data"}
+        mock_message.process.assert_called_once()
+        mock_cm.__aenter__.assert_called_once()
+        mock_cm.__aexit__.assert_called_once()
+
+    async def test_message_processing_invalid_json(self):
+        """Тест обработки сообщения с невалидным JSON"""
+        service = RabbitMQService()
+        service.is_connected = True
+        service.post_commands_queue = AsyncMock()
+        
+        # Создаем специальный мок для message
+        mock_message = AsyncMock()
+        mock_message.body = b'invalid json'
+        mock_message.headers = {'event': 'test_event'}
+        mock_message.reject = AsyncMock()
+        
+        # Создаем отдельный мок для асинхронного контекстного менеджера
+        mock_cm = AsyncMock()
+        mock_cm.__aenter__ = AsyncMock()
+        mock_cm.__aexit__ = AsyncMock()
+        
+        # Устанавливаем process как функцию, возвращающую контекстный менеджер
+        mock_message.process = MagicMock(return_value=mock_cm)
+        
+        callback_called = False
+        
+        async def callback(event_type, data):
+            nonlocal callback_called
+            callback_called = True
+        
+        # Симулируем получение сообщения
+        consume_callback = None
+        
+        async def consume_side_effect(cb):
+            nonlocal consume_callback
+            consume_callback = cb
+        
+        service.post_commands_queue.consume.side_effect = consume_side_effect
+        await service.start_consuming_events(callback)
+        
+        with patch('app.rabbitmq.logging.error') as mock_log:
+            await consume_callback(mock_message)
+            
+            assert callback_called is False
+            mock_log.assert_called_once()
+            mock_message.reject.assert_called_once_with(requeue=False)
+            mock_message.process.assert_called_once()
+            mock_cm.__aenter__.assert_called_once()
+            mock_cm.__aexit__.assert_called_once()
+
+    async def test_message_processing_general_error(self):
+        """Тест обработки сообщения с общей ошибкой"""
+        service = RabbitMQService()
+        service.is_connected = True
+        service.post_commands_queue = AsyncMock()
+        
+        # Создаем специальный мок для message
+        mock_message = AsyncMock()
+        mock_message.body = json.dumps({"test": "data"}).encode()
+        mock_message.headers = {'event': 'test_event'}
+        mock_message.reject = AsyncMock()
+        
+        # Создаем отдельный мок для асинхронного контекстного менеджера
+        mock_cm = AsyncMock()
+        mock_cm.__aenter__ = AsyncMock()
+        mock_cm.__aexit__ = AsyncMock()
+        
+        # Устанавливаем process как функцию, возвращающую контекстный менеджер
+        mock_message.process = MagicMock(return_value=mock_cm)
+        
+        async def callback(event_type, data):
+            raise Exception("Callback error")
+        
+        # Симулируем получение сообщения
+        consume_callback = None
+        
+        async def consume_side_effect(cb):
+            nonlocal consume_callback
+            consume_callback = cb
+        
+        service.post_commands_queue.consume.side_effect = consume_side_effect
+        await service.start_consuming_events(callback)
+        
+        with patch('app.rabbitmq.logging.error') as mock_log:
+            await consume_callback(mock_message)
+            
+            mock_log.assert_called_once()
+            mock_message.reject.assert_called_once_with(requeue=False)
+            mock_message.process.assert_called_once()
+            mock_cm.__aenter__.assert_called_once()
+            mock_cm.__aexit__.assert_called_once()
+
+    async def test_profile_message_processing_success(self):
+        """Тест успешной обработки профильного сообщения"""
+        service = RabbitMQService()
+        service.is_connected = True
+        service.post_profile_events_queue = AsyncMock()
+        
+        # Создаем специальный мок для message
+        mock_message = AsyncMock()
+        mock_message.body = json.dumps({"profile": "data"}).encode()
+        mock_message.headers = {'event': 'profile_updated'}
+        
+        # Создаем отдельный мок для асинхронного контекстного менеджера
+        mock_cm = AsyncMock()
+        mock_cm.__aenter__ = AsyncMock()
+        mock_cm.__aexit__ = AsyncMock()
+        
+        # Устанавливаем process как функцию, возвращающую контекстный менеджер
+        mock_message.process = MagicMock(return_value=mock_cm)
+        
+        callback_called = False
+        callback_event_type = None
+        callback_data = None
+        
+        async def callback(event_type, data):
+            nonlocal callback_called, callback_event_type, callback_data
+            callback_called = True
+            callback_event_type = event_type
+            callback_data = data
+        
+        # Симулируем получение сообщения
+        consume_callback = None
+        
+        async def consume_side_effect(cb):
+            nonlocal consume_callback
+            consume_callback = cb
+        
+        service.post_profile_events_queue.consume.side_effect = consume_side_effect
+        await service.start_consuming_profile_events(callback)
+        
+        # Вызываем callback с сообщением
+        await consume_callback(mock_message)
+        
+        assert callback_called is True
+        assert callback_event_type == 'profile_updated'
+        assert callback_data == {"profile": "data"}
+        mock_message.process.assert_called_once()
+        mock_cm.__aenter__.assert_called_once()
+        mock_cm.__aexit__.assert_called_once()
+
+    async def test_send_post_event_with_exception(self):
+        """Тест отправки события с исключением при публикации"""
+        service = RabbitMQService()
+        service.is_connected = True
+        service.post_events_exchange = AsyncMock()
+        service.post_events_exchange.publish.side_effect = Exception("Publish error")
+        
+        with patch('app.rabbitmq.aio_pika.Message'), \
+             patch('app.rabbitmq.logging.error') as mock_log:
+            
+            with pytest.raises(Exception):
+                await service.send_post_event('test', {'id': 1})
+            
+            mock_log.assert_called_once()
+
+    async def test_all_send_methods_call_send_post_event(self):
+        """Тест что все методы отправки вызывают send_post_event"""
+        service = RabbitMQService()
+        service.is_connected = True
+        service.post_events_exchange = AsyncMock()
+        
+        with patch.object(service, 'send_post_event', new_callable=AsyncMock) as mock_send:
+            await service.send_post_created({'id': 1})
+            mock_send.assert_called_with('post_created', {'id': 1})
+            
+            await service.send_post_updated({'id': 1})
+            mock_send.assert_called_with('post_updated', {'id': 1})
+            
+            await service.send_post_deleted({'id': 1})
+            mock_send.assert_called_with('post_deleted', {'id': 1})
+            
+            await service.send_comment_created({'id': 1})
+            mock_send.assert_called_with('comment_created', {'id': 1})
+            
+            await service.send_comment_updated({'id': 1})
+            mock_send.assert_called_with('comment_updated', {'id': 1})
+            
+            await service.send_comment_deleted({'id': 1})
+            mock_send.assert_called_with('comment_deleted', {'id': 1})
+            
+            await service.send_post_liked({'id': 1})
+            mock_send.assert_called_with('post_liked', {'id': 1})
+            
+            await service.send_post_unliked({'id': 1})
+            mock_send.assert_called_with('post_unliked', {'id': 1})
+
+    async def test_connect_failure(self):
+        """Тест ошибки подключения"""
+        service = RabbitMQService()
+        
+        with patch('aio_pika.connect_robust', side_effect=Exception("Connection failed")):
+            with pytest.raises(Exception):
+                await service.connect()
+            
+            assert service.is_connected is False
