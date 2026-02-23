@@ -5,10 +5,6 @@ import {errorHandler} from "../errorsHandler.js";
 export const getUserProfile =async (username) => {
     const token = localStorage.getItem("access_token");
     console.log(username,"Создаю профиль с таким ником");
-    if (!token) {
-        console.error("Токен не найден");
-        return false;
-    }
 
     try{
         const response = await axios.get(`${API_BASE_URL}/profile/${username}`, {
