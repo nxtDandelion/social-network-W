@@ -1,11 +1,8 @@
-# tests/conftest.py
 import pytest
-import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
-# ========== Только базовые фикстуры БЕЗ импорта app ==========
 
 @pytest.fixture
 def mock_db_session():
@@ -47,7 +44,6 @@ def sample_user_data():
 @pytest.fixture
 def sample_user_model(sample_user_data):
     """Фикстура с мок-моделью пользователя"""
-    # Импортируем здесь, а не в начале файла
     with patch('app.rabbitmq.rabbitmq_service', MagicMock()):
         with patch('app.database.engine', MagicMock()):
             from app import models
