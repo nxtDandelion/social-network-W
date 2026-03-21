@@ -61,16 +61,3 @@ jobs:
       - name: Run Search integration tests
         working-directory: Search Service
         run: mvn clean test
-
-
-  report:
-    needs: [gateway-integration, search-integration]
-    runs-on: ubuntu-latest
-    if: always()
-    steps:
-      - name: Publish test results
-        uses: dorny/test-reporter@v1
-        with:
-          name: Integration Tests Report
-          path: '**/target/surefire-reports/*.xml'
-          reporter: java-junit
