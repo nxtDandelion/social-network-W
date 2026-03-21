@@ -59,7 +59,7 @@ jobs:
         run: docker build -t socialw/post-service:latest ./Post\ Service
 
       - name: Run Search integration tests
-        working-directory: Search\ Service
+        working-directory: Search Service
         run: mvn clean test
 
 
