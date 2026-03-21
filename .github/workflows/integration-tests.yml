@@ -61,3 +61,102 @@ jobs:
       - name: Run Search integration tests
         working-directory: Search Service
         run: mvn clean test
+
+  python-integrations:
+    runs-on: ubuntu-latest
+
+    # Описываем инфраструктуру (БД и Очередь)
+    services:
+      auth-db:
+        image: postgres:15
+        env:
+          POSTGRES_USER: auth_user
+          POSTGRES_PASSWORD: auth_password
+          POSTGRES_DB: auth_db
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      profile-db:
+        image: postgres:15
+        env:
+          POSTGRES_USER: profile_user
+          POSTGRES_PASSWORD: profile_password
+          POSTGRES_DB: profile_db
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      post-db:
+        image: postgres:15
+        env:
+          POSTGRES_USER: post_user
+          POSTGRES_PASSWORD: post_password
+          POSTGRES_DB: post_db
+        ports:
+          - 5435:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      rabbitmq:
+        image: rabbitmq:3-management
+        ports:
+          - 5672:5672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics check_running"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/checkout@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # Устанавливаем зависимости для всех сервисов и тестов
+          pip install -r "Auth Service/requirements.txt"
+          pip install -r "Profile Service/requirements.txt"
+          pip install -r "Post Service/requirements.txt"
+          pip install pytest pytest-asyncio httpx sqlalchemy asyncpg
+
+      - name: Run Services in Background
+        env:
+          RABBITMQ_URL: amqp://guest:guest@localhost:5672/
+        run: |
+          # Запускаем каждый сервис в фоновом режиме
+          DATABASE_URL=postgresql+asyncpg://auth_user:auth_password@localhost:5432/auth_db python "Auth Service/main.py" &
+          DATABASE_URL=postgresql+asyncpg://profile_user:profile_password@localhost:5434/profile_db python "Profile Service/main.py" &
+          DATABASE_URL=postgresql+asyncpg://post_user:post_password@localhost:5433/post_db python "Post Service/main.py" &
+          
+          # Даем сервисам время на запуск
+          sleep 10
+
+      - name: Run Integration Tests
+        env:
+          AUTH_SERVICE_URL: http://localhost:8001
+          PROFILE_SERVICE_URL: http://localhost:8003
+          POST_SERVICE_URL: http://localhost:8002
+          AUTH_DB_URL: postgresql+asyncpg://auth_user:auth_password@localhost:5432/auth_db
+          PROFILE_DB_URL: postgresql+asyncpg://profile_user:profile_password@localhost:5434/profile_db
+          POST_DB_URL: postgresql+asyncpg://post_user:post_password@localhost:5433/post_db
+        run: |
+          # Запуск самих файлов тестов
+          pytest python_integrations -v
