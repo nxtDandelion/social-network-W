@@ -331,7 +331,6 @@ public class PostSearchIntegrationTest {
         String uniqueWord = "nonexistent_" + UUID.randomUUID();
         ResponseEntity<String> createResponse = createPost(uniqueWord, nonExistingProfileId);
         // Ожидаем 400, но сервис возвращает 500 из-за отсутствия проверки существования профиля
-        // Пока проверяем на 500, чтобы тест проходил (TODO: исправить сервис)
         assertThat(createResponse.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
 
         await().atMost(5, TimeUnit.SECONDS).pollInterval(Duration.ofSeconds(1))
