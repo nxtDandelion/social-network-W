@@ -4,9 +4,9 @@ server:
 spring:
   application:
     name: search-service
+  elasticsearch:
+    uris: ${SPRING_ELASTICSEARCH_URIS:http://elasticsearch:9200}
   data:
-    elasticsearch:
-      uris: ${SPRING_ELASTICSEARCH_URIS:http://elasticsearch:9200}
     redis:
       host: ${SPRING_REDIS_HOST:redis}
       port: ${SPRING_REDIS_PORT:6379}
