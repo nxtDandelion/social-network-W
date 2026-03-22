@@ -62,7 +62,7 @@ jobs:
         working-directory: Search Service
         run: mvn clean test
 
-  python-integrations:
+  python-integration-tests:
     runs-on: ubuntu-latest
     services:
       auth-db:
@@ -71,13 +71,17 @@ jobs:
           POSTGRES_USER: auth_user
           POSTGRES_PASSWORD: auth_password
           POSTGRES_DB: auth_db
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+        ports: ["5432:5432"]
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+
+      post-db:
+        image: postgres:17
+        env:
+          POSTGRES_USER: post_user
+          POSTGRES_PASSWORD: post_password
+          POSTGRES_DB: post_db
+        ports: ["5433:5432"]
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
 
       profile-db:
         image: postgres:17
@@ -85,87 +89,87 @@ jobs:
           POSTGRES_USER: profile_user
           POSTGRES_PASSWORD: profile_password
           POSTGRES_DB: profile_db
-        ports:
-          - 5434:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-      post-db:
-        image: postgres:15
-        env:
-          POSTGRES_USER: post_user
-          POSTGRES_PASSWORD: post_password
-          POSTGRES_DB: post_db
-        ports:
-          - 5433:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+        ports: ["5434:5432"]
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
 
       rabbitmq:
         image: rabbitmq:3-management
-        ports:
-          - 5672:5672
-        options: >-
-          --health-cmd "rabbitmq-diagnostics check_running"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+        ports: ["5672:5672"]
+        options: --health-cmd "rabbitmq-diagnostics check_running" --health-interval 10s --health-timeout 5s --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Install uv
+      - name: Build Auth Service image
+        run: docker build -t socialw/auth-service:latest "./Auth Service"
+
+      - name: Build Post Service image
+        run: docker build -t socialw/post-service:latest "./Post Service"
+
+      - name: Build Profile Service image
+        run: docker build -t socialw/profile-service:latest "./Profile Service"
+
+      # --- Настройка окружения для тестов ---
+
+      - name: Install uv and Python
         uses: astral-sh/setup-uv@v3
         with:
           version: "latest"
-          enable-cache: true
 
-      - name: Set up Python
-        run: uv python install 3.12
-
-      - name: Create and Sync Environment
+      - name: Install Test Dependencies
         run: |
           uv venv
           echo "VIRTUAL_ENV=$GITHUB_WORKSPACE/.venv" >> $GITHUB_ENV
           echo "$GITHUB_WORKSPACE/.venv/bin" >> $GITHUB_PATH
-        
-          uv pip install -r "Auth Service/requirements.txt" || echo "No requirements.txt in Auth"
-          
-          cd "Profile Service" && uv pip install . && cd ..
-          
-          uv pip install -r "Post Service/requirements.txt" || echo "No requirements.txt in Post"
-          
           uv pip install pytest pytest-asyncio httpx sqlalchemy asyncpg
 
-      - name: Run Services in Background
-        env:
-          RABBITMQ_URL: amqp://guest:guest@localhost:5672/
-        run: |
-          # Запускаем каждый сервис в фоновом режиме
-          DATABASE_URL=postgresql+asyncpg://auth_user:auth_password@localhost:5432/auth_db python "Auth Service/app/main.py" &
-          cd "Profile Service" && \
-          DATABASE_URL=postgresql+asyncpg://profile_user:profile_password@localhost:5434/profile_db \
-          uvicorn app.main:app --host 0.0.0.0 --port 8003 > ../profile.log 2>&1 & cd ..
-          DATABASE_URL=postgresql+asyncpg://post_user:post_password@localhost:5433/post_db python "Post Service/app/main.py" &
-          
-          # Даем сервисам время на запуск
-          sleep 60
+      # --- Запуск сервисов из собранных образов ---
 
-      - name: Run Integration Tests
+      - name: Run Services from Docker Images
+        run: |
+          # Запускаем контейнеры в фоновом режиме (--detach)
+          # Используем network host, чтобы контейнеры видели сервисы GitHub (localhost)
+          
+          docker run --detach --network host --name auth-app \
+            -e DATABASE_URL=postgresql+asyncpg://auth_user:auth_password@localhost:5432/auth_db \
+            socialw/auth-service:latest
+
+          docker run --detach --network host --name post-app \
+            -e DATABASE_URL=postgresql+asyncpg://post_user:post_password@localhost:5433/post_db \
+            -e RABBITMQ_URL=amqp://guest:guest@localhost:5672/ \
+            socialw/post-service:latest
+
+          docker run --detach --network host --name profile-app \
+            -e DATABASE_URL=postgresql+asyncpg://profile_user:profile_password@localhost:5434/profile_db \
+            -e RABBITMQ_URL=amqp://guest:guest@localhost:5672/ \
+            socialw/profile-service:latest
+
+          echo "Waiting for Docker containers to start..."
+          sleep 20
+
+
+      - name: Debug Container Logs
+        if: always()
+        run: |
+          echo "--- Auth Logs ---"
+          docker logs auth-app || true
+          echo "--- Post Logs ---"
+          docker logs post-app || true
+          echo "--- Profile Logs ---"
+          docker logs profile-app || true
+
+      - name: Run Python Integration Tests
         env:
           AUTH_SERVICE_URL: http://localhost:8001
-          PROFILE_SERVICE_URL: http://localhost:8003
           POST_SERVICE_URL: http://localhost:8002
+          PROFILE_SERVICE_URL: http://localhost:8003
           AUTH_DB_URL: postgresql+asyncpg://auth_user:auth_password@localhost:5432/auth_db
-          PROFILE_DB_URL: postgresql+asyncpg://profile_user:profile_password@localhost:5434/profile_db
           POST_DB_URL: postgresql+asyncpg://post_user:post_password@localhost:5433/post_db
+          PROFILE_DB_URL: postgresql+asyncpg://profile_user:profile_password@localhost:5434/profile_db
+          PYTHONPATH: .
         run: |
-          # Запуск самих файлов тестов
-          pytest python_integrations -v
+          pytest python_integrations/test_auth_profile_flow.py python_integrations/test_post_profile_sync.py -v
