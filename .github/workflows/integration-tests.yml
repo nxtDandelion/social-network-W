@@ -172,4 +172,4 @@ jobs:
           PROFILE_DB_URL: postgresql+asyncpg://profile_user:profile_password@localhost:5434/profile_db
           PYTHONPATH: .
         run: |
-          pytest python_integrations/test_auth_profile_flow.py python_integrations/test_post_profile_sync.py -v
+          pytest python_integrations/ -v
