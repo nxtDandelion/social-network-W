@@ -77,32 +77,17 @@ jobs:
       # 2. Запуск инфраструктуры (БЕЗ конфликтов имен)
       - name: Run Infrastructure
         run: |
-          # 1. Запуск контейнеров (используем только пароль, остальное создадим вручную для надежности)
-          docker run --detach --network host --name auth-postgres -e POSTGRES_PASSWORD=auth_password postgres:17 -p 5432
-          docker run --detach --network host --name post-postgres -e POSTGRES_PASSWORD=post_password postgres:17 -p 5433
-          docker run --detach --network host --name profile-postgres -e POSTGRES_PASSWORD=profile_password postgres:17 -p 5434
+          # Используем сеть host, чтобы порты пробрасывались напрямую на localhost раннера
+          # Флаг -p 5432:5432 в режиме --network host не нужен, но мы задаем порты внутри PG
+          docker run --detach --network host --name auth-postgres -e POSTGRES_USER=auth_user -e POSTGRES_PASSWORD=auth_password postgres:17 -p 5432
+          docker run --detach --network host --name post-postgres -e POSTGRES_USER=post_user -e POSTGRES_PASSWORD=post_password postgres:17 -p 5433
+          docker run --detach --network host --name profile-postgres -e POSTGRES_USER=profile_user -e POSTGRES_PASSWORD=profile_password postgres:17 -p 5434
           
           docker run --detach --network host --name rabbitmq-container rabbitmq:3-management
           docker run --detach --network host --name redis-container redis:7-alpine
           
-          # Направляем имена на localhost
-          echo "127.0.0.1 rabbitmq auth-db post-db profile-db" | sudo tee -a /etc/hosts
-          
-          echo "Waiting for Postgres to accept connections..."
-          sleep 10
-          
-          # 2. Явное создание баз и пользователей (чтобы избежать InvalidCatalogNameError)
-          # Используем docker exec, чтобы выполнить команды внутри поднятых баз
-          docker exec auth-postgres psql -U postgres -c "CREATE USER auth_user WITH PASSWORD 'auth_password';" || true
-          docker exec auth-postgres psql -U postgres -c "CREATE DATABASE auth_db OWNER auth_user;" || true
-          
-          docker exec post-postgres psql -U postgres -c "CREATE USER post_user WITH PASSWORD 'post_password';" || true
-          docker exec post-postgres psql -U postgres -c "CREATE DATABASE post_db OWNER post_user;" || true
-          
-          docker exec profile-postgres psql -U postgres -c "CREATE USER profile_user WITH PASSWORD 'profile_password';" || true
-          docker exec profile-postgres psql -U postgres -c "CREATE DATABASE profile_db OWNER profile_user;" || true
-          
-          echo "Infrastructure is ready."
+          echo "Waiting for databases to initialize..."
+          sleep 15
 
       - name: Fix DNS for hardcoded hostnames
         run: |
