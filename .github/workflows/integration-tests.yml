@@ -66,61 +66,59 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      # 1. Сборка образов
       - name: Build Images
         run: |
           docker build -t socialw/auth-service:latest "./Auth Service"
           docker build -t socialw/post-service:latest "./Post Service"
           docker build -t socialw/profile-service:latest "./Profile Service"
 
+      # 2. Запуск инфраструктуры (БЕЗ конфликтов имен)
       - name: Run Infrastructure
         run: |
-          docker run --detach --network host --name auth-db -e POSTGRES_USER=auth_user -e POSTGRES_PASSWORD=auth_password -e POSTGRES_DB=auth_db postgres:17
-          docker run --detach --network host --name post-db -e POSTGRES_USER=post_user -e POSTGRES_PASSWORD=post_password -e POSTGRES_DB=post_db postgres:17
-          docker run --detach --network host --name profile-db -e POSTGRES_USER=profile_user -e POSTGRES_PASSWORD=profile_password -e POSTGRES_DB=profile_db postgres:17
-          docker run --detach --network host --name rabbitmq -e RABBITMQ_DEFAULT_USER=guest -e RABBITMQ_DEFAULT_PASS=guest rabbitmq:3-management
-          docker run --detach --network host --name redis redis:7-alpine
-          sleep 10 # Базовое время на старт контейнеров
-
-      - name: Run Infrastructure
-        run: |
-          # Запускаем БД, явно меняя внутренний порт Postgres через аргумент командной строки -p
-          docker run --detach --network host --name auth-db -e POSTGRES_PASSWORD=auth_password postgres:17 -p 5432
-          docker run --detach --network host --name post-db -e POSTGRES_PASSWORD=post_password postgres:17 -p 5433
-          docker run --detach --network host --name profile-db -e POSTGRES_PASSWORD=profile_password postgres:17 -p 5434
+          # Используем сеть host, чтобы порты пробрасывались напрямую на localhost раннера
+          # Флаг -p 5432:5432 в режиме --network host не нужен, но мы задаем порты внутри PG
+          docker run --detach --network host --name auth-postgres -e POSTGRES_PASSWORD=auth_password postgres:17 -p 5432
+          docker run --detach --network host --name post-postgres -e POSTGRES_PASSWORD=post_password postgres:17 -p 5433
+          docker run --detach --network host --name profile-postgres -e POSTGRES_PASSWORD=profile_password postgres:17 -p 5434
           
-          docker run --detach --network host --name rabbitmq rabbitmq:3-management
-          docker run --detach --network host --name redis redis:7-alpine
-          sleep 15 # Даем Postgres время создать сокеты на портах
+          docker run --detach --network host --name rabbitmq-container rabbitmq:3-management
+          docker run --detach --network host --name redis-container redis:7-alpine
+          
+          echo "Waiting for databases to initialize..."
+          sleep 15
 
-          - name: Run Services
-            run: |
-              # Скрипт ожидания (теперь проверяет и БД)
-              WAIT_RABBIT="import socket, time; s = socket.socket(); 
-              while s.connect_ex(('localhost', 5672)) != 0: time.sleep(1)"
-              
-              echo "Starting Auth..."
-              # Попробуем запустить через python3 -m, если main.py лежит внутри пакета
-              docker run --detach --network host --name auth-app \
-                -e DATABASE_URL=postgresql+asyncpg://postgres:auth_password@localhost:5432/postgres \
-                socialw/auth-service:latest python3 main.py || docker run --detach --network host --name auth-app socialw/auth-service:latest python3 -m app.main
-              
-              echo "Starting Post..."
-              docker run --detach --network host --name post-app \
-                -e DATABASE_URL=postgresql+asyncpg://postgres:post_password@localhost:5433/postgres \
-                -e RABBITMQ_URL=amqp://guest:guest@localhost:5672/ \
-                --entrypoint sh socialw/post-service:latest \
-                -c "python3 -c \"$WAIT_RABBIT\" && python3 main.py"
-              
-              echo "Starting Profile..."
-              docker run --detach --network host --name profile-app \
-                -e DATABASE_URL=postgresql+asyncpg://postgres:profile_password@localhost:5434/postgres \
-                -e RABBITMQ_URL=amqp://guest:guest@localhost:5672/ \
-                --entrypoint sh socialw/profile-service:latest \
-                -c "python3 -c \"$WAIT_RABBIT\" && uvicorn app.main:app --host 0.0.0.0 --port 8003"
-              
-              sleep 30
+      # 3. Запуск сервисов с проверкой путей
+      - name: Run Services
+        run: |
+          WAIT_RABBIT="import socket, time; s = socket.socket(); 
+          while s.connect_ex(('localhost', 5672)) != 0: time.sleep(1)"
+          
+          echo "Starting Auth Service..."
+          # Если main.py не найден в корне, пробуем запустить его из папки app
+          docker run --detach --network host --name auth-app \
+            -e DATABASE_URL=postgresql+asyncpg://postgres:auth_password@localhost:5432/postgres \
+            socialw/auth-service:latest sh -c "python3 main.py || python3 app/main.py"
+          
+          echo "Starting Post Service..."
+          docker run --detach --network host --name post-app \
+            -e DATABASE_URL=postgresql+asyncpg://postgres:post_password@localhost:5433/postgres \
+            -e RABBITMQ_URL=amqp://guest:guest@localhost:5672/ \
+            --entrypoint sh socialw/post-service:latest \
+            -c "python3 -c \"$WAIT_RABBIT\" && (python3 main.py || python3 app/main.py)"
+          
+          echo "Starting Profile Service..."
+          docker run --detach --network host --name profile-app \
+            -e DATABASE_URL=postgresql+asyncpg://postgres:profile_password@localhost:5434/postgres \
+            -e RABBITMQ_URL=amqp://guest:guest@localhost:5672/ \
+            --entrypoint sh socialw/profile-service:latest \
+            -c "python3 -c \"$WAIT_RABBIT\" && uvicorn app.main:app --host 0.0.0.0 --port 8003"
+          
+          echo "Warm up services..."
+          sleep 30
 
-      # 4. Настройка Python для тестов
+      # 4. Тесты
       - name: Setup Python
         uses: astral-sh/setup-uv@v3
 
@@ -129,9 +127,10 @@ jobs:
           AUTH_SERVICE_URL: http://localhost:8001
           POST_SERVICE_URL: http://localhost:8002
           PROFILE_SERVICE_URL: http://localhost:8003
-          AUTH_DB_URL: postgresql+asyncpg://auth_user:auth_password@localhost:5432/auth_db
-          POST_DB_URL: postgresql+asyncpg://post_user:post_password@localhost:5433/post_db
-          PROFILE_DB_URL: postgresql+asyncpg://profile_user:profile_password@localhost:5434/profile_db
+          # Параметры подключения для самих тестов (если они лезут в БД)
+          AUTH_DB_URL: postgresql+asyncpg://postgres:auth_password@localhost:5432/postgres
+          POST_DB_URL: postgresql+asyncpg://postgres:post_password@localhost:5433/postgres
+          PROFILE_DB_URL: postgresql+asyncpg://postgres:profile_password@localhost:5434/postgres
           PYTHONPATH: .
         run: |
           uv venv
@@ -139,11 +138,12 @@ jobs:
           uv pip install pytest pytest-asyncio httpx sqlalchemy asyncpg
           pytest python_integrations/ -v
 
-      # 5. Логи в случае падения
+      # 5. Логи
       - name: Debug Logs
         if: always()
         run: |
-          docker logs auth-app || echo "Auth app not found"
-          docker logs post-app || echo "Post app not found"
-          docker logs profile-app || echo "Profile app not found"
-          docker logs rabbitmq || echo "RabbitMQ not found"
+          docker ps
+          docker logs auth-app || true
+          docker logs post-app || true
+          docker logs profile-app || true
+          docker logs rabbitmq-container || true
