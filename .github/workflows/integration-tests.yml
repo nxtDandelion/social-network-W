@@ -64,129 +64,55 @@ jobs:
 
   python-integration-tests:
     runs-on: ubuntu-latest
-    services:
-      auth-db:
-        image: postgres:17
-        env:
-          POSTGRES_USER: auth_user
-          POSTGRES_PASSWORD: auth_password
-          POSTGRES_DB: auth_db
-        ports: ["5432:5432"]
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-
-      post-db:
-        image: postgres:17
-        env:
-          POSTGRES_USER: post_user
-          POSTGRES_PASSWORD: post_password
-          POSTGRES_DB: post_db
-        ports: ["5433:5432"]
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-
-      profile-db:
-        image: postgres:17
-        env:
-          POSTGRES_USER: profile_user
-          POSTGRES_PASSWORD: profile_password
-          POSTGRES_DB: profile_db
-        ports: ["5434:5432"]
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-
-      rabbitmq:
-        image: rabbitmq:3-management
-        ports: ["5672:5672"]
-        options: --health-cmd "rabbitmq-diagnostics check_running" --health-interval 10s --health-timeout 5s --health-retries 5
-
-      redis:
-        image: redis:7-alpine
-        ports: ["6379:6379"]
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Build Auth Service image
-        run: docker build -t socialw/auth-service:latest "./Auth Service"
-
-      - name: Build Post Service image
-        run: docker build -t socialw/post-service:latest "./Post Service"
-
-      - name: Build Profile Service image
-        run: docker build -t socialw/profile-service:latest "./Profile Service"
-
-      # --- Настройка окружения для тестов ---
-
-      - name: Install uv and Python
-        uses: astral-sh/setup-uv@v3
-        with:
-          version: "latest"
-
-      - name: Install Test Dependencies
+      - name: Build Images
         run: |
-          uv venv
-          echo "VIRTUAL_ENV=$GITHUB_WORKSPACE/.venv" >> $GITHUB_ENV
-          echo "$GITHUB_WORKSPACE/.venv/bin" >> $GITHUB_PATH
-          uv pip install pytest pytest-asyncio httpx sqlalchemy asyncpg
+          docker build -t socialw/auth-service:latest "./Auth Service"
+          docker build -t socialw/post-service:latest "./Post Service"
+          docker build -t socialw/profile-service:latest "./Profile Service"
 
-      # --- Запуск сервисов из собранных образов ---
-
-      - name: Run Infrastructure Containers
+      - name: Run Infrastructure
         run: |
-          # Запускаем RabbitMQ
-          docker run --detach --network host --name rabbitmq \
-          -e RABBITMQ_DEFAULT_USER=guest \
-          -e RABBITMQ_DEFAULT_PASS=guest \
-          rabbitmq:3-management
+          docker run --detach --network host --name auth-db -e POSTGRES_USER=auth_user -e POSTGRES_PASSWORD=auth_password -e POSTGRES_DB=auth_db postgres:17
+          docker run --detach --network host --name post-db -e POSTGRES_USER=post_user -e POSTGRES_PASSWORD=post_password -e POSTGRES_DB=post_db postgres:17
+          docker run --detach --network host --name profile-db -e POSTGRES_USER=profile_user -e POSTGRES_PASSWORD=profile_password -e POSTGRES_DB=profile_db postgres:17
+          docker run --detach --network host --name rabbitmq -e RABBITMQ_DEFAULT_USER=guest -e RABBITMQ_DEFAULT_PASS=guest rabbitmq:3-management
+          docker run --detach --network host --name redis redis:7-alpine
+          sleep 10 # Базовое время на старт контейнеров
+
+      - name: Run Services
+        run: |
           
-          # Запускаем базы (пример для одной, остальные аналогично)
-          docker run --detach --network host --name auth-db \
-          -e POSTGRES_USER=auth_user -e POSTGRES_PASSWORD=auth_password -e POSTGRES_DB=auth_db \
-          postgres:17
+          WAIT_SCRIPT="import socket, time; s = socket.socket(); 
+          while s.connect_ex(('localhost', 5672)) != 0: time.sleep(1)"
           
-          # Даем базам пару секунд, чтобы просто начать процесс старта
-          sleep 5
-            
-            # --- Запуск сервисов с ожиданием ---
-
-      - name: Run Services from Docker Images
-        run: |
-          echo "Starting Post Service with wait for RabbitMQ..."
-          # Используем python-скрипт для ожидания, так как он точно есть в твоих образах
+          echo "Starting Auth..."
+          docker run --detach --network host --name auth-app \
+            -e DATABASE_URL=postgresql+asyncpg://localhost:5432/auth_db \
+            socialw/auth-service:latest python3 main.py
+          
+          echo "Starting Post..."
           docker run --detach --network host --name post-app \
             -e DATABASE_URL=postgresql+asyncpg://localhost:5433/post_db \
             -e RABBITMQ_URL=amqp://guest:guest@localhost:5672/ \
             --entrypoint sh socialw/post-service:latest \
-            -c "python3 -c 'import socket; import time; \
-                while True: \
-                    try: \
-                        with socket.create_connection((\"localhost\", 5672), timeout=1): break \
-                    except: time.sleep(1)' && python3 main.py"
+            -c "python3 -c \"$WAIT_SCRIPT\" && python3 main.py"
           
-          echo "Starting Profile Service..."
+          echo "Starting Profile..."
           docker run --detach --network host --name profile-app \
             -e DATABASE_URL=postgresql+asyncpg://localhost:5434/profile_db \
             -e RABBITMQ_URL=amqp://guest:guest@localhost:5672/ \
             --entrypoint sh socialw/profile-service:latest \
-            -c "python3 -c 'import socket; import time; \
-                while True: \
-                    try: \
-                        with socket.create_connection((\"localhost\", 5672), timeout=1): break \
-                    except: time.sleep(1)' && uvicorn app.main:app --host 0.0.0.0 --port 8003"
+            -c "python3 -c \"$WAIT_SCRIPT\" && uvicorn app.main:app --host 0.0.0.0 --port 8003"
           
-          echo "Waiting for services to initialize..."
-          sleep 20
+          sleep 30 # Даем Spring/FastAPI прогрузиться
 
+      # 4. Настройка Python для тестов
+      - name: Setup Python
+        uses: astral-sh/setup-uv@v3
 
-      - name: Debug Container Logs
-        if: always()
-        run: |
-          echo "--- Auth Logs ---"
-          docker logs auth-app || true
-          echo "--- Post Logs ---"
-          docker logs post-app || true
-          echo "--- Profile Logs ---"
-          docker logs profile-app || true
-
-      - name: Run Python Integration Tests
+      - name: Run Integration Tests
         env:
           AUTH_SERVICE_URL: http://localhost:8001
           POST_SERVICE_URL: http://localhost:8002
@@ -196,4 +122,16 @@ jobs:
           PROFILE_DB_URL: postgresql+asyncpg://profile_user:profile_password@localhost:5434/profile_db
           PYTHONPATH: .
         run: |
+          uv venv
+          . .venv/bin/activate
+          uv pip install pytest pytest-asyncio httpx sqlalchemy asyncpg
           pytest python_integrations/ -v
+
+      # 5. Логи в случае падения
+      - name: Debug Logs
+        if: always()
+        run: |
+          docker logs auth-app || echo "Auth app not found"
+          docker logs post-app || echo "Post app not found"
+          docker logs profile-app || echo "Profile app not found"
+          docker logs rabbitmq || echo "RabbitMQ not found"
