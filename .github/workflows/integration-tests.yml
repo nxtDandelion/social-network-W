@@ -64,8 +64,6 @@ jobs:
 
   python-integrations:
     runs-on: ubuntu-latest
-
-    # Описываем инфраструктуру (БД и Очередь)
     services:
       auth-db:
         image: postgres:15
@@ -136,10 +134,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           # Устанавливаем зависимости для всех сервисов и тестов
-          uv pip install -r "Auth Service/requirements.txt"
-          uv pip install -e "./Profile Service"
-          uv pip install -r "Post Service/requirements.txt"
-          uv pip install pytest pytest-asyncio httpx sqlalchemy asyncpg
+          uv pip install --system -r "Auth Service/requirements.txt"
+          cd "Profile Service" && uv pip install --system . && cd ..
+          uv pip install --system -r "Post Service/requirements.txt"
+          uv pip install --system pytest pytest-asyncio httpx sqlalchemy asyncpg
 
       - name: Run Services in Background
         env:
