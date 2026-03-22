@@ -89,35 +89,37 @@ jobs:
           echo "Waiting for databases to initialize..."
           sleep 15
 
+      - name: Fix DNS for hardcoded hostnames
+        run: |
+          # Принудительно направляем имя 'rabbitmq' на localhost
+          echo "127.0.0.1 rabbitmq" | sudo tee -a /etc/hosts
+          # На всякий случай добавим и базы, если они где-то захардкожены
+          echo "127.0.0.1 auth-db post-db profile-db" | sudo tee -a /etc/hosts
       # 3. Запуск сервисов с проверкой путей
       - name: Run Services
         run: |
-          # Используем 127.0.0.1 вместо localhost для надежности сокетов
+          # Теперь ждем именно хост 'rabbitmq'
           WAIT_RABBIT="import socket, time; s = socket.socket(); 
-          while s.connect_ex(('127.0.0.1', 5672)) != 0: time.sleep(1)"
+          while s.connect_ex(('rabbitmq', 5672)) != 0: time.sleep(1)"
           
           echo "Starting Auth Service..."
           docker run --detach --network host --name auth-app \
-          -e DATABASE_URL=postgresql+asyncpg://postgres:auth_password@127.0.0.1:5432/postgres \
-          socialw/auth-service:latest uvicorn app.main:app --host 0.0.0.0 --port 8001
+            -e DATABASE_URL=postgresql+asyncpg://postgres:auth_password@127.0.0.1:5432/postgres \
+            socialw/auth-service:latest uvicorn app.main:app --host 0.0.0.0 --port 8001
           
           echo "Starting Post Service..."
           docker run --detach --network host --name post-app \
-          -e DATABASE_URL=postgresql+asyncpg://postgres:post_password@127.0.0.1:5433/postgres \
-          -e RABBITMQ_URL=amqp://guest:guest@127.0.0.1:5672/ \
-          -e RABBITMQ_HOST=127.0.0.1 \
-          -e RABBITMQ_PORT=5672 \
-          --entrypoint sh socialw/post-service:latest \
-          -c "python3 -c \"$WAIT_RABBIT\" && uvicorn app.main:app --host 0.0.0.0 --port 8002"
+            -e DATABASE_URL=postgresql+asyncpg://postgres:post_password@127.0.0.1:5433/postgres \
+            -e RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/ \
+            --entrypoint sh socialw/post-service:latest \
+            -c "python3 -c \"$WAIT_RABBIT\" && uvicorn app.main:app --host 0.0.0.0 --port 8002"
           
           echo "Starting Profile Service..."
           docker run --detach --network host --name profile-app \
-          -e DATABASE_URL=postgresql+asyncpg://postgres:profile_password@127.0.0.1:5434/postgres \
-          -e RABBITMQ_URL=amqp://guest:guest@127.0.0.1:5672/ \
-          -e RABBITMQ_HOST=127.0.0.1 \
-          -e RABBITMQ_PORT=5672 \
-          --entrypoint sh socialw/profile-service:latest \
-          -c "python3 -c \"$WAIT_RABBIT\" && uvicorn app.main:app --host 0.0.0.0 --port 8003"
+            -e DATABASE_URL=postgresql+asyncpg://postgres:profile_password@127.0.0.1:5434/postgres \
+            -e RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/ \
+            --entrypoint sh socialw/profile-service:latest \
+            -c "python3 -c \"$WAIT_RABBIT\" && uvicorn app.main:app --host 0.0.0.0 --port 8003"
           
           echo "Warm up services..."
           sleep 20
