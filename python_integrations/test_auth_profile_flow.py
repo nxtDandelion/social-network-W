@@ -4,6 +4,7 @@ import asyncio
 import uuid
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy import text
+import os
 
 AUTH_SERVICE_URL = "http://localhost:8001"
 PROFILE_SERVICE_URL = "http://localhost:8003"
