@@ -79,9 +79,9 @@ jobs:
         run: |
           # Используем сеть host, чтобы порты пробрасывались напрямую на localhost раннера
           # Флаг -p 5432:5432 в режиме --network host не нужен, но мы задаем порты внутри PG
-          docker run --detach --network host --name auth-postgres -e POSTGRES_PASSWORD=auth_password postgres:17 -p 5432
-          docker run --detach --network host --name post-postgres -e POSTGRES_PASSWORD=post_password postgres:17 -p 5433
-          docker run --detach --network host --name profile-postgres -e POSTGRES_PASSWORD=profile_password postgres:17 -p 5434
+          docker run --detach --network host --name auth-postgres -e POSTGRES_USER=auth_user -e POSTGRES_PASSWORD=auth_password postgres:17 -p 5432
+          docker run --detach --network host --name post-postgres -e POSTGRES_USER=post_user -e POSTGRES_PASSWORD=post_password postgres:17 -p 5433
+          docker run --detach --network host --name profile-postgres -e POSTGRES_USER=profile_user -e POSTGRES_PASSWORD=profile_password postgres:17 -p 5434
           
           docker run --detach --network host --name rabbitmq-container rabbitmq:3-management
           docker run --detach --network host --name redis-container redis:7-alpine
@@ -104,19 +104,19 @@ jobs:
           
           echo "Starting Auth Service..."
           docker run --detach --network host --name auth-app \
-            -e DATABASE_URL=postgresql+asyncpg://postgres:auth_password@127.0.0.1:5432/postgres \
+            -e DATABASE_URL=postgresql+asyncpg://auth_user:auth_password@127.0.0.1:5432/postgres \
             socialw/auth-service:latest uvicorn app.main:app --host 0.0.0.0 --port 8001
           
           echo "Starting Post Service..."
           docker run --detach --network host --name post-app \
-            -e DATABASE_URL=postgresql+asyncpg://postgres:post_password@127.0.0.1:5433/postgres \
+            -e DATABASE_URL=postgresql+asyncpg://post_user:post_password@127.0.0.1:5433/postgres \
             -e RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/ \
             --entrypoint sh socialw/post-service:latest \
             -c "python3 -c \"$WAIT_RABBIT\" && uvicorn app.main:app --host 0.0.0.0 --port 8002"
           
           echo "Starting Profile Service..."
           docker run --detach --network host --name profile-app \
-            -e DATABASE_URL=postgresql+asyncpg://postgres:profile_password@127.0.0.1:5434/postgres \
+            -e DATABASE_URL=postgresql+asyncpg://profile_user:profile_password@127.0.0.1:5434/postgres \
             -e RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/ \
             --entrypoint sh socialw/profile-service:latest \
             -c "python3 -c \"$WAIT_RABBIT\" && uvicorn app.main:app --host 0.0.0.0 --port 8003"
@@ -134,9 +134,9 @@ jobs:
           POST_SERVICE_URL: http://127.0.0.1:8002
           PROFILE_SERVICE_URL: http://127.0.0.1:8003
           # Тут тоже меняем на 127.0.0.1
-          AUTH_DB_URL: postgresql+asyncpg://postgres:auth_password@127.0.0.1:5432/postgres
-          POST_DB_URL: postgresql+asyncpg://postgres:post_password@127.0.0.1:5433/postgres
-          PROFILE_DB_URL: postgresql+asyncpg://postgres:profile_password@127.0.0.1:5434/postgres
+          AUTH_DB_URL: postgresql+asyncpg://auth_user:auth_password@127.0.0.1:5432/postgres
+          POST_DB_URL: postgresql+asyncpg://post_user:post_password@127.0.0.1:5433/postgres
+          PROFILE_DB_URL: postgresql+asyncpg://profile_user:profile_password@127.0.0.1:5434/postgres
           PYTHONPATH: .
         run: |
           uv venv
