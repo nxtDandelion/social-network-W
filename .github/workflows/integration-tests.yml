@@ -149,7 +149,7 @@ jobs:
             socialw/profile-service:latest
 
           echo "Waiting for Docker containers to start..."
-          sleep 20
+          sleep 180
 
 
       - name: Debug Container Logs
