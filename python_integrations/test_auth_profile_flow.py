@@ -7,8 +7,8 @@ from sqlalchemy import text
 
 AUTH_SERVICE_URL = "http://localhost:8001"
 PROFILE_SERVICE_URL = "http://localhost:8003"
-PROFILE_DB_URL = "postgresql+asyncpg://profile_user:profile_password@localhost:5434/profile_db"
-AUTH_DB_URL = "postgresql+asyncpg://auth_user:auth_password@localhost:5432/auth_db"
+PROFILE_DB_URL = os.getenv("PROFILE_DB_URL", "postgresql+asyncpg://profile_user:profile_password@localhost:5434/profile_db")
+AUTH_DB_URL = os.getenv("AUTH_DB_URL", "postgresql+asyncpg://auth_user:auth_password@localhost:5432/auth_db")
 
 @pytest.mark.asyncio
 async def test_user_registration_creates_profile():
