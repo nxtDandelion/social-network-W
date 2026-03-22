@@ -92,45 +92,49 @@ jobs:
       # 3. Запуск сервисов с проверкой путей
       - name: Run Services
         run: |
+          # Используем 127.0.0.1 вместо localhost для надежности сокетов
           WAIT_RABBIT="import socket, time; s = socket.socket(); 
-          while s.connect_ex(('localhost', 5672)) != 0: time.sleep(1)"
+          while s.connect_ex(('127.0.0.1', 5672)) != 0: time.sleep(1)"
           
           echo "Starting Auth Service..."
-          # Если main.py не найден в корне, пробуем запустить его из папки app
           docker run --detach --network host --name auth-app \
-            -e DATABASE_URL=postgresql+asyncpg://postgres:auth_password@localhost:5432/postgres \
-            socialw/auth-service:latest sh -c "python3 main.py || python3 app/main.py"
+          -e DATABASE_URL=postgresql+asyncpg://postgres:auth_password@127.0.0.1:5432/postgres \
+          socialw/auth-service:latest uvicorn app.main:app --host 0.0.0.0 --port 8001
           
           echo "Starting Post Service..."
           docker run --detach --network host --name post-app \
-            -e DATABASE_URL=postgresql+asyncpg://postgres:post_password@localhost:5433/postgres \
-            -e RABBITMQ_URL=amqp://guest:guest@localhost:5672/ \
-            --entrypoint sh socialw/post-service:latest \
-            -c "python3 -c \"$WAIT_RABBIT\" && (python3 main.py || python3 app/main.py)"
+          -e DATABASE_URL=postgresql+asyncpg://postgres:post_password@127.0.0.1:5433/postgres \
+          -e RABBITMQ_URL=amqp://guest:guest@127.0.0.1:5672/ \
+          -e RABBITMQ_HOST=127.0.0.1 \
+          -e RABBITMQ_PORT=5672 \
+          --entrypoint sh socialw/post-service:latest \
+          -c "python3 -c \"$WAIT_RABBIT\" && uvicorn app.main:app --host 0.0.0.0 --port 8002"
           
           echo "Starting Profile Service..."
           docker run --detach --network host --name profile-app \
-            -e DATABASE_URL=postgresql+asyncpg://postgres:profile_password@localhost:5434/postgres \
-            -e RABBITMQ_URL=amqp://guest:guest@localhost:5672/ \
-            --entrypoint sh socialw/profile-service:latest \
-            -c "python3 -c \"$WAIT_RABBIT\" && uvicorn app.main:app --host 0.0.0.0 --port 8003"
+          -e DATABASE_URL=postgresql+asyncpg://postgres:profile_password@127.0.0.1:5434/postgres \
+          -e RABBITMQ_URL=amqp://guest:guest@127.0.0.1:5672/ \
+          -e RABBITMQ_HOST=127.0.0.1 \
+          -e RABBITMQ_PORT=5672 \
+          --entrypoint sh socialw/profile-service:latest \
+          -c "python3 -c \"$WAIT_RABBIT\" && uvicorn app.main:app --host 0.0.0.0 --port 8003"
           
           echo "Warm up services..."
-          sleep 30
-
-      # 4. Тесты
+          sleep 20
+          
+          # 4. Тесты
       - name: Setup Python
         uses: astral-sh/setup-uv@v3
 
       - name: Run Integration Tests
         env:
-          AUTH_SERVICE_URL: http://localhost:8001
-          POST_SERVICE_URL: http://localhost:8002
-          PROFILE_SERVICE_URL: http://localhost:8003
-          # Параметры подключения для самих тестов (если они лезут в БД)
-          AUTH_DB_URL: postgresql+asyncpg://postgres:auth_password@localhost:5432/postgres
-          POST_DB_URL: postgresql+asyncpg://postgres:post_password@localhost:5433/postgres
-          PROFILE_DB_URL: postgresql+asyncpg://postgres:profile_password@localhost:5434/postgres
+          AUTH_SERVICE_URL: http://127.0.0.1:8001
+          POST_SERVICE_URL: http://127.0.0.1:8002
+          PROFILE_SERVICE_URL: http://127.0.0.1:8003
+          # Тут тоже меняем на 127.0.0.1
+          AUTH_DB_URL: postgresql+asyncpg://postgres:auth_password@127.0.0.1:5432/postgres
+          POST_DB_URL: postgresql+asyncpg://postgres:post_password@127.0.0.1:5433/postgres
+          PROFILE_DB_URL: postgresql+asyncpg://postgres:profile_password@127.0.0.1:5434/postgres
           PYTHONPATH: .
         run: |
           uv venv
