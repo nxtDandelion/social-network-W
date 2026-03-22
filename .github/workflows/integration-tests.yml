@@ -81,32 +81,44 @@ jobs:
           docker run --detach --network host --name redis redis:7-alpine
           sleep 10 # Базовое время на старт контейнеров
 
-      - name: Run Services
+      - name: Run Infrastructure
         run: |
+          # Запускаем БД, явно меняя внутренний порт Postgres через аргумент командной строки -p
+          docker run --detach --network host --name auth-db -e POSTGRES_PASSWORD=auth_password postgres:17 -p 5432
+          docker run --detach --network host --name post-db -e POSTGRES_PASSWORD=post_password postgres:17 -p 5433
+          docker run --detach --network host --name profile-db -e POSTGRES_PASSWORD=profile_password postgres:17 -p 5434
           
-          WAIT_SCRIPT="import socket, time; s = socket.socket(); 
-          while s.connect_ex(('localhost', 5672)) != 0: time.sleep(1)"
-          
-          echo "Starting Auth..."
-          docker run --detach --network host --name auth-app \
-            -e DATABASE_URL=postgresql+asyncpg://localhost:5432/auth_db \
-            socialw/auth-service:latest python3 main.py
-          
-          echo "Starting Post..."
-          docker run --detach --network host --name post-app \
-            -e DATABASE_URL=postgresql+asyncpg://localhost:5433/post_db \
-            -e RABBITMQ_URL=amqp://guest:guest@localhost:5672/ \
-            --entrypoint sh socialw/post-service:latest \
-            -c "python3 -c \"$WAIT_SCRIPT\" && python3 main.py"
-          
-          echo "Starting Profile..."
-          docker run --detach --network host --name profile-app \
-            -e DATABASE_URL=postgresql+asyncpg://localhost:5434/profile_db \
-            -e RABBITMQ_URL=amqp://guest:guest@localhost:5672/ \
-            --entrypoint sh socialw/profile-service:latest \
-            -c "python3 -c \"$WAIT_SCRIPT\" && uvicorn app.main:app --host 0.0.0.0 --port 8003"
-          
-          sleep 30 # Даем Spring/FastAPI прогрузиться
+          docker run --detach --network host --name rabbitmq rabbitmq:3-management
+          docker run --detach --network host --name redis redis:7-alpine
+          sleep 15 # Даем Postgres время создать сокеты на портах
+
+          - name: Run Services
+            run: |
+              # Скрипт ожидания (теперь проверяет и БД)
+              WAIT_RABBIT="import socket, time; s = socket.socket(); 
+              while s.connect_ex(('localhost', 5672)) != 0: time.sleep(1)"
+              
+              echo "Starting Auth..."
+              # Попробуем запустить через python3 -m, если main.py лежит внутри пакета
+              docker run --detach --network host --name auth-app \
+                -e DATABASE_URL=postgresql+asyncpg://postgres:auth_password@localhost:5432/postgres \
+                socialw/auth-service:latest python3 main.py || docker run --detach --network host --name auth-app socialw/auth-service:latest python3 -m app.main
+              
+              echo "Starting Post..."
+              docker run --detach --network host --name post-app \
+                -e DATABASE_URL=postgresql+asyncpg://postgres:post_password@localhost:5433/postgres \
+                -e RABBITMQ_URL=amqp://guest:guest@localhost:5672/ \
+                --entrypoint sh socialw/post-service:latest \
+                -c "python3 -c \"$WAIT_RABBIT\" && python3 main.py"
+              
+              echo "Starting Profile..."
+              docker run --detach --network host --name profile-app \
+                -e DATABASE_URL=postgresql+asyncpg://postgres:profile_password@localhost:5434/postgres \
+                -e RABBITMQ_URL=amqp://guest:guest@localhost:5672/ \
+                --entrypoint sh socialw/profile-service:latest \
+                -c "python3 -c \"$WAIT_RABBIT\" && uvicorn app.main:app --host 0.0.0.0 --port 8003"
+              
+              sleep 30
 
       # 4. Настройка Python для тестов
       - name: Setup Python
