@@ -149,9 +149,11 @@ jobs:
           RABBITMQ_URL: amqp://guest:guest@localhost:5672/
         run: |
           # Запускаем каждый сервис в фоновом режиме
-          DATABASE_URL=postgresql+asyncpg://auth_user:auth_password@localhost:5432/auth_db python "Auth Service/main.py" &
-          DATABASE_URL=postgresql+asyncpg://profile_user:profile_password@localhost:5434/profile_db python "Profile Service/main.py" &
-          DATABASE_URL=postgresql+asyncpg://post_user:post_password@localhost:5433/post_db python "Post Service/main.py" &
+          DATABASE_URL=postgresql+asyncpg://auth_user:auth_password@localhost:5432/auth_db python "Auth Service/app/main.py" &
+          cd "Profile Service" && \
+          DATABASE_URL=postgresql+asyncpg://profile_user:profile_password@localhost:5434/profile_db \
+          uvicorn app.main:app --host 0.0.0.0 --port 8003 > ../profile.log 2>&1 & cd ..
+          DATABASE_URL=postgresql+asyncpg://post_user:post_password@localhost:5433/post_db python "Post Service/app/main.py" &
           
           # Даем сервисам время на запуск
           sleep 60
