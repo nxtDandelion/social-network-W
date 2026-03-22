@@ -154,7 +154,7 @@ jobs:
           DATABASE_URL=postgresql+asyncpg://post_user:post_password@localhost:5433/post_db python "Post Service/main.py" &
           
           # Даем сервисам время на запуск
-          sleep 20
+          sleep 60
 
       - name: Run Integration Tests
         env:
