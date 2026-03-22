@@ -131,25 +131,31 @@ jobs:
 
       - name: Run Services from Docker Images
         run: |
-          # Запускаем контейнеры в фоновом режиме (--detach)
-          # Используем network host, чтобы контейнеры видели сервисы GitHub (localhost)
+          # Функция для ожидания порта (netcat 'nc' обычно есть в ubuntu-latest)
+          # Ожидаем RabbitMQ (5672) и базы (5432, 5433, 5434)
           
+          echo "Starting Auth Service..."
           docker run --detach --network host --name auth-app \
-            -e DATABASE_URL=postgresql+asyncpg://auth_user:auth_password@localhost:5432/auth_db \
-            socialw/auth-service:latest
-
+            -e DATABASE_URL=postgresql+asyncpg://localhost:5432/auth_db \
+            --entrypoint sh socialw/auth-service:latest \
+            -c "until nc -z localhost 5432; do echo 'Waiting for auth-db...'; sleep 10; done; python main.py"
+          
+          echo "Starting Post Service..."
           docker run --detach --network host --name post-app \
-            -e DATABASE_URL=postgresql+asyncpg://post_user:post_password@localhost:5433/post_db \
+            -e DATABASE_URL=postgresql+asyncpg://localhost:5433/post_db \
             -e RABBITMQ_URL=amqp://guest:guest@localhost:5672/ \
-            socialw/post-service:latest
-
+            --entrypoint sh socialw/post-service:latest \
+            -c "until nc -z localhost 5672; do echo 'Waiting for rabbitmq...'; sleep 10; done; python main.py"
+          
+          echo "Starting Profile Service..."
           docker run --detach --network host --name profile-app \
-            -e DATABASE_URL=postgresql+asyncpg://profile_user:profile_password@localhost:5434/profile_db \
+            -e DATABASE_URL=postgresql+asyncpg://localhost:5434/profile_db \
             -e RABBITMQ_URL=amqp://guest:guest@localhost:5672/ \
-            socialw/profile-service:latest
-
-          echo "Waiting for Docker containers to start..."
-          sleep 180
+            --entrypoint sh socialw/profile-service:latest \
+            -c "until nc -z localhost 5672; do echo 'Waiting for rabbitmq...'; sleep 10; done; uvicorn app.main:app --host 0.0.0.0 --port 8003"
+          
+          echo "All containers are starting. Giving them 20s to initialize internal logic..."
+          sleep 30
 
 
       - name: Debug Container Logs
