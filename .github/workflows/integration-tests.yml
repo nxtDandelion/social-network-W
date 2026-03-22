@@ -129,33 +129,51 @@ jobs:
 
       # --- Запуск сервисов из собранных образов ---
 
+      - name: Run Infrastructure Containers
+        run: |
+          # Запускаем RabbitMQ
+          docker run --detach --network host --name rabbitmq \
+          -e RABBITMQ_DEFAULT_USER=guest \
+          -e RABBITMQ_DEFAULT_PASS=guest \
+          rabbitmq:3-management
+          
+          # Запускаем базы (пример для одной, остальные аналогично)
+          docker run --detach --network host --name auth-db \
+          -e POSTGRES_USER=auth_user -e POSTGRES_PASSWORD=auth_password -e POSTGRES_DB=auth_db \
+          postgres:17
+          
+          # Даем базам пару секунд, чтобы просто начать процесс старта
+          sleep 5
+            
+            # --- Запуск сервисов с ожиданием ---
+
       - name: Run Services from Docker Images
         run: |
-          # Функция для ожидания порта (netcat 'nc' обычно есть в ubuntu-latest)
-          # Ожидаем RabbitMQ (5672) и базы (5432, 5433, 5434)
-          
-          echo "Starting Auth Service..."
-          docker run --detach --network host --name auth-app \
-            -e DATABASE_URL=postgresql+asyncpg://localhost:5432/auth_db \
-            --entrypoint sh socialw/auth-service:latest \
-            -c "until nc -z localhost 5432; do echo 'Waiting for auth-db...'; sleep 10; done; python main.py"
-          
-          echo "Starting Post Service..."
+          echo "Starting Post Service with wait for RabbitMQ..."
+          # Используем python-скрипт для ожидания, так как он точно есть в твоих образах
           docker run --detach --network host --name post-app \
             -e DATABASE_URL=postgresql+asyncpg://localhost:5433/post_db \
             -e RABBITMQ_URL=amqp://guest:guest@localhost:5672/ \
             --entrypoint sh socialw/post-service:latest \
-            -c "until nc -z localhost 5672; do echo 'Waiting for rabbitmq...'; sleep 10; done; python main.py"
+            -c "python3 -c 'import socket; import time; \
+                while True: \
+                    try: \
+                        with socket.create_connection((\"localhost\", 5672), timeout=1): break \
+                    except: time.sleep(1)' && python3 main.py"
           
           echo "Starting Profile Service..."
           docker run --detach --network host --name profile-app \
             -e DATABASE_URL=postgresql+asyncpg://localhost:5434/profile_db \
             -e RABBITMQ_URL=amqp://guest:guest@localhost:5672/ \
             --entrypoint sh socialw/profile-service:latest \
-            -c "until nc -z localhost 5672; do echo 'Waiting for rabbitmq...'; sleep 10; done; uvicorn app.main:app --host 0.0.0.0 --port 8003"
+            -c "python3 -c 'import socket; import time; \
+                while True: \
+                    try: \
+                        with socket.create_connection((\"localhost\", 5672), timeout=1): break \
+                    except: time.sleep(1)' && uvicorn app.main:app --host 0.0.0.0 --port 8003"
           
-          echo "All containers are starting. Giving them 20s to initialize internal logic..."
-          sleep 30
+          echo "Waiting for services to initialize..."
+          sleep 20
 
 
       - name: Debug Container Logs
