@@ -112,7 +112,6 @@ public class PostSearchIntegrationTest {
 
     private String postServiceBaseUrl;
 
-    // Генерация profile_id в формате UUID без дефисов, длина 32 символа (подходит для VARCHAR(32))
     private String generateProfileId() {
         return UUID.randomUUID().toString().replace("-", "");
     }
@@ -122,7 +121,6 @@ public class PostSearchIntegrationTest {
         postServiceBaseUrl = "http://" + postService.getHost() + ":" + postService.getMappedPort(8002);
         System.out.println("Post service base URL: " + postServiceBaseUrl);
 
-        // Проверяем, что post-service отвечает на корневой запрос
         await().atMost(10, TimeUnit.SECONDS).pollInterval(Duration.ofSeconds(1)).ignoreExceptions()
                 .untilAsserted(() -> {
                     ResponseEntity<String> response = restTemplate.getForEntity(postServiceBaseUrl + "/", String.class);
@@ -139,7 +137,6 @@ public class PostSearchIntegrationTest {
         System.out.println("Elasticsearch mapped port: " + elasticsearch.getMappedPort(9200));
         System.out.println("Redis mapped port: " + redis.getMappedPort(6379));
 
-        // Проверяем доступность Elasticsearch
         String esUri = "http://localhost:" + elasticsearch.getMappedPort(9200);
         await().atMost(30, TimeUnit.SECONDS).pollInterval(Duration.ofSeconds(1)).untilAsserted(() -> {
             RestTemplate template = new RestTemplate();
@@ -148,7 +145,6 @@ public class PostSearchIntegrationTest {
         });
         System.out.println("Elasticsearch is ready at " + esUri);
 
-        // Проверяем доступность Redis с многократными попытками, чтобы убедиться в стабильности
         await().atMost(15, TimeUnit.SECONDS).pollInterval(Duration.ofMillis(500)).untilAsserted(() -> {
             for (int i = 0; i < 3; i++) {
                 try (Jedis jedis = new Jedis(redis.getHost(), redis.getMappedPort(6379))) {
@@ -165,11 +161,8 @@ public class PostSearchIntegrationTest {
         registry.add("spring.elasticsearch.uris", () -> esUri);
         registry.add("spring.data.redis.host", redis::getHost);
         registry.add("spring.data.redis.port", () -> String.valueOf(redis.getMappedPort(6379)));
-        // При необходимости можно отключить кеширование Redis, если проблемы сохраняются:
-        // registry.add("spring.cache.type", () -> "none");
     }
 
-    // Загружаем JDBC-драйвер PostgreSQL
     static {
         try {
             Class.forName("org.postgresql.Driver");
@@ -178,11 +171,10 @@ public class PostSearchIntegrationTest {
         }
     }
 
-    // Создание профиля напрямую в базе данных postgres (чтобы избежать ForeignKeyViolation)
     private void createProfileInDb(String profileId) {
         String jdbcUrl = postgres.getJdbcUrl();
-        // Генерируем короткий username, не превышающий 24 символа
-        String username = "user_" + profileId.substring(0, 8); // длина = 5+8=13
+
+        String username = "user_" + profileId.substring(0, 8);
         String sql = "INSERT INTO profile (uuid, username) VALUES (?, ?) ON CONFLICT (uuid) DO NOTHING";
         try (Connection conn = DriverManager.getConnection(jdbcUrl, postgres.getUsername(), postgres.getPassword());
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -194,7 +186,6 @@ public class PostSearchIntegrationTest {
         }
     }
 
-    // Вспомогательные методы для работы с Post Service
     private ResponseEntity<String> createPost(String text, String profileId) {
         Map<String, Object> body = new HashMap<>();
         body.put("text", text);
@@ -223,7 +214,6 @@ public class PostSearchIntegrationTest {
         return com.jayway.jsonpath.JsonPath.parse(response.getBody()).read("$.id", Integer.class);
     }
 
-    // Тесты
     @Test
     void INT08_createPostIndexedInSearch() {
         System.out.println(">>> Running test: INT08_createPostIndexedInSearch");
@@ -323,14 +313,13 @@ public class PostSearchIntegrationTest {
     @Test
     void INT11_createPostWithNonExistingAuthor_Returns400_AndNoEvent() {
         System.out.println(">>> Running test: INT11_createPostWithNonExistingAuthor_Returns400_AndNoEvent");
-        String nonExistingProfileId = generateProfileId(); // генерируем в том же формате
-        // Не создаём профиль в БД, чтобы он отсутствовал
+        String nonExistingProfileId = generateProfileId();
+
         WireMock.stubFor(WireMock.get(WireMock.urlEqualTo("/profiles/" + nonExistingProfileId))
                 .willReturn(WireMock.aResponse().withStatus(404)));
 
         String uniqueWord = "nonexistent_" + UUID.randomUUID();
         ResponseEntity<String> createResponse = createPost(uniqueWord, nonExistingProfileId);
-        // Ожидаем 400, но сервис возвращает 500 из-за отсутствия проверки существования профиля
         assertThat(createResponse.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
 
         await().atMost(5, TimeUnit.SECONDS).pollInterval(Duration.ofSeconds(1))
@@ -354,8 +343,6 @@ public class PostSearchIntegrationTest {
         createProfileInDb(profileId);
 
         ResponseEntity<String> createResponse = createPost(longText, profileId);
-        // Сервис возвращает 500 из-за ошибки БД (превышение длины), по спецификации должно быть 400
-        // Пока проверяем на 500
         assertThat(createResponse.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
 
         await().atMost(5, TimeUnit.SECONDS).pollInterval(Duration.ofSeconds(1))
