@@ -162,9 +162,6 @@ jobs:
       - name: Start services with Docker Compose
         run: docker compose up -d
 
-      - name: Wait for services to be ready
-        run: sleep 60
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -172,7 +169,7 @@ jobs:
 
       - name: Install Playwright dependencies
         working-directory: e2e-tests
-        run: npm ci
+        run: npm install
 
       - name: Install Playwright browsers
         working-directory: e2e-tests
