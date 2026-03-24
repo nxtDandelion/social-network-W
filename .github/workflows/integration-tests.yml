@@ -34,7 +34,7 @@ jobs:
 
       - name: Run Gateway integration tests
         working-directory: Gateway
-        run: mvn clean test
+        run: mvn clean test -Pintegration
 
   search-integration:
     runs-on: ubuntu-latest
