@@ -8,7 +8,7 @@ RUN mvn dependency:go-offline -B
 
 COPY src ./src
 
-RUN mvn clean verify
+RUN mvn clean package -Punit
 
 FROM eclipse-temurin:21-alpine
 

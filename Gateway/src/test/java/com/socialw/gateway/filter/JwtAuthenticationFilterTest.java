@@ -3,6 +3,7 @@ package com.socialw.gateway.filter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.socialw.gateway.model.TokenVerificationResponse;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -36,6 +37,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+@Tag("unit")
 @ExtendWith(MockitoExtension.class)
 class JwtAuthenticationFilterTest {
 
