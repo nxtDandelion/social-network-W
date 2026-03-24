@@ -60,7 +60,7 @@ jobs:
 
       - name: Run Search integration tests
         working-directory: Search Service
-        run: mvn clean test
+        run: mvn clean test -Pintegration
 
   python-integration-tests:
     runs-on: ubuntu-latest
