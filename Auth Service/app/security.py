@@ -2,14 +2,13 @@ from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from . import crud, schemas
 import jwt
-from database import get_db
-import crud
+from .database import get_db
 from jwt import InvalidTokenError
 from datetime import datetime, timedelta
 from typing import Optional
 import os
-import schemas
 from dotenv import load_dotenv
 
 load_dotenv()

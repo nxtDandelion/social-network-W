@@ -1,8 +1,8 @@
 import logging
 import aio_pika
 import json
-from database import AsyncSessionLocal
-from handlers import handle_profile_update
+from .database import AsyncSessionLocal
+from .handlers import handle_profile_update
 
 class RabbitMqService:
     def __init__(self):
