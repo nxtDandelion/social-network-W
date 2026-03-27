@@ -52,12 +52,12 @@ docker compose up -d
 docker compose ps
 ```
 
-Сам сайт находится по адресу http://localhost:5173/
+Сам сайт находится по адресу http://localhost:80/
 
 # Команда
 
 - **Team Lead / Backend - Станислав Кашмак**
-- **Backend / DevOps - Андрей Джичко**
-- **Backend - Максим Кончев**
-- **Backend - Кира Крючкова**
-- **Frontend - Алексей Муратов**
+- **Backend / DevOps - Андрей Джичко** - dzhichko
+- **Backend - Максим Кончев** - mkonchev
+- **Backend - Кира Крючкова** - KiraGelaz
+- **Frontend - Алексей Муратов** - GUGIguh
