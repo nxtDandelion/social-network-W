@@ -1,0 +1,37 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  # Gateway – dns_sd_configs для обнаружения всех реплик
+  - job_name: 'gateway'
+    metrics_path: '/actuator/prometheus'
+    dns_sd_configs:
+      - names: ['gateway']
+        type: 'A'
+        port: 8000
+
+  # Post Service (FastAPI)
+  - job_name: 'post-service'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['post-service:8002']
+
+  # RabbitMQ Exporter
+  - job_name: 'rabbitmq-exporter'
+    static_configs:
+      - targets: ['rabbitmq-exporter:9419']
+
+  - job_name: 'profile-service'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: [ 'profile-service:8003' ]
+
+  - job_name: 'search-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: [ 'search-service:8004' ]
+
+  - job_name: 'auth-service'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: [ 'auth-service:8001' ]

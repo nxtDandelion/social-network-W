@@ -3,7 +3,8 @@ import aio_pika
 import json
 from datetime import datetime
 from typing import Dict, Any
-
+from opentelemetry import trace
+from opentelemetry.propagate import inject
 
 class RabbitMQService:
     def __init__(self):
@@ -15,6 +16,9 @@ class RabbitMQService:
         self.post_commands_queue = None
         self.profile_events_exchange = None
         self.post_profile_events_queue = None
+        # Новые атрибуты для DLX
+        self.dlx_exchange = None
+        self.dead_letters_queue = None
 
     async def connect(self):
         try:
@@ -26,6 +30,23 @@ class RabbitMQService:
                 virtualhost='/',
             )
             self.channel = await self.connection.channel()
+
+            # Dead Letter Exchange и очередь
+            self.dlx_exchange = await self.channel.declare_exchange(
+                'dlx',
+                aio_pika.ExchangeType.DIRECT,
+                durable=True
+            )
+            self.dead_letters_queue = await self.channel.declare_queue(
+                'dead.letters',
+                durable=True
+            )
+            await self.dead_letters_queue.bind(
+                self.dlx_exchange,
+                routing_key='dead'
+            )
+
+            # Основные обменники
             self.user_events_exchange = await self.channel.declare_exchange(
                 'user_events',
                 aio_pika.ExchangeType.FANOUT,
@@ -41,24 +62,36 @@ class RabbitMQService:
                 aio_pika.ExchangeType.FANOUT,
                 durable=True
             )
+
+            # Очереди потребителей с DLX
             self.post_commands_queue = await self.channel.declare_queue(
                 'post_commands_queue',
-                durable=True
+                durable=True,
+                arguments={
+                    'x-dead-letter-exchange': 'dlx',
+                    'x-dead-letter-routing-key': 'dead'
+                }
             )
             await self.post_commands_queue.bind(
                 self.user_events_exchange,
                 routing_key='user_registered'
             )
+
             self.post_profile_events_queue = await self.channel.declare_queue(
                 'post_profile_events_queue',
-                durable=True
+                durable=True,
+                arguments={
+                    'x-dead-letter-exchange': 'dlx',
+                    'x-dead-letter-routing-key': 'dead'
+                }
             )
             await self.post_profile_events_queue.bind(
                 self.profile_events_exchange,
                 routing_key=''
             )
+
             self.is_connected = True
-            logging.info("Connected to RabbitMQ")
+            logging.info("Connected to RabbitMQ (DLX enabled)")
 
         except Exception as e:
             logging.error(f"Failed to connect to RabbitMQ: {e}")
@@ -74,9 +107,7 @@ class RabbitMQService:
                     body = message.body.decode()
                     data = json.loads(body)
                     event_type = message.headers.get('event')
-
                     await callback(event_type, data)
-
                 except Exception as e:
                     logging.error(f"Error processing user event: {e}")
                     await message.reject(requeue=False)
@@ -98,6 +129,7 @@ class RabbitMQService:
                 except Exception as e:
                     logging.error(f"Error processing profile event: {e}")
                     await message.reject(requeue=False)
+
         await self.post_profile_events_queue.consume(message_wrapper)
         logging.info("Started consuming events from profile_events")
 
@@ -135,30 +167,37 @@ class RabbitMQService:
         if not self.is_connected:
             raise RuntimeError("Not connected to RabbitMQ")
 
-        try:
-            message_data = {
-                "event_type": event_type,
-                "timestamp": datetime.now().isoformat(),
-                **data
-            }
+        tracer = trace.get_tracer(__name__)
+        with tracer.start_as_current_span(f"send {event_type}") as span:
+            try:
+                message_data = {
+                    "event_type": event_type,
+                    "timestamp": datetime.now().isoformat(),
+                    **data
+                }
 
-            message = aio_pika.Message(
-                body=json.dumps(message_data).encode(),
-                delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
-                content_type='application/json',
-                headers={'event': event_type}
-            )
+                headers = {'event': event_type}
+                inject(headers)   # добавляет traceparent
 
-            await self.post_events_exchange.publish(message, routing_key='')
-            logging.info(f"Sent {event_type} event, data = {message.body}")
+                message = aio_pika.Message(
+                    body=json.dumps(message_data).encode(),
+                    delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
+                    content_type='application/json',
+                    headers=headers
+                )
 
-        except Exception as e:
-            logging.error(f"Failed to send {event_type} message: {e}")
-            raise
+                await self.post_events_exchange.publish(message, routing_key='')
+                logging.info(f"Sent {event_type} event, data = {message.body}")
+
+            except Exception as e:
+                logging.error(f"Failed to send {event_type} message: {e}")
+                span.record_exception(e)
+                raise
 
     async def close(self):
         if self.connection:
             await self.connection.close()
+
 
 rabbitmq_service = RabbitMQService()
 

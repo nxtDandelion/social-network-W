@@ -1,8 +1,9 @@
 from sqlalchemy import Column, Integer, JSON, VARCHAR, \
-    LargeBinary, DateTime, Boolean, ForeignKey
+    LargeBinary, DateTime, Boolean, ForeignKey, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
+import uuid
 
 Base = declarative_base()
 
@@ -69,3 +70,14 @@ class Post(Base):
     
     profile = relationship("Profile", back_populates="posts")
     comments = relationship("Comment", back_populates="post")
+
+class Outbox(Base):
+    __tablename__ = "outbox"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    message_id = Column(String(36), unique=True, nullable=False, default=lambda: str(uuid.uuid4()))
+    aggregate_id = Column(String(255), nullable=False)   # ID поста
+    event_type = Column(String(100), nullable=False)
+    payload = Column(JSON, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    status = Column(String(20), default='PENDING')

@@ -22,7 +22,7 @@ services:
       POSTGRES_USER: auth_user
       POSTGRES_PASSWORD: auth_password
     ports:
-      - "5432:5432"
+      - "5435:5432"
     volumes:
       - auth_db_data:/var/lib/postgresql/data
     networks:
@@ -214,6 +214,68 @@ services:
     restart: unless-stopped
     init: true  # Добавляем init для задержки
 
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+    networks:
+      - social-network
+    restart: unless-stopped
+
+  rabbitmq-exporter:
+    image: kbudde/rabbitmq-exporter:latest
+    container_name: rabbitmq-exporter
+    environment:
+      - RABBIT_URL=http://rabbitmq:15672
+      - RABBIT_USER=guest
+      - RABBIT_PASSWORD=guest
+      - PUBLISH_PORT=9419
+    ports:
+      - "9419:9419"
+    depends_on:
+      - rabbitmq
+    networks:
+      - social-network
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - social-network
+    restart: unless-stopped
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.53.0 # Рекомендую зафиксировать версию для надежности
+    container_name: jaeger
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+      - QUERY_UI_CONFIG=/etc/jaeger/ui-config.json # Говорим Jaeger, где искать конфигурацию
+    ports:
+      - "16686:16686"   # UI
+      - "4317:4317"     # OTLP gRPC
+      - "4318:4318"     # OTLP HTTP
+    volumes:
+      - ./jaeger/ui-config.json:/etc/jaeger/ui-config.json # Монтируем наш файл в контейнер
+    networks:
+      - social-network
+    restart: unless-stopped
+
 volumes:
   auth_db_data:
   post_db_data:
@@ -221,6 +283,8 @@ volumes:
   elasticsearch_data:
   redis_data:
   rabbitmq_data:
+  prometheus_data:
+  grafana_data:
 
 networks:
   social-network:

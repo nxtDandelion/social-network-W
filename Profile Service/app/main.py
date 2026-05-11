@@ -7,6 +7,7 @@ from app.api.follow import router as follow_router
 from app.database.database import engine, Base, get_db
 from app.rabbitmq.rabbitmq import rabbitmq_service, connect_rabbitmq
 from app.rabbitmq.handlers import handle_user_events, handle_post_events
+from prometheus_fastapi_instrumentator import Instrumentator
 
 
 @asynccontextmanager
@@ -33,6 +34,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Profile Service", lifespan=lifespan)
+
+Instrumentator().instrument(app).expose(app)
 
 app.include_router(profile_router)
 app.include_router(follow_router)

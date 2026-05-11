@@ -4,6 +4,7 @@ from sqlalchemy.orm.attributes import flag_modified
 from typing import List, Optional
 from . import models, schemas
 import logging
+import uuid
 
 async def create_profile(db: AsyncSession, profile: schemas.ProfileCreate):
     db_profile = models.Profile(
@@ -332,3 +333,41 @@ async def unlike_comment(db: AsyncSession, comment_id: int, profile_id: str):
         await db.commit()
         await db.refresh(comment)
     return comment
+
+async def create_post(db: AsyncSession, post: schemas.PostCreate, profile_id: str):
+    # 1. Создаём пост и сразу получаем id (без коммита)
+    db_post = models.Post(
+        text=post.text,
+        profile_id=profile_id,
+        likes_amount=0,
+        edited=False,
+        likers=[]
+    )
+    db.add(db_post)
+    await db.flush()  # генерирует db_post.id, но транзакция открыта
+
+    # 2. Формируем данные для события
+    payload = {
+        "id": db_post.id,
+        "text": db_post.text,
+        "profile_id": db_post.profile_id,
+        "likes_amount": db_post.likes_amount,
+        "create_date": db_post.create_date.isoformat(),
+        "edited": db_post.edited,
+        "likers": db_post.likers or [],
+    }
+
+    # 3. Создаём запись Outbox в той же транзакции
+    outbox_entry = models.Outbox(
+        message_id=str(uuid.uuid4()),
+        aggregate_id=str(db_post.id),
+        event_type='post_created',
+        payload=payload,
+        status='PENDING'
+    )
+    db.add(outbox_entry)
+
+    # 4. Атомарный коммит – пост и outbox сохраняются вместе
+    await db.commit()
+    await db.refresh(db_post)
+    return db_post

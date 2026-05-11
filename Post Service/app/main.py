@@ -1,22 +1,48 @@
+# ======================== Импорты базовые ========================
 from fastapi import FastAPI, Depends, HTTPException, status
-from .rabbitmq import rabbitmq_service, connect_rabbitmq
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from contextlib import asynccontextmanager
 from typing import List
 from .database import get_db, engine
 from . import models, schemas, crud, handlers
+from .rabbitmq import rabbitmq_service, connect_rabbitmq
+from .outbox_processor import start_outbox_processor
 import uvicorn
 import logging
 from pydantic import BaseModel
+from prometheus_fastapi_instrumentator import Instrumentator
 
+# ======================== OpenTelemetry ========================
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.semconv.resource import ResourceAttributes
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+
+resource = Resource.create({ResourceAttributes.SERVICE_NAME: "post-service"})
+provider = TracerProvider(resource=resource)
+otlp_exporter = OTLPSpanExporter(endpoint="http://jaeger:4318/v1/traces")
+provider.add_span_processor(BatchSpanProcessor(otlp_exporter))
+# Для отладки можно добавить консольный экспортёр:
+# from opentelemetry.sdk.trace.export import ConsoleSpanExporter
+# provider.add_span_processor(BatchSpanProcessor(ConsoleSpanExporter()))
+
+trace.set_tracer_provider(provider)
+
+# ======================== Lifespan ========================
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logging.info(f"Starting Post Service...")
+    logging.info("Starting Post Service...")
     await connect_rabbitmq()
     async with engine.begin() as conn:
         await conn.run_sync(models.Base.metadata.create_all)
-    logging.info(f"Database tables created/verified")
+    logging.info("Database tables created/verified")
+
+    await start_outbox_processor()
+    logging.info("Outbox processor started")
 
     async def callback_with_db(event_type: str, event_data: dict):
         try:
@@ -26,23 +52,29 @@ async def lifespan(app: FastAPI):
                 logging.info(f"Successfully processed event: {event_type}")
         except Exception as e:
             logging.error(f"Error in callback_with_db: {e}")
+
     await rabbitmq_service.start_consuming_events(callback_with_db)
     await rabbitmq_service.start_consuming_profile_events(callback_with_db)
-    logging.info(f"RabbitMQ consumer started successfully")
+    logging.info("RabbitMQ consumer started successfully")
+
     yield
+
     await engine.dispose()
     await rabbitmq_service.close()
-    logging.info(f"Post Service shutdown complete")
+    logging.info("Post Service shutdown complete")
 
+# ======================== Создание приложения ========================
 app = FastAPI(title="Post Service", lifespan=lifespan)
 
-logging.basicConfig(
-    level=logging.INFO,
-    handlers=[
-        logging.StreamHandler()
-    ]
-)
+# Инструментируем FastAPI (автоматические спаны на все запросы)
+FastAPIInstrumentor().instrument_app(app)
 
+# Prometheus метрики
+Instrumentator().instrument(app).expose(app)
+
+logging.basicConfig(level=logging.INFO, handlers=[logging.StreamHandler()])
+
+# ======================== Вспомогательные модели ========================
 class PostCreateWithProfile(schemas.PostCreate):
     profile_id: str
 
@@ -58,6 +90,7 @@ class CommentUpdateWithProfile(schemas.CommentUpdate):
 class PostUpdateWithProfile(schemas.PostUpdate):
     profile_id: str
 
+# ... все эндпоинты (create_profile, update_profile, delete_profile, ...) без изменений
 async def create_profile(profile: schemas.ProfileCreate, db: AsyncSession = Depends(get_db)):
     logging.info(f"Creating profile")
     return await crud.create_profile(db, profile)
@@ -91,19 +124,9 @@ async def unfollow_profile(follower_uuid: str, followed_uuid: str, db: AsyncSess
 @app.post("/", response_model=schemas.Post)
 async def create_post(post: PostCreateWithProfile, db: AsyncSession = Depends(get_db)):
     try:
-        post = await crud.create_post(db, post, post.profile_id)
-        post_data = {
-            "id": post.id,
-            "text": post.text,
-            "profile_id": post.profile_id,
-            "likes_amount": post.likes_amount,
-            "create_date": post.create_date.isoformat(),
-            "edited" : post.edited,
-            "likers": post.likers or [],
-        }
-        logging.info(f"Post created successfully: {post_data}")
-        await rabbitmq_service.send_post_created(post_data)
-        return post
+        created_post = await crud.create_post(db, post, post.profile_id)
+        logging.info(f"Post created successfully, outbox event stored")
+        return created_post
     except Exception as e:
         logging.error(f"Error in create_post: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")

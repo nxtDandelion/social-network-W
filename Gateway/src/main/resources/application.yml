@@ -31,6 +31,17 @@ spring:
             - Path=/auth/**
           filters:
             - StripPrefix=1
+            - name: CircuitBreaker
+              args:
+                name: auth-service
+                fallbackUri: forward:/fallback/auth
+                statusCodes:
+                  - 500
+                  - 502
+                  - 503
+                  - 504
+                exceptionTypes:
+                  - java.lang.Exception
 
         - id: post-service
           uri: ${GATEWAY_POST_URL:http://post-service:8002}
@@ -38,6 +49,17 @@ spring:
             - Path=/post/**
           filters:
             - StripPrefix=1
+            - name: CircuitBreaker
+              args:
+                name: post-service
+                fallbackUri: forward:/fallback/posts
+                statusCodes:
+                  - 500
+                  - 502
+                  - 503
+                  - 504
+                exceptionTypes:
+                  - java.lang.Exception
 
         - id: profile-service
           uri: ${GATEWAY_PROFILE_URL:http://profile-service:8003}
@@ -45,6 +67,17 @@ spring:
             - Path=/profile/**
           filters:
             - StripPrefix=1
+            - name: CircuitBreaker
+              args:
+                name: profile-service
+                fallbackUri: forward:/fallback/profiles
+                statusCodes:
+                  - 500
+                  - 502
+                  - 503
+                  - 504
+                exceptionTypes:
+                  - java.lang.Exception
 
         - id: search-service
           uri: ${GATEWAY_SEARCH_URL:http://search-service:8004}
@@ -52,18 +85,71 @@ spring:
             - Path=/search/**
           filters:
             - StripPrefix=1
+            - name: CircuitBreaker
+              args:
+                name: search-service
+                fallbackUri: forward:/fallback/search
+                statusCodes:
+                  - 500
+                  - 502
+                  - 503
+                  - 504
+                exceptionTypes:
+                  - java.lang.Exception
+
+# НАСТРОЙКИ RESILIENCE4J – экземпляры для каждого сервиса
+resilience4j.circuitbreaker:
+  instances:
+    post-service:
+      slidingWindowSize: 10
+      failureRateThreshold: 50
+      waitDurationInOpenState: 10s
+      permittedNumberOfCallsInHalfOpenState: 3
+    auth-service:
+      slidingWindowSize: 10
+      failureRateThreshold: 50
+      waitDurationInOpenState: 10s
+      permittedNumberOfCallsInHalfOpenState: 3
+    profile-service:
+      slidingWindowSize: 10
+      failureRateThreshold: 50
+      waitDurationInOpenState: 10s
+      permittedNumberOfCallsInHalfOpenState: 3
+    search-service:
+      slidingWindowSize: 10
+      failureRateThreshold: 50
+      waitDurationInOpenState: 10s
+      permittedNumberOfCallsInHalfOpenState: 3
+
+resilience4j.timelimiter:
+  instances:
+    post-service:
+      timeoutDuration: 5s
+    auth-service:
+      timeoutDuration: 5s
+    profile-service:
+      timeoutDuration: 5s
+    search-service:
+      timeoutDuration: 5s
 
 management:
   endpoints:
     web:
       exposure:
-        include: health
+        include: health, prometheus
   endpoint:
     health:
       show-details: always
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: http://jaeger:4318/v1/traces
 
 logging:
   level:
     com.socialw.gateway: INFO
-    org.springframework.cloud.gateway: DEBUG
-    com.socialw.gateway.filter.JwtAuthenticationFilter: DEBUG
+    org.springframework.cloud.gateway: INFO
+    com.socialw.gateway.filter.JwtAuthenticationFilter: INFO
+    io.github.resilience4j: DEBUG

@@ -4,6 +4,7 @@ from sqlalchemy import text
 from .database import get_db, wait_for_db, engine
 from contextlib import asynccontextmanager
 from . import schemas, models, handlers, security, crud, rabbitmq
+from prometheus_fastapi_instrumentator import Instrumentator
 
 
 @asynccontextmanager
@@ -23,6 +24,8 @@ async def lifespan(app: FastAPI):
     await rabbitmq.rabbitmq_service.close()
 
 app = FastAPI(title="Auth Service", lifespan=lifespan)
+
+Instrumentator().instrument(app).expose(app)
 
 @app.get("/")
 async def root():
