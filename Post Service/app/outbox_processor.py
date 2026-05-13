@@ -16,23 +16,6 @@ outbox_lag = Histogram(
     buckets=(0.1, 0.5, 1, 2, 5, 10, 30, 60, 120, 300, 600)
 )
 
-async def send_one(entry):
-    """Отправляет одно событие и обновляет статус."""
-    try:
-        await rabbitmq_service.send_post_event(
-            event_type=entry.event_type,
-            data=entry.payload
-        )
-        entry.status = 'SENT'
-        now = datetime.now(timezone.utc)
-        if entry.created_at:
-            # created_at уже timezone-aware (UTC)
-            lag = (now - entry.created_at).total_seconds()
-            outbox_lag.observe(lag)
-        logger.info(f"Outbox message {entry.message_id} sent")
-    except Exception as e:
-        logger.error(f"Failed to send outbox message {entry.message_id}: {e}")
-
 async def process_outbox():
     while True:
         try:
@@ -41,9 +24,23 @@ async def process_outbox():
                 result = await session.execute(stmt)
                 entries = result.scalars().all()
 
+                for entry in entries:
+                    try:
+                        await rabbitmq_service.send_post_event(
+                            event_type=entry.event_type,
+                            data=entry.payload
+                        )
+                        entry.status = 'SENT'
+                        # Вычисляем задержку
+                        now = datetime.now(timezone.utc)
+                        if entry.created_at:
+                            # entry.created_at уже timezone-aware (UTC)
+                            lag = (now - entry.created_at).total_seconds()
+                            outbox_lag.observe(lag)
+                        logger.info(f"Outbox message {entry.message_id} sent")
+                    except Exception as e:
+                        logger.error(f"Failed to send outbox message {entry.message_id}: {e}")
                 if entries:
-                    tasks = [send_one(entry) for entry in entries]
-                    await asyncio.gather(*tasks, return_exceptions=True)
                     await session.commit()
         except Exception as e:
             logger.error(f"Outbox processor error: {e}")
