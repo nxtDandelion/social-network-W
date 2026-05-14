@@ -8,6 +8,18 @@ from app.database.database import engine, Base, get_db
 from app.rabbitmq.rabbitmq import rabbitmq_service, connect_rabbitmq
 from app.rabbitmq.handlers import handle_user_events, handle_post_events
 from prometheus_fastapi_instrumentator import Instrumentator
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.semconv.resource import ResourceAttributes
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+
+resource = Resource.create({ResourceAttributes.SERVICE_NAME: "profile-service"})
+provider = TracerProvider(resource=resource)
+exporter = OTLPSpanExporter(endpoint="http://jaeger:4318/v1/traces")
+provider.add_span_processor(BatchSpanProcessor(exporter))
+trace.set_tracer_provider(provider)
 
 
 @asynccontextmanager

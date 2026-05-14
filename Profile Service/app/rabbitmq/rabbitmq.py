@@ -4,6 +4,8 @@ import aio_pika
 import json
 from datetime import datetime
 from typing import Dict, Any
+from opentelemetry.propagate import extract
+from opentelemetry import trace
 
 
 class RabbitMQService:
@@ -77,43 +79,64 @@ class RabbitMQService:
         if not self.is_connected:
             raise RuntimeError("Not connected to RabbitMQ")
 
+        tracer = trace.get_tracer(__name__)
+
         async def message_wrapper(message: aio_pika.IncomingMessage):
-            async with message.process():
-                try:
-                    body = message.body.decode()
-                    data = json.loads(body)
-                    event_type = message.headers.get('event')
-
-                    logging.info(f"Received user event: {event_type}")
-                    await callback(event_type, data)
-
-                except Exception as e:
-                    logging.error(f"Error processing user event: {e}")
-                    await message.reject(requeue=False)
+            # Извлекаем контекст из заголовков
+            ctx = extract(message.headers)
+            with tracer.start_as_current_span(
+                "handle user event",
+                context=ctx,
+                kind=trace.SpanKind.CONSUMER
+            ) as span:
+                span.set_attribute("messaging.system", "rabbitmq")
+                span.set_attribute("messaging.operation", "receive")
+                span.set_attribute("event_type", message.headers.get('event', 'unknown'))
+                async with message.process():
+                    try:
+                        body = message.body.decode()
+                        data = json.loads(body)
+                        event_type = message.headers.get('event')
+                        logging.info(f"Received user event: {event_type}")
+                        await callback(event_type, data)
+                    except Exception as e:
+                        logging.error(f"Error processing user event: {e}")
+                        span.record_exception(e)
+                        await message.reject(requeue=False)
 
         await self.profile_user_events_queue.consume(message_wrapper)
-        logging.info("Started consuming user events from Auth Service")
+        logging.info("Started consuming user events from Auth Service (traced)")
 
     async def start_consuming_post_events(self, callback):
         if not self.is_connected:
             raise RuntimeError("Not connected to RabbitMQ")
 
+        tracer = trace.get_tracer(__name__)
+
         async def message_wrapper(message: aio_pika.IncomingMessage):
-            async with message.process():
-                try:
-                    body = message.body.decode()
-                    data = json.loads(body)
-                    event_type = message.headers.get('event')
-
-                    logging.info(f"Received post event: {event_type}")
-                    await callback(event_type, data)
-
-                except Exception as e:
-                    logging.error(f"Error processing post event: {e}")
-                    await message.reject(requeue=False)
+            ctx = extract(message.headers)
+            with tracer.start_as_current_span(
+                "handle post event",
+                context=ctx,
+                kind=trace.SpanKind.CONSUMER
+            ) as span:
+                span.set_attribute("messaging.system", "rabbitmq")
+                span.set_attribute("messaging.operation", "receive")
+                span.set_attribute("event_type", message.headers.get('event', 'unknown'))
+                async with message.process():
+                    try:
+                        body = message.body.decode()
+                        data = json.loads(body)
+                        event_type = message.headers.get('event')
+                        logging.info(f"Received post event: {event_type}")
+                        await callback(event_type, data)
+                    except Exception as e:
+                        logging.error(f"Error processing post event: {e}")
+                        span.record_exception(e)
+                        await message.reject(requeue=False)
 
         await self.profile_post_events_queue.consume(message_wrapper)
-        logging.info("Started consuming post events from Post Service")
+        logging.info("Started consuming post events from Post Service (traced)")
 
     async def send_profile_updated(self, profile_data: Dict[str, Any]):
         if not self.is_connected:

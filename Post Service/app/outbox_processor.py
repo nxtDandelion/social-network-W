@@ -31,10 +31,8 @@ async def process_outbox():
                             data=entry.payload
                         )
                         entry.status = 'SENT'
-                        # Вычисляем задержку
                         now = datetime.now(timezone.utc)
                         if entry.created_at:
-                            # entry.created_at уже timezone-aware (UTC)
                             lag = (now - entry.created_at).total_seconds()
                             outbox_lag.observe(lag)
                         logger.info(f"Outbox message {entry.message_id} sent")
