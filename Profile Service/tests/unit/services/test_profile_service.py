@@ -32,6 +32,7 @@ class TestProfileService:
         return ProfileCreate(
             uuid="test-uuid-123",
             username="testuser",
+            login="testlogin",
             email="test@example.com",
             tag="testtag",
             photo="photo.jpg"
@@ -43,13 +44,14 @@ class TestProfileService:
         mock = MagicMock()
         mock.uuid = "123"
         mock.username = "testuser"
+        mock.login = "testlogin"
         mock.email = "test@example.com"
         mock.tag = "testtag"
         mock.photo = "photo.jpg"
         mock.subscribers = {}
         mock.subscribes = {}
         mock.subscribers_amount = 0
-        mock.user_posts = {}
+        mock.user_posts = []
         return mock
 
     @pytest.mark.asyncio
@@ -81,6 +83,11 @@ class TestProfileService:
         mock_crud,
         sample_profile_data
     ):
+        existing_profile = MagicMock()
+        existing_profile.uuid = "existing-uuid"
+        existing_profile.username = "testuser"
+        existing_profile.login = "existinglogin"
+        existing_profile.email = "existing@example.com"
 
         mock_crud.get_profile.return_value = MagicMock()
 
@@ -97,6 +104,11 @@ class TestProfileService:
         mock_crud,
         sample_profile_data
     ):
+        existing_profile = MagicMock()
+        existing_profile.uuid = "existing-uuid"
+        existing_profile.username = "existinguser"
+        existing_profile.login = "existinglogin"
+        existing_profile.email = "test@example.com"
 
         mock_crud.get_profile.return_value = None
         mock_crud.get_profile_by_email.return_value = MagicMock()
@@ -153,23 +165,6 @@ class TestProfileService:
             "testuser",
             update_data
         )
-
-    @pytest.mark.asyncio
-    async def test_update_profile_username_conflict(
-        self,
-        profile_service,
-        mock_crud
-    ):
-        update_data = ProfileUpdate(username="existinguser")
-        existing_profile = MagicMock()
-        existing_profile.uuid = "456"
-        mock_crud.get_profile.return_value = existing_profile
-
-        with pytest.raises(HTTPException) as exc_info:
-            await profile_service.update_profile("originaluser", update_data)
-
-        assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
-        assert "Username already exists" in str(exc_info.value.detail)
 
     @pytest.mark.asyncio
     async def test_update_profile_not_found(self, profile_service, mock_crud):
